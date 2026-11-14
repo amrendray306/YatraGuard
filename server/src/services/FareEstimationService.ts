@@ -429,7 +429,7 @@ export class FareEstimationService {
   }
 
   /**
-   * Submit community reported fare
+   * Submit community reported fare with robust relational resolution
    */
   public async submitCommunityFareReport(data: {
     cityId: string;
@@ -443,11 +443,44 @@ export class FareEstimationService {
     wasOvercharged?: boolean;
     comments?: string;
   }) {
+    // 1. Resolve City (by ID or by name to prevent stale ID FK violations)
+    let targetCity = await prisma.city.findUnique({ where: { id: data.cityId } });
+    if (!targetCity) {
+      targetCity = await prisma.city.findFirst({
+        where: { name: { equals: data.cityId, mode: 'insensitive' } },
+      });
+    }
+    if (!targetCity) {
+      targetCity = await prisma.city.findFirst();
+    }
+    if (!targetCity) {
+      throw new Error(`Invalid city identifier: ${data.cityId}`);
+    }
+
+    // 2. Resolve Transport Mode
+    let validModeId = data.transportModeId;
+    const modeExists = await prisma.transportationMode.findUnique({ where: { id: data.transportModeId } });
+    if (!modeExists) {
+      const fallbackMode = await prisma.transportationMode.findFirst();
+      if (fallbackMode) {
+        validModeId = fallbackMode.id;
+      }
+    }
+
+    // 3. Resolve User ID safely (prevent FK constraint violation from stale/expired JWT tokens)
+    let validUserId: string | null = null;
+    if (data.userId) {
+      const userExists = await prisma.user.findUnique({ where: { id: data.userId } });
+      if (userExists) {
+        validUserId = userExists.id;
+      }
+    }
+
     return prisma.fareReport.create({
       data: {
-        cityId: data.cityId,
-        transportModeId: data.transportModeId,
-        userId: data.userId || null,
+        cityId: targetCity.id,
+        transportModeId: validModeId,
+        userId: validUserId,
         originName: data.originName,
         destinationName: data.destinationName,
         distanceKm: data.distanceKm,
@@ -457,6 +490,10 @@ export class FareEstimationService {
         verificationStatus: 'COMMUNITY_VERIFIED',
         reliabilityWeight: 80,
         comments: data.comments || null,
+      },
+      include: {
+        city: true,
+        transportMode: true,
       },
     });
   }

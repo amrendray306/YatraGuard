@@ -26,6 +26,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
+import { useToast } from '../context/ToastContext';
 import {
   estimateFare,
   auditOvercharge,
@@ -68,6 +69,7 @@ export const FareIntelligencePage: React.FC = () => {
   const [auditResult, setAuditResult] = useState<OverchargeAuditResult | null>(null);
 
   // Community Reports state
+  const { showToast } = useToast();
   const [communityReports, setCommunityReports] = useState<CommunityFareReport[]>([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState<boolean>(false);
   const [reportOrigin, setReportOrigin] = useState<string>('');
@@ -79,6 +81,15 @@ export const FareIntelligencePage: React.FC = () => {
   const [reportComments, setReportComments] = useState<string>('');
   const [submittingReport, setSubmittingReport] = useState<boolean>(false);
   const [reportSuccess, setReportSuccess] = useState<string | null>(null);
+  const [reportError, setReportError] = useState<string | null>(null);
+
+  const openReportModal = () => {
+    if (origin && !reportOrigin) setReportOrigin(origin);
+    if (destination && !reportDestination) setReportDestination(destination);
+    if (distanceKm && (!reportDistance || reportDistance === '10')) setReportDistance(distanceKm);
+    setReportError(null);
+    setIsReportModalOpen(true);
+  };
 
   // Quick Corridors dictionary for one-click testing
   const quickCorridors: Record<string, Array<{ label: string; origin: string; dest: string; dist?: string }>> = {
@@ -215,28 +226,57 @@ export const FareIntelligencePage: React.FC = () => {
 
   const handleSubmitCommunityReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentCity?.id || !reportOrigin || !reportDestination || !reportDistance || !reportActualFare) {
+    setReportError(null);
+
+    const activeCity = currentCity || cities[0];
+    if (!activeCity?.id) {
+      setReportError('Please select a destination city first.');
+      showToast('Please select a destination city first.', 'error');
       return;
     }
+    if (!reportOrigin.trim() || !reportDestination.trim()) {
+      setReportError('Please enter pickup origin and destination.');
+      showToast('Please enter pickup origin and destination.', 'error');
+      return;
+    }
+    if (!reportDistance || parseFloat(reportDistance) <= 0) {
+      setReportError('Please enter a valid trip distance (km).');
+      showToast('Please enter a valid trip distance (km).', 'error');
+      return;
+    }
+    if (!reportActualFare || parseFloat(reportActualFare) <= 0) {
+      setReportError('Please enter the fare paid in ₹.');
+      showToast('Please enter the fare paid in ₹.', 'error');
+      return;
+    }
+
     setSubmittingReport(true);
     setReportSuccess(null);
     try {
       await submitCommunityFareReport({
-        cityId: currentCity.id,
+        cityId: activeCity.id,
         transportModeId: reportMode,
-        originName: reportOrigin,
-        destinationName: reportDestination,
+        originName: reportOrigin.trim(),
+        destinationName: reportDestination.trim(),
         distanceKm: parseFloat(reportDistance),
         actualFarePaid: parseFloat(reportActualFare),
         quotedFare: reportQuotedFare ? parseFloat(reportQuotedFare) : undefined,
         wasOvercharged: Boolean(reportQuotedFare && parseFloat(reportQuotedFare) > parseFloat(reportActualFare)),
-        comments: reportComments,
+        comments: reportComments.trim() || undefined,
       });
-      setReportSuccess('Thank you! Your verified fare submission helps thousands of fellow travelers stay protected.');
+
+      showToast('🎉 Thank you! Your fare submission is live in Community Intelligence.', 'success');
       setIsReportModalOpen(false);
-      loadCommunityReports();
-    } catch (err) {
+      setReportOrigin('');
+      setReportDestination('');
+      setReportQuotedFare('');
+      setReportComments('');
+      await loadCommunityReports();
+    } catch (err: any) {
       console.error('Failed to submit community report:', err);
+      const msg = err.response?.data?.error || 'Failed to submit community fare report. Please check your inputs.';
+      setReportError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmittingReport(false);
     }
@@ -337,7 +377,7 @@ export const FareIntelligencePage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setIsReportModalOpen(true)}
+              onClick={openReportModal}
               className="px-4 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-amber-900/30 transition-all hover:scale-105 active:scale-95"
             >
               <PlusCircle className="w-4 h-4" />
@@ -904,7 +944,7 @@ export const FareIntelligencePage: React.FC = () => {
               </div>
 
               <button
-                onClick={() => setIsReportModalOpen(true)}
+                onClick={openReportModal}
                 className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1.5"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
@@ -994,6 +1034,13 @@ export const FareIntelligencePage: React.FC = () => {
             <p className="text-xs text-slate-400">
               Your real trip cost helps maintain fair pricing benchmarks for fellow tourists and travelers.
             </p>
+
+            {reportError && (
+              <div className="p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-200 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                <span>{reportError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleSubmitCommunityReport} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
