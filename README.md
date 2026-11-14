@@ -2,7 +2,7 @@
 ### **AI-Powered Context-Aware Travel Safety & Local Transportation Fare Intelligence Platform**
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
-[![Automated Tests](https://img.shields.io/badge/tests-13%2F13%20passed-success.svg)]()
+[![Automated Tests](https://img.shields.io/badge/tests-16%2F16%20passed-success.svg)]()
 [![Node.js](https://img.shields.io/badge/Node.js-v20%2B-blue.svg)]()
 [![React](https://img.shields.io/badge/React-v18-cyan.svg)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-v5-blue.svg)]()
@@ -200,6 +200,10 @@ npm test
   - Proximity factor resolution for nearest hospitals and police stations
 - **Suite 5: Emergency SOS Notification Delivery Engine**
   - Full state-machine progression (`REQUESTED` ➔ `DISPATCHED` ➔ `CONFIRMED_DELIVERED`)
+- **Suite 6: Dual Authentication & Account Security Engine**
+  - Strict RFC email validation and malformed address rejection
+  - Password reset cryptographic token generation with timestamp expiration verification
+  - Google OAuth profile normalization (ID token extraction, verified email, profile photo)
 
 ---
 
