@@ -159,3 +159,27 @@ export const fetchTransportModes = async () =>
 
 export const fetchCommunityFareReports = async (cityId?: string) =>
   (await api.get('/fare/reports', { params: { cityId } })).data;
+
+// Authentication APIs
+export const apiLogin = async (payload: { email: string; password: string }) =>
+  (await api.post('/auth/login', payload)).data;
+
+export const apiRegister = async (payload: { name: string; email: string; password: string; phone?: string }) =>
+  (await api.post('/auth/register', payload)).data;
+
+export const apiGoogleAuth = async (payload: {
+  idToken?: string;
+  email?: string;
+  name?: string;
+  photoUrl?: string;
+  googleId?: string;
+}) => (await api.post('/auth/google', payload)).data;
+
+export const apiForgotPassword = async (email: string) =>
+  (await api.post('/auth/forgot-password', { email })).data;
+
+export const apiResetPassword = async (payload: { resetToken: string; newPassword: string }) =>
+  (await api.post('/auth/reset-password', payload)).data;
+
+export const apiGetProfile = async () =>
+  (await api.get('/auth/me')).data;

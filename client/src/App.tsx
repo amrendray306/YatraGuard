@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { MobileNav } from './components/MobileNav';
+import { LandingPage } from './pages/LandingPage';
 import { Dashboard } from './pages/Dashboard';
 import { MapPage } from './pages/MapPage';
 import { SafetyPage } from './pages/SafetyPage';
@@ -17,6 +18,7 @@ import { TranslatorPage } from './pages/TranslatorPage';
 import { AdminPage } from './pages/AdminPage';
 import { EmergencyModal } from './components/EmergencyModal';
 import { IncidentModal } from './components/IncidentModal';
+import { AuthModal } from './components/AuthModal';
 import {
   ShieldAlert,
   Compass,
@@ -37,6 +39,8 @@ export const App: React.FC = () => {
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isIncidentOpen, setIsIncidentOpen] = useState(false);
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [shareToken, setShareToken] = useState<string | null>(null);
 
   // Check URL query parameters for direct shared trip links
@@ -58,6 +62,11 @@ export const App: React.FC = () => {
   const openIncident = () => setIsIncidentOpen(true);
   const closeIncident = () => setIsIncidentOpen(false);
 
+  const openAuth = (mode: 'LOGIN' | 'REGISTER' = 'LOGIN') => {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-red-500 selection:text-white pb-16 md:pb-0">
       {/* Top Navbar */}
@@ -65,183 +74,18 @@ export const App: React.FC = () => {
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         openEmergencyModal={openEmergency}
+        openAuthModal={openAuth}
       />
 
       {/* Main Content Router */}
       <main className="flex-1">
-        {/* Landing Page (Section 27) */}
+        {/* Landing Page */}
         {currentTab === 'landing' && (
-          <div className="space-y-16 pb-20">
-            {/* Hero Section */}
-            <div className="relative overflow-hidden pt-12 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center space-y-6">
-              {/* Subtle background glow */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-red-600/20 via-blue-600/10 to-emerald-600/20 rounded-full blur-3xl pointer-events-none" />
-
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300 shadow-md">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                <span>YatraGuard • AI Travel Safety & Fare Transparency</span>
-                <span className="text-slate-500">•</span>
-                <span className="text-emerald-400">Production Architecture</span>
-              </div>
-
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.1]">
-                Where To Go. How Much To Pay. <br className="hidden sm:inline" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-rose-400 to-red-500">
-                  How To Stay Safe.
-                </span>
-              </h1>
-
-              <p className="text-base sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                Your AI-powered context-aware guardian answering the four vital questions of any traveler in India:
-                Where should I go? Is it safe? How much should transportation cost? Am I being overcharged?
-              </p>
-
-              <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-                <button
-                  id="explore-demo-btn"
-                  onClick={() => setCurrentTab('fare')}
-                  className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-sm shadow-xl shadow-amber-900/40 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                >
-                  <IndianRupee className="w-4 h-4" />
-                  <span>Check Local Fares & Overcharging</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <button
-                  onClick={() => setCurrentTab('dashboard')}
-                  className="px-6 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-sm shadow-lg transition-all flex items-center gap-2"
-                >
-                  <Compass className="w-4 h-4 text-emerald-400" />
-                  <span>Explore Travel Dashboard</span>
-                </button>
-
-                <button
-                  onClick={() => setCurrentTab('map')}
-                  className="px-5 py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-sm shadow-lg transition-all flex items-center gap-2"
-                >
-                  <Navigation className="w-4 h-4 text-blue-400" />
-                  <span>Interactive Map</span>
-                </button>
-
-                <button
-                  onClick={openEmergency}
-                  className="px-5 py-3.5 rounded-2xl bg-red-950/80 hover:bg-red-900/80 text-red-300 border border-red-800/80 font-extrabold text-sm transition-all flex items-center gap-2"
-                >
-                  <ShieldAlert className="w-4 h-4 text-red-400" />
-                  <span>Emergency Mode</span>
-                </button>
-              </div>
-
-              {/* Supported MVP Cities Banner */}
-              <div className="pt-8 border-t border-slate-900 max-w-4xl mx-auto">
-                <div className="text-xs uppercase font-bold tracking-wider text-slate-500 mb-3">
-                  Configured Across Major Tourist Destinations & Mountain Corridors:
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-2 text-xs font-semibold text-slate-300">
-                  {['Manali', 'Haridwar', 'Rishikesh', 'Delhi', 'Mumbai', 'Agra', 'Jaipur', 'Bengaluru', 'Goa', 'Varanasi', 'Dehradun'].map((city) => (
-                    <span
-                      key={city}
-                      onClick={() => setCurrentTab('fare')}
-                      className="px-3 py-1 bg-slate-900/80 border border-slate-800 rounded-lg hover:border-amber-500/50 cursor-pointer transition-colors"
-                    >
-                      📍 {city}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Core Features Grid */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-              <div className="text-center space-y-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-red-400">
-                  Comprehensive Platform Capabilities
-                </span>
-                <h2 className="text-2xl sm:text-4xl font-black text-white">
-                  Built For Safety, Not Generic Tourism
-                </h2>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[
-                  {
-                    tab: 'fare',
-                    icon: IndianRupee,
-                    color: 'text-amber-400 bg-amber-500/20',
-                    title: 'Local Fare Intelligence & Overcharge Checker',
-                    desc: 'Compare regulated taxi, auto, bus, and metro fares across any Indian city with hill terrain and night surcharge adjustments.',
-                  },
-                  {
-                    tab: 'dashboard',
-                    icon: ShieldCheck,
-                    color: 'text-emerald-400 bg-emerald-500/20',
-                    title: 'Transparent Safety Scoring',
-                    desc: 'Dynamic 0-100 score engine analyzing nearby police outposts, verified hospital trauma centres, incident density, and night time factors.',
-                  },
-                  {
-                    tab: 'emergency',
-                    icon: ShieldAlert,
-                    color: 'text-red-400 bg-red-500/20',
-                    title: 'One-Tap SOS & Helplines',
-                    desc: 'Integrated official Indian helplines (112, 100, 108, 1090/1091, 1363), audio deterrent siren, and WhatsApp live coordinate broadcasting.',
-                  },
-                  {
-                    tab: 'guardian',
-                    icon: Bot,
-                    color: 'text-indigo-400 bg-indigo-500/20',
-                    title: 'AI Travel Guardian',
-                    desc: 'Context-grounded assistant answering "Is this taxi fare reasonable?", emergency steps, and itinerary safety without hallucinations.',
-                  },
-                  {
-                    tab: 'routes',
-                    icon: Navigation,
-                    color: 'text-blue-400 bg-blue-500/20',
-                    title: 'Real-Time Route Risk Engine',
-                    desc: 'Evaluates Fastest vs Safest vs Balanced routes between your origin and destination, flagging unlit alleys and incident clusters.',
-                  },
-                  {
-                    tab: 'scams',
-                    icon: AlertTriangle,
-                    color: 'text-amber-400 bg-amber-500/20',
-                    title: 'Verified Scam Intelligence',
-                    desc: 'Catalog of known touting tricks, fake tickets, marble shop detours, and auto meter manipulation with confidence scores.',
-                  },
-                ].map((feat, i) => {
-                  const Icon = feat.icon;
-                  return (
-                    <div
-                      key={i}
-                      onClick={() => {
-                        if (feat.tab === 'emergency') {
-                          openEmergency();
-                        } else {
-                          setCurrentTab(feat.tab);
-                        }
-                      }}
-                      className="glass-panel p-6 rounded-3xl border border-slate-800 hover:border-slate-700 cursor-pointer transition-all hover:scale-[1.02] flex flex-col justify-between space-y-4 group"
-                    >
-                      <div className="space-y-3">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${feat.color}`}>
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-extrabold text-base text-white group-hover:text-red-400 transition-colors">
-                          {feat.title}
-                        </h3>
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                          {feat.desc}
-                        </p>
-                      </div>
-
-                      <div className="text-xs font-bold text-slate-300 flex items-center gap-1 group-hover:text-white">
-                        <span>Launch Feature</span>
-                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <LandingPage
+            setCurrentTab={setCurrentTab}
+            openEmergencyModal={openEmergency}
+            openAuthModal={openAuth}
+          />
         )}
 
         {/* Primary Screen Views */}
@@ -353,6 +197,13 @@ export const App: React.FC = () => {
 
       {/* Crowdsourced Incident Submission Modal Dialog */}
       <IncidentModal isOpen={isIncidentOpen} onClose={closeIncident} />
+
+      {/* User Authentication & Onboarding Modal (Google OAuth & Email/Password) */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        initialMode={authMode}
+      />
     </div>
   );
 };

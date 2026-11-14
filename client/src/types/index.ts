@@ -6,6 +6,9 @@ export interface User {
   name: string;
   phone?: string;
   role: Role;
+  avatarUrl?: string;
+  authProvider?: string;
+  createdAt?: string;
 }
 
 export interface City {

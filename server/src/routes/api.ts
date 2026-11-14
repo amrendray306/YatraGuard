@@ -2,6 +2,9 @@ import { Router } from 'express';
 import {
   register,
   login,
+  googleAuth,
+  forgotPassword,
+  resetPassword,
   getProfile,
 } from '../controllers/authController.js';
 import {
@@ -69,6 +72,9 @@ const router = Router();
 // --- AUTHENTICATION (Rate-limited to prevent brute-force attacks) ---
 router.post('/auth/register', authLimiter, register);
 router.post('/auth/login', authLimiter, login);
+router.post('/auth/google', authLimiter, googleAuth);
+router.post('/auth/forgot-password', authLimiter, forgotPassword);
+router.post('/auth/reset-password', authLimiter, resetPassword);
 router.get('/auth/me', authenticateToken, getProfile);
 router.get('/user/profile', authenticateToken, getProfile);
 

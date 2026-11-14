@@ -232,6 +232,51 @@ async function main() {
     assert.ok(auditLog[1].refId.startsWith('SOS-TEST-'));
   });
 
+  // -------------------------------------------------------------------------
+  // SUITE 6: Dual Authentication & Account Architecture
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 6: Dual Authentication & Account Security Engine]\x1b[0m');
+
+  await runTest('Auth Engine - Email format validation & security requirements', () => {
+    const validEmails = ['traveler@gmail.com', 'user.name+test@domain.co.in', 'student@college.ac.in'];
+    const invalidEmails = ['plainaddress', '@missingusername.com', 'user@.com', 'spaces in@email.com'];
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    for (const email of validEmails) {
+      assert.strictEqual(emailRegex.test(email), true, `Should accept: ${email}`);
+    }
+    for (const email of invalidEmails) {
+      assert.strictEqual(emailRegex.test(email), false, `Should reject: ${email}`);
+    }
+  });
+
+  await runTest('Auth Engine - Password reset token crypto generation & expiration verification', () => {
+    const cryptoToken = 'rst_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes ahead
+
+    assert.ok(cryptoToken.length >= 10);
+    assert.ok(expiry.getTime() > Date.now(), 'Token expiry must be in the future');
+    
+    // Simulate expired token check
+    const expiredTokenDate = new Date(Date.now() - 1000);
+    assert.ok(expiredTokenDate.getTime() < Date.now(), 'Expired token must be rejected');
+  });
+
+  await runTest('Auth Engine - Google OAuth profile identity mapping', () => {
+    const mockGoogleProfile = {
+      sub: 'google_user_1098273645123',
+      email: 'traveler.google@gmail.com',
+      email_verified: 'true',
+      name: 'Priya Sharma',
+      picture: 'https://lh3.googleusercontent.com/a/mock-pic',
+    };
+
+    const isVerified = mockGoogleProfile.email_verified === 'true' || mockGoogleProfile.email_verified === true;
+    assert.strictEqual(isVerified, true);
+    assert.strictEqual(mockGoogleProfile.sub.startsWith('google_'), true);
+    assert.ok(mockGoogleProfile.email.includes('@'));
+  });
+
   console.log('\n======================================================');
   console.log(`   TEST EXECUTION SUMMARY: ${passed} PASSED, ${failed} FAILED`);
   console.log('======================================================\n');

@@ -18,6 +18,7 @@ import {
   Car,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
+import { useAuth } from '../context/AuthContext';
 import { fetchWeather, fetchCrowd } from '../services/api';
 import { SafetyScoreCard } from '../components/SafetyScoreCard';
 import { DestinationSearch } from '../components/DestinationSearch';
@@ -35,6 +36,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   openIncidentModal,
 }) => {
   const { currentCity, setCity, setUserCoords, safetyScoreData } = useCity();
+  const { user } = useAuth();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [crowds, setCrowds] = useState<CrowdLevel[]>([]);
 
@@ -53,6 +55,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // Determine current greeting
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good Morning' : hour < 17 ? 'Good Afternoon' : 'Good Evening';
+  const displayName = user?.name ? user.name.split(' ')[0] : 'Traveler';
 
   const nearest = safetyScoreData?.nearestServices;
 
@@ -66,7 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             Active Guardian Protection
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
-            {greeting}, Traveler
+            {greeting}, {displayName}
           </h1>
           <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium mt-1">
             <MapPin className="w-4 h-4 text-red-400" />

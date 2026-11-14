@@ -9,21 +9,27 @@ generator client {
 }
 
 model User {
-  id              String           @id @default(uuid())
-  email           String           @unique
-  passwordHash    String
-  name            String
-  phone           String?
-  role            String           @default("TRAVELER") // TRAVELER, MODERATOR, ADMIN
-  reputationScore Int              @default(100)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  trips           Trip[]
-  incidents       IncidentReport[]
-  aiConversations AIConversation[]
-  vaultItems      VaultItem[]
-  emergencyLogs   EmergencyLog[]
-  fareReports     FareReport[]
+  id               String           @id @default(uuid())
+  email            String           @unique
+  passwordHash     String?
+  googleId         String?          @unique
+  avatarUrl        String?
+  name             String
+  phone            String?
+  role             String           @default("TRAVELER") // TRAVELER, MODERATOR, ADMIN
+  authProvider     String           @default("LOCAL")    // LOCAL, GOOGLE
+  isEmailVerified  Boolean          @default(false)
+  resetToken       String?
+  resetTokenExpiry DateTime?
+  reputationScore  Int              @default(100)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  trips            Trip[]
+  incidents        IncidentReport[]
+  aiConversations  AIConversation[]
+  vaultItems       VaultItem[]
+  emergencyLogs    EmergencyLog[]
+  fareReports      FareReport[]
 }
 
 model City {
