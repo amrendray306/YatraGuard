@@ -19,6 +19,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
+import { useToast } from '../context/ToastContext';
 import { fetchUserTrips, createTrip } from '../services/api';
 import { Trip } from '../types';
 
@@ -221,6 +222,7 @@ const PRESET_ITINERARIES: Record<string, { title: string; duration: string; days
 
 export const TripsPage: React.FC = () => {
   const { currentCity } = useCity();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'trips' | 'itinerary'>('trips');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [isCreating, setIsCreating] = useState(false);
@@ -267,9 +269,11 @@ export const TripsPage: React.FC = () => {
       });
 
       setIsCreating(false);
+      showToast(`Trip "${title}" created successfully!`, 'success');
       loadTrips();
     } catch (err) {
       console.error('Failed to create trip:', err);
+      showToast('Failed to create trip. Please check your inputs.', 'error');
     }
   };
 
@@ -280,6 +284,7 @@ export const TripsPage: React.FC = () => {
   const handleCopyLink = (token: string) => {
     navigator.clipboard.writeText(getShareLink(token));
     setCopiedToken(token);
+    showToast('Encrypted live family share link copied to clipboard!', 'success');
     setTimeout(() => setCopiedToken(null), 2500);
   };
 
@@ -303,7 +308,7 @@ export const TripsPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsCreating(!isCreating)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-900/30 flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-900/30 flex items-center gap-2 transition-colors touch-min"
           >
             <PlusCircle className="w-4 h-4" />
             <span>{isCreating ? 'Cancel' : 'Register New Trip'}</span>
@@ -312,10 +317,10 @@ export const TripsPage: React.FC = () => {
       </div>
 
       {/* Main Tab Switcher */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('trips')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 flex-shrink-0 touch-min ${
             activeTab === 'trips'
               ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30'
               : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
@@ -327,7 +332,7 @@ export const TripsPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('itinerary')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 flex-shrink-0 touch-min ${
             activeTab === 'itinerary'
               ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/30'
               : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'

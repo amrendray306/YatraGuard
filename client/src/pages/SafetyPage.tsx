@@ -1,10 +1,12 @@
 import React from 'react';
 import { ShieldCheck, MapPin, ShieldAlert, CheckCircle2, AlertTriangle, Building2, Radio } from 'lucide-react';
 import { useCity } from '../context/CityContext';
+import { useToast } from '../context/ToastContext';
 import { SafetyScoreCard } from '../components/SafetyScoreCard';
 
 export const SafetyPage: React.FC = () => {
   const { cities, currentCity, setCity, safetyScoreData } = useCity();
+  const { showToast } = useToast();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 pb-16">
@@ -17,7 +19,7 @@ export const SafetyPage: React.FC = () => {
           Safety Intelligence & Scoring Engine
         </h1>
         <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-          India Travel Guardian calculates a dynamic, explainable safety index for every sector based on
+          YatraGuard calculates a dynamic, explainable safety index for every sector based on
           police outpost density, verified hospital trauma capabilities, recent incident clusters, and time factors.
         </p>
       </div>
@@ -27,12 +29,12 @@ export const SafetyPage: React.FC = () => {
         <SafetyScoreCard data={safetyScoreData} cityName={currentCity?.name} />
       )}
 
-      {/* Cross-City Safety Comparison Matrix (All 9 MVP Cities) */}
+      {/* Cross-City Safety Comparison Matrix */}
       <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-extrabold text-white">
-              Comparative Safety Baselines Across 9 MVP Cities
+              Comparative Safety Baselines Across Monitored Destinations ({cities.length} Cities)
             </h3>
             <p className="text-xs text-slate-400">
               Select any city to immediately recalibrate your Guardian Safety context
@@ -54,7 +56,10 @@ export const SafetyPage: React.FC = () => {
             return (
               <div
                 key={c.id}
-                onClick={() => setCity(c)}
+                onClick={() => {
+                  setCity(c);
+                  showToast(`Switched safety sector to ${c.name}, ${c.state}`, 'info');
+                }}
                 className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                   isSelected
                     ? 'bg-slate-800 border-blue-500 shadow-lg shadow-blue-950/50 scale-[1.02]'

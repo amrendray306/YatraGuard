@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Languages, Volume2, Camera, Copy, Check, Sparkles } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 interface Phrase {
   category: 'EMERGENCY' | 'TRANSIT' | 'MEDICAL' | 'GENERAL';
@@ -96,6 +97,7 @@ const PHRASES: Phrase[] = [
 ];
 
 export const TranslatorPage: React.FC = () => {
+  const { showToast } = useToast();
   const [selectedCat, setSelectedCat] = useState<string>('ALL');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [customText, setCustomText] = useState('');
@@ -114,6 +116,7 @@ export const TranslatorPage: React.FC = () => {
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
+    showToast('Phrase copied to clipboard', 'success');
     setTimeout(() => setCopiedId(null), 2500);
   };
 
@@ -188,7 +191,7 @@ export const TranslatorPage: React.FC = () => {
           <button
             key={cat}
             onClick={() => setSelectedCat(cat)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex-shrink-0 touch-min ${
               selectedCat === cat
                 ? 'bg-cyan-600 text-white shadow-md shadow-cyan-900/40'
                 : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'

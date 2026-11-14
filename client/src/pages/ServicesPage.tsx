@@ -114,72 +114,113 @@ export const ServicesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Services Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredServices.map((service) => (
-          <div
-            key={service.id}
-            className="glass-panel-elevated rounded-3xl p-5 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-colors space-y-4"
+      {/* Services Grid with Loading Skeletons & Empty State */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((sk) => (
+            <div
+              key={sk}
+              className="glass-panel-elevated rounded-3xl p-5 border border-slate-800 space-y-4 animate-pulse"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-800 rounded-2xl" />
+                <div className="space-y-1.5 flex-1">
+                  <div className="w-20 h-2.5 bg-slate-800 rounded" />
+                  <div className="w-36 h-4 bg-slate-800 rounded" />
+                </div>
+              </div>
+              <div className="w-full h-8 bg-slate-800/60 rounded-xl" />
+              <div className="flex gap-2 pt-2">
+                <div className="flex-1 h-9 bg-slate-800 rounded-xl" />
+                <div className="flex-1 h-9 bg-slate-800 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredServices.length === 0 ? (
+        <div className="glass-panel p-10 rounded-3xl border border-slate-800 text-center space-y-3">
+          <Building2 className="w-10 h-10 text-slate-500 mx-auto" />
+          <h3 className="text-base font-extrabold text-white">No services found</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            No emergency or support services match "{searchQuery}" in {currentCity?.name || 'this city'}. Try selecting "All Categories" or searching another landmark.
+          </p>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setCategory('ALL');
+            }}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors touch-min"
           >
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2.5 bg-slate-800 rounded-2xl border border-slate-700">
-                    {getCategoryIcon(service.category)}
+            Reset Filters
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredServices.map((service) => (
+            <div
+              key={service.id}
+              className="glass-panel-elevated rounded-3xl p-5 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-colors space-y-4"
+            >
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 bg-slate-800 rounded-2xl border border-slate-700">
+                      {getCategoryIcon(service.category)}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        {service.category}
+                      </span>
+                      <h3 className="font-extrabold text-sm text-white line-clamp-1 mt-0.5">
+                        {service.name}
+                      </h3>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      {service.category}
+
+                  {service.isVerified && (
+                    <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> Verified
                     </span>
-                    <h3 className="font-extrabold text-sm text-white line-clamp-1 mt-0.5">
-                      {service.name}
-                    </h3>
-                  </div>
+                  )}
                 </div>
 
-                {service.isVerified && (
-                  <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
-                    <CheckCircle2 className="w-2.5 h-2.5" /> Verified
+                <p className="text-xs text-slate-300 line-clamp-2">
+                  {service.address}
+                </p>
+
+                <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
+                  <span className="font-bold text-slate-200 bg-slate-800/80 px-2 py-0.5 rounded">
+                    📍 {service.distanceLabel}
                   </span>
+                  <span className="text-emerald-400 font-medium text-[11px]">
+                    {service.openStatus}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                {service.phone && (
+                  <a
+                    href={`tel:${service.phone.split('/')[0].trim()}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors touch-min"
+                  >
+                    <Phone className="w-3.5 h-3.5" /> Call ({service.phone.split('/')[0].trim()})
+                  </a>
                 )}
-              </div>
 
-              <p className="text-xs text-slate-300 line-clamp-2">
-                {service.address}
-              </p>
-
-              <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
-                <span className="font-bold text-slate-200 bg-slate-800/80 px-2 py-0.5 rounded">
-                  📍 {service.distanceLabel}
-                </span>
-                <span className="text-emerald-400 font-medium text-[11px]">
-                  {service.openStatus}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              {service.phone && (
                 <a
-                  href={`tel:${service.phone.split('/')[0].trim()}`}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors"
+                  href={`https://maps.google.com/?q=${service.lat},${service.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-colors touch-min"
                 >
-                  <Phone className="w-3.5 h-3.5" /> Call ({service.phone.split('/')[0].trim()})
+                  <Navigation className="w-3.5 h-3.5 text-red-400" /> Directions
                 </a>
-              )}
-
-              <a
-                href={`https://maps.google.com/?q=${service.lat},${service.lng}`}
-                target="_blank"
-                rel="noreferrer"
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-colors"
-              >
-                <Navigation className="w-3.5 h-3.5 text-red-400" /> Directions
-              </a>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

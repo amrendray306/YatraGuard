@@ -11,12 +11,14 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
+import { useToast } from '../context/ToastContext';
 import { fetchScams, voteScam } from '../services/api';
 import { ScamReport } from '../types';
 import { ScamModal } from '../components/ScamModal';
 
 export const ScamsPage: React.FC = () => {
   const { currentCity } = useCity();
+  const { showToast } = useToast();
   const [scams, setScams] = useState<ScamReport[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,9 +40,11 @@ export const ScamsPage: React.FC = () => {
     try {
       await voteScam(id);
       setVotedIds((prev) => ({ ...prev, [id]: true }));
+      showToast('Thank you for verifying! Your validation protects fellow travelers.', 'success');
       loadScams();
     } catch (err) {
       console.error('Failed to confirm scam:', err);
+      showToast('Could not register verification vote. Please try again.', 'error');
     }
   };
 
@@ -107,9 +111,29 @@ export const ScamsPage: React.FC = () => {
         </select>
       </div>
 
-      {/* Scam Intelligence Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredScams.map((scam) => (
+      {/* Scam Intelligence Cards Grid or Empty State */}
+      {filteredScams.length === 0 ? (
+        <div className="glass-panel p-10 rounded-3xl border border-slate-800 text-center space-y-3">
+          <AlertTriangle className="w-10 h-10 text-amber-500/70 mx-auto" />
+          <h3 className="text-base font-extrabold text-white">No Scam Alerts Found</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            {searchQuery
+              ? `No scam alerts match "${searchQuery}" in ${currentCity?.name || 'this city'}.`
+              : `No verified scam alerts cataloged for ${currentCity?.name || 'this city'} under this category.`}
+          </p>
+          <button
+            onClick={() => {
+              setSearchQuery('');
+              setSelectedCategory('ALL');
+            }}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors touch-min"
+          >
+            Reset Filters
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredScams.map((scam) => (
           <div
             key={scam.id}
             className="glass-panel-elevated rounded-3xl p-5 border border-slate-800 space-y-4 hover:border-amber-500/40 transition-colors flex flex-col justify-between"
@@ -195,16 +219,7 @@ export const ScamsPage: React.FC = () => {
           </div>
         ))}
       </div>
-
-      {filteredScams.length === 0 && (
-        <div className="text-center py-12 glass-panel rounded-3xl border border-slate-800 space-y-3">
-          <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto" />
-          <h4 className="text-base font-bold text-white">No Scam Reports Found</h4>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            No matching scam reports found for this filter in {currentCity?.name}. If you encountered suspicious activity, report it to protect other travelers.
-          </p>
-        </div>
-      )}
+    )}
 
       {/* Modal for reporting a scam */}
       <ScamModal

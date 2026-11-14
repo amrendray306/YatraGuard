@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, PlusCircle, Trash2, ShieldCheck, Copy, Check, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { fetchVault, createVaultItem, deleteVaultItem } from '../services/api';
 import { VaultItem } from '../types';
 
 export const VaultPage: React.FC = () => {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [items, setItems] = useState<VaultItem[]>([]);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('INSURANCE');
@@ -34,24 +36,29 @@ export const VaultPage: React.FC = () => {
       setReferenceData('');
       setNotes('');
       setIsAdding(false);
+      showToast(`Saved "${title}" to your encrypted vault`, 'success');
       loadVault();
     } catch (err) {
       console.error('Failed to create vault item:', err);
+      showToast('Failed to save vault item. Please try again.', 'error');
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
       await deleteVaultItem(id);
+      showToast('Vault entry removed', 'info');
       loadVault();
     } catch (err) {
       console.error('Failed to delete vault item:', err);
+      showToast('Failed to remove vault item', 'error');
     }
   };
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
+    showToast('Reference copied to clipboard', 'success');
     setTimeout(() => setCopiedId(null), 2500);
   };
 
@@ -73,7 +80,7 @@ export const VaultPage: React.FC = () => {
 
         <button
           onClick={() => setIsAdding(!isAdding)}
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-colors"
+          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition-colors touch-min"
         >
           <PlusCircle className="w-4 h-4" />
           <span>{isAdding ? 'Cancel' : 'Add Vault Reference'}</span>
@@ -84,7 +91,7 @@ export const VaultPage: React.FC = () => {
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 text-xs text-slate-300 flex items-start gap-3">
         <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <strong>Privacy By Design:</strong> To safeguard your identity abroad, India Travel Guardian
+          <strong>Privacy By Design:</strong> To safeguard your identity abroad, YatraGuard
           stores only policy references, emergency phone numbers, and reservation codes. Never upload raw passport scans or sensitive credentials.
         </div>
       </div>
