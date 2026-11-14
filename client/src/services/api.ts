@@ -183,3 +183,12 @@ export const apiResetPassword = async (payload: { resetToken: string; newPasswor
 
 export const apiGetProfile = async () =>
   (await api.get('/auth/me')).data;
+
+export const apiGetAuthConfig = async (): Promise<{ googleClientId: string }> => {
+  try {
+    const res = await api.get('/auth/config');
+    return res.data;
+  } catch (err) {
+    return { googleClientId: '' };
+  }
+};

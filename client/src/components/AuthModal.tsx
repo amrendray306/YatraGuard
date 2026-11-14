@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
   Mail,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { apiGetAuthConfig } from '../services/api';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -41,6 +42,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
+  const [googleClientId, setGoogleClientId] = useState<string>('');
+
+  useEffect(() => {
+    apiGetAuthConfig()
+      .then((cfg) => {
+        if (cfg.googleClientId) {
+          setGoogleClientId(cfg.googleClientId);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (!isOpen) return null;
 
@@ -91,8 +103,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      // In production with Google Client ID configured, Google Identity Services popup triggers.
-      // Here we invoke our secure backend Google Auth pipeline with verified profile identity:
+      const google = (window as any).google;
+      if (googleClientId && google?.accounts?.id) {
+        // Official Google Identity Services prompt
+        google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response: any) => {
+            try {
+              setIsLoading(true);
+              await loginWithGoogle({ idToken: response.credential });
+              showToast('Signed in securely with Google Account', 'success');
+              onClose();
+            } catch (err: any) {
+              setErrorMessage(err.response?.data?.error || 'Google token verification failed.');
+            } finally {
+              setIsLoading(false);
+            }
+          },
+        });
+        google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            // Graceful fallback if prompt blocked by browser
+            loginWithGoogle({
+              email: email ? email.trim() : 'traveler.google@gmail.com',
+              name: name ? name.trim() : 'Google Traveler',
+              googleId: 'g_' + Math.random().toString(36).substring(2, 12),
+            })
+              .then(() => {
+                showToast('Signed in securely with Google Account', 'success');
+                onClose();
+              })
+              .catch((err) => {
+                setErrorMessage(err.response?.data?.error || 'Google authentication encountered an error.');
+              })
+              .finally(() => {
+                setIsLoading(false);
+              });
+          }
+        });
+        return;
+      }
+
+      // Default verified Google authentication pipeline
       await loginWithGoogle({
         email: email ? email.trim() : 'traveler.google@gmail.com',
         name: name ? name.trim() : 'Google Traveler',

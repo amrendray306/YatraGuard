@@ -70,6 +70,11 @@ import { validateCoordinatesMiddleware } from '../middleware/validation.js';
 const router = Router();
 
 // --- AUTHENTICATION (Rate-limited to prevent brute-force attacks) ---
+router.get('/auth/config', (req, res) => {
+  res.json({
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  });
+});
 router.post('/auth/register', authLimiter, register);
 router.post('/auth/login', authLimiter, login);
 router.post('/auth/google', authLimiter, googleAuth);
