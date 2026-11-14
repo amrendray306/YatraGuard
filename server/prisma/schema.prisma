@@ -1,0 +1,264 @@
+// Prisma schema for YatraGuard
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  passwordHash    String
+  name            String
+  phone           String?
+  role            String           @default("TRAVELER") // TRAVELER, MODERATOR, ADMIN
+  reputationScore Int              @default(100)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  trips           Trip[]
+  incidents       IncidentReport[]
+  aiConversations AIConversation[]
+  vaultItems      VaultItem[]
+  emergencyLogs   EmergencyLog[]
+  fareReports     FareReport[]
+}
+
+model City {
+  id                 String            @id @default(uuid())
+  name               String            @unique
+  state              String
+  lat                Float
+  lng                Float
+  defaultSafetyScore Int               @default(75)
+  tier               String            @default("TIER_1") // TIER_1, TIER_2, TOURIST_HUB
+  description        String?
+  services           LocationService[]
+  incidents          IncidentReport[]
+  scams              ScamReport[]
+  safetyZones        SafetyZone[]
+  travelCosts        TravelCost[]
+  crowdLevels        CrowdLevel[]
+  weatherAlerts      WeatherAlert[]
+  fareRules          CityFareRule[]
+  fareReports        FareReport[]
+  createdAt          DateTime          @default(now())
+}
+
+model TransportationMode {
+  id          String         @id // "AUTO", "E_RICKSHAW", "LOCAL_TAXI", "PRIVATE_CAB", "SHARED_TAXI", "LOCAL_BUS", "GOVT_BUS", "METRO", "BIKE_TAXI"
+  displayName String         // e.g. "Auto Rickshaw"
+  description String?        // e.g. "Metered 3-wheeler autorickshaw"
+  vehicleType String         // e.g. "3-Wheeler", "Cab", "Bus", "Rail", "2-Wheeler"
+  isMetered   Boolean        @default(true)
+  fareRules   CityFareRule[]
+  fareReports FareReport[]
+}
+
+model CityFareRule {
+  id                      String             @id @default(uuid())
+  cityId                  String
+  city                    City               @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  transportModeId         String
+  transportMode           TransportationMode @relation(fields: [transportModeId], references: [id], onDelete: Cascade)
+  baseFare                Float              // Base flag-drop fare in ₹
+  baseDistanceKm          Float              // Distance covered by base fare (e.g. 1.5 km or 2.0 km)
+  perKmRate               Float              // Rate per km after base distance
+  waitingChargePerHour    Float              @default(30.0) // Waiting charge per hr
+  nightSurchargePct       Float              @default(25.0) // Night surcharge e.g. 25% (23:00 - 05:00)
+  luggageCharge           Float              @default(10.0) // Flat luggage rate per heavy bag
+  hillTerrainSurchargePct Float              @default(0.0)  // Hill terrain adjustment (e.g. 25% in Manali)
+  sourceType              String             @default("OFFICIAL_GOVT") // OFFICIAL_GOVT, UNION_NOTIFIED, ESTIMATED, COMMUNITY_BENCHMARK
+  officialCircularRef     String?            // Reference circular e.g. "Delhi Transport Dept 2023 / MMRTA 2024"
+  reliabilityScore        Int                @default(90) // 1-100%
+  notes                   String?
+  lastVerifiedDate        DateTime           @default(now())
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+}
+
+model FareReport {
+  id                 String             @id @default(uuid())
+  cityId             String
+  city               City               @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  transportModeId    String
+  transportMode      TransportationMode @relation(fields: [transportModeId], references: [id], onDelete: Cascade)
+  userId             String?
+  user               User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  originName         String             // e.g. "Haridwar Railway Station" or "Mall Road"
+  destinationName    String             // e.g. "Rishikesh Laxman Jhula" or "Solang Valley"
+  distanceKm         Float              // e.g. 28.5 or 13.2
+  actualFarePaid     Float              // Fare paid in ₹
+  quotedFare         Float?             // Initial fare quoted by driver
+  wasOvercharged     Boolean            @default(false)
+  verificationStatus String             @default("COMMUNITY_VERIFIED") // PENDING, COMMUNITY_VERIFIED, REJECTED
+  reliabilityWeight  Int                @default(80)
+  comments           String?
+  tripTime           DateTime           @default(now())
+  createdAt          DateTime           @default(now())
+}
+
+model LocationService {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // HOSPITAL, POLICE, PHARMACY, TRANSPORT, ATM, FUEL, HOTEL, RESTAURANT, TOURIST_INFO
+  lat         Float
+  lng         Float
+  address     String
+  phone       String?
+  rating      Float?   @default(4.2)
+  openStatus  String   @default("Open 24/7")
+  isVerified  Boolean  @default(true)
+  cityId      String
+  city        City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model IncidentReport {
+  id              String   @id @default(uuid())
+  category        String   // theft, pickpocketing, scam, harassment, unsafe_road, suspicious_activity, transport_issue, medical_emergency, lost_item, other
+  title           String
+  description     String
+  lat             Float
+  lng             Float
+  address         String
+  cityId          String
+  city            City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  status          String   @default("PENDING") // PENDING, COMMUNITY_CONFIRMED, ADMIN_VERIFIED, REJECTED
+  confidenceScore Int      @default(45) // 0-100%
+  confirmations   Int      @default(1)
+  evidenceUrl     String?
+  reportedAt      DateTime @default(now())
+  reporterId      String?
+  reporter        User?    @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+}
+
+model ScamReport {
+  id             String   @id @default(uuid())
+  category       String   // taxi_scam, fake_guide, fake_tickets, overcharging, fake_hotel, shopping_scam, atm_payment, religious_tourism, transport
+  title          String
+  locationName   String
+  lat            Float
+  lng            Float
+  address        String
+  cityId         String
+  city           City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  description    String
+  warningSigns   String
+  typicalPattern String
+  reportCount    Int      @default(3)
+  confidence     Int      @default(80) // %
+  lastReportedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+}
+
+model SafetyZone {
+  id          String   @id @default(uuid())
+  name        String
+  cityId      String
+  city        City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  lat         Float
+  lng         Float
+  radiusKm    Float    @default(1.0)
+  riskTier    String   @default("ACCEPTABLE") // HIGH_RISK, MODERATE, ACCEPTABLE, GOOD, VERY_GOOD
+  score       Int      @default(65)
+  reason      String
+  timeHazard  String?  // e.g. "Higher risk after 10 PM"
+  createdAt   DateTime @default(now())
+}
+
+model TravelCost {
+  id                  String   @id @default(uuid())
+  cityId              String
+  city                City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  category            String   // TAXI, AUTO, METRO, BUS, FOOD, HOTEL, ATTRACTION
+  name                String   // e.g., "Prepaid Auto (Per 5km)"
+  estimatedMin        Int
+  estimatedMax        Int
+  localReportedMin    Int
+  localReportedMax    Int
+  unit                String   @default("INR (₹)")
+  notes               String?
+  isOverchargingProne Boolean  @default(false)
+  createdAt           DateTime @default(now())
+}
+
+model CrowdLevel {
+  id                 String   @id @default(uuid())
+  cityId             String
+  city               City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  attractionName     String
+  currentLevel       String   @default("MEDIUM") // LOW, MEDIUM, HIGH, VERY_HIGH
+  bestVisitingHours  String   // e.g. "4:00 PM – 6:00 PM"
+  peakHours          String   // e.g. "11:00 AM – 3:00 PM"
+  crowdEstimateLabel String   // e.g. "Moderate queue at east gate"
+  updatedAt          DateTime @default(now())
+}
+
+model WeatherAlert {
+  id           String   @id @default(uuid())
+  cityId       String
+  city         City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  temp         Float    @default(29.0)
+  condition    String   @default("Partly Cloudy")
+  rainChance   Int      @default(10) // %
+  humidity     Int      @default(55) // %
+  windKmh      Float    @default(12.0)
+  alertMessage String?  // e.g., "Heat Advisory: Carry hydration"
+  severity     String?  // LOW, MODERATE, HIGH
+  updatedAt    DateTime @default(now())
+}
+
+model Trip {
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title                 String
+  destinationCity       String
+  currentLocation       String?
+  startDate             String
+  endDate               String
+  emergencyContactName  String
+  emergencyContactPhone String
+  status                String   @default("ACTIVE") // ACTIVE, COMPLETED
+  shareToken            String   @unique @default(uuid())
+  lastKnownEta          String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model VaultItem {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  category      String   // INSURANCE, HOTEL_RES, FLIGHT_TRAIN, VISA_REF, EMBASSY_CONTACT, DOCTOR
+  referenceData String   // Reference code / sanitized metadata (no raw sensitive docs)
+  notes         String?
+  createdAt     DateTime @default(now())
+}
+
+model AIConversation {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userPrompt  String
+  aiResponse  String
+  cityContext String?
+  createdAt   DateTime @default(now())
+}
+
+model EmergencyLog {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cityId        String?
+  emergencyType String   // SOS_112, POLICE, MEDICAL, HARASSMENT, LOCATION_SHARE
+  lat           Float
+  lng           Float
+  address       String?
+  status        String   @default("LOGGED")
+  createdAt     DateTime @default(now())
+}
