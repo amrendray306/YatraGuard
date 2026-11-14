@@ -95,7 +95,7 @@ export const DestinationSearch: React.FC<DestinationSearchProps> = ({
   };
 
   return (
-    <div ref={containerRef} className={`relative w-full ${className}`}>
+    <div ref={containerRef} className={`relative w-full z-40 ${className}`}>
       <div className="relative flex items-center">
         <Search className="absolute left-4 w-5 h-5 text-amber-400 pointer-events-none" />
         <input
@@ -125,7 +125,7 @@ export const DestinationSearch: React.FC<DestinationSearchProps> = ({
 
       {/* Autocomplete Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-[9999] bg-slate-900/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden max-h-96 overflow-y-auto divide-y divide-slate-800">
+        <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-slate-900/98 backdrop-blur-2xl border border-slate-700 rounded-2xl shadow-2xl overflow-hidden max-h-80 overflow-y-auto divide-y divide-slate-800 ring-1 ring-slate-700/50">
           {/* Quick Info Bar */}
           <div className="px-4 py-2 bg-slate-950/70 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
             <span className="flex items-center gap-1.5">

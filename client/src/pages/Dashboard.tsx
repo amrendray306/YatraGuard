@@ -35,7 +35,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   openEmergencyModal,
   openIncidentModal,
 }) => {
-  const { currentCity, setCity, setUserCoords, safetyScoreData } = useCity();
+  const { cities, currentCity, setCity, setUserCoords, safetyScoreData } = useCity();
   const { user } = useAuth();
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [crowds, setCrowds] = useState<CrowdLevel[]>([]);
@@ -97,8 +97,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Universal Destination Search Bar */}
-      <div className="glass-panel-elevated p-4 sm:p-5 rounded-3xl border border-slate-800 bg-slate-900/80 shadow-xl">
+      {/* Universal Destination Search Bar (Elevated Z-Index & Clean Overflow) */}
+      <div className="relative z-30 glass-panel-elevated p-4 sm:p-5 rounded-3xl border border-slate-800 bg-slate-900/95 shadow-xl overflow-visible">
         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
           <Compass className="w-4 h-4 text-amber-400" />
           Where do you want to travel in India?
@@ -112,13 +112,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
             setUserCoords({ lat: dest.lat, lng: dest.lng });
           }}
         />
+
+        {/* Quick-Select Destination Chips */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-3 text-xs">
+          <span className="text-slate-400 font-medium text-[11px] mr-1">Popular:</span>
+          {['Manali', 'Goa', 'Jaipur', 'Rishikesh', 'Agra', 'Delhi', 'Varanasi'].map((cityName) => (
+            <button
+              key={cityName}
+              onClick={() => {
+                const found = cities.find((c) => c.name.toLowerCase() === cityName.toLowerCase());
+                if (found) {
+                  setCity(found);
+                  setUserCoords({ lat: found.lat, lng: found.lng });
+                }
+              }}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                currentCity?.name.toLowerCase() === cityName.toLowerCase()
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                  : 'bg-slate-950/70 hover:bg-slate-800 text-slate-300 border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              📍 {cityName}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* CORE PRODUCT PRINCIPLE: "What should I do right now?" Hero Card */}
-      <div className="bg-gradient-to-br from-indigo-950/50 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+      <div className="relative z-10 bg-gradient-to-br from-indigo-950/50 via-slate-900 to-slate-950 border border-indigo-500/30 rounded-3xl p-6 overflow-hidden shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-4">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl">
+            <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl flex-shrink-0">
               <Bot className="w-5 h-5" />
             </div>
             <div>
@@ -133,8 +157,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <button
             onClick={() => setCurrentTab('guardian')}
-            className="hidden sm:flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-bold"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-xs text-indigo-300 hover:text-white rounded-xl font-bold transition-all self-start sm:self-auto flex-shrink-0"
           >
+            <Bot className="w-3.5 h-3.5 text-indigo-400" />
             <span>Ask Travel Guardian</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
