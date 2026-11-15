@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
 import {
   X,
   AlertCircle,
@@ -12,10 +14,13 @@ import {
   Navigation,
   ShieldAlert,
   Info,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
 import { useToast } from '../context/ToastContext';
 import { submitIncident } from '../services/api';
+import { locationService } from '../services/locationService';
+import { reverseGeocodingService } from '../services/reverseGeocodingService';
 
 interface IncidentModalProps {
   isOpen: boolean;
@@ -39,13 +44,73 @@ const CATEGORIES = [
   { id: 'other', label: 'Other' },
 ];
 
+const modalPinIcon = L.divIcon({
+  className: 'modal-pin-marker',
+  html: `
+    <div style="
+      background-color: #DC2626;
+      width: 32px;
+      height: 32px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+      border: 2px solid #ffffff;
+    ">
+      <span style="transform: rotate(45deg); color: white; font-size: 14px;">📍</span>
+    </div>
+  `,
+  iconSize: [32, 32],
+  iconAnchor: [16, 32],
+});
+
+// Mini Map Click & Drag Controller
+function MiniMapController({
+  lat,
+  lng,
+  onPinChange,
+}: {
+  lat: number;
+  lng: number;
+  onPinChange: (lat: number, lng: number) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.setView([lat, lng], 14, { animate: true });
+  }, [lat, lng, map]);
+
+  useMapEvents({
+    click(e) {
+      onPinChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+
+  return (
+    <Marker
+      position={[lat, lng]}
+      icon={modalPinIcon}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e) => {
+          const marker = e.target;
+          const pos = marker.getLatLng();
+          onPinChange(pos.lat, pos.lng);
+        },
+      }}
+    />
+  );
+}
+
 export const IncidentModal: React.FC<IncidentModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
   initialCategory = 'taxi_overcharging',
 }) => {
-  const { cities, currentCity, userCoords } = useCity();
+  const { cities, currentCity, userCoords, reportPin, setReportPin } = useCity();
   const { showToast } = useToast();
 
   const [category, setCategory] = useState(initialCategory);
@@ -53,8 +118,8 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
   const [description, setDescription] = useState('');
   const [selectedCityId, setSelectedCityId] = useState(currentCity?.id || '');
   const [address, setAddress] = useState('');
-  const [lat, setLat] = useState<number>(userCoords.lat || 28.6139);
-  const [lng, setLng] = useState<number>(userCoords.lng || 77.2090);
+  const [lat, setLat] = useState<number>(reportPin?.lat || userCoords.lat || 28.6139);
+  const [lng, setLng] = useState<number>(reportPin?.lng || userCoords.lng || 77.209);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationStatus, setLocationStatus] = useState<string>('');
   const [amountDemanded, setAmountDemanded] = useState<string>('');
@@ -70,64 +135,63 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
     if (isOpen) {
       setCategory(initialCategory);
       setSelectedCityId(currentCity?.id || cities[0]?.id || '');
-      setLat(userCoords.lat || currentCity?.lat || 28.6139);
-      setLng(userCoords.lng || currentCity?.lng || 77.2090);
-      setAddress(currentCity ? `${currentCity.name}, ${currentCity.state}` : 'New Delhi, India');
+
+      const initialLat = reportPin?.lat || userCoords.lat || currentCity?.lat || 28.6139;
+      const initialLng = reportPin?.lng || userCoords.lng || currentCity?.lng || 77.209;
+      setLat(initialLat);
+      setLng(initialLng);
+
+      if (reportPin?.address) {
+        setAddress(reportPin.address);
+      } else if (currentCity) {
+        setAddress(`${currentCity.name}, ${currentCity.state}`);
+      } else {
+        setAddress('New Delhi, India');
+      }
+
       setSubmittedReport(null);
       setErrorMessage(null);
+      setLocationStatus(reportPin ? 'Pre-filled from map selected pin' : '');
     }
-  }, [isOpen, currentCity, initialCategory]);
+  }, [isOpen, currentCity, initialCategory, reportPin, userCoords]);
 
-  // Reverse geocoding helper using OpenStreetMap Nominatim with timeout and fallback
-  const reverseGeocode = async (latitude: number, longitude: number) => {
+  // Handle Coordinate Update from Mini Map Click/Drag
+  const handleCoordinateUpdate = async (newLat: number, newLng: number) => {
+    setLat(newLat);
+    setLng(newLng);
+    setLocationStatus(`Pin adjusted to [${newLat.toFixed(4)}, ${newLng.toFixed(4)}]`);
+
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-        { headers: { 'User-Agent': 'YatraGuard-TravelPlatform/1.0' } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.display_name) {
-          // Format a clean, human-readable address
-          const parts = data.display_name.split(', ');
-          const shortAddr = parts.slice(0, 3).join(', ');
-          setAddress(shortAddr || data.display_name);
-          return;
-        }
-      }
+      const rev = await reverseGeocodingService.reverseGeocode(newLat, newLng);
+      setAddress(rev.displayName);
     } catch {
-      // Fallback if network blocked or offline
+      setAddress(`${newLat.toFixed(4)}, ${newLng.toFixed(4)}`);
     }
-    setAddress(`${latitude.toFixed(4)}, ${longitude.toFixed(4)} (${currentCity?.name || 'Local Sector'})`);
   };
 
   // Request browser geolocation permission & acquire coordinates
-  const handleDetectCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationStatus('Geolocation is not supported by your browser.');
-      return;
-    }
-
+  const handleDetectCurrentLocation = async () => {
     setIsDetectingLocation(true);
-    setLocationStatus('Requesting GPS permission from browser...');
+    setLocationStatus('Requesting high-accuracy GPS permission...');
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const detectedLat = pos.coords.latitude;
-        const detectedLng = pos.coords.longitude;
-        setLat(detectedLat);
-        setLng(detectedLng);
-        setLocationStatus(`GPS Pinpoint: ±${Math.round(pos.coords.accuracy)}m accuracy`);
-        setIsDetectingLocation(false);
-        reverseGeocode(detectedLat, detectedLng);
-        showToast('Current GPS location captured successfully', 'success');
-      },
-      (err) => {
-        setIsDetectingLocation(false);
-        setLocationStatus('GPS permission declined. You can adjust the coordinates manually.');
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
+    try {
+      const result = await locationService.requestBrowserLocation();
+      const detectedLat = result.coords.lat;
+      const detectedLng = result.coords.lng;
+      setLat(detectedLat);
+      setLng(detectedLng);
+      setLocationStatus(`GPS Pinpoint: ±${Math.round(result.coords.accuracy)}m accuracy`);
+
+      if (result.address?.displayName) {
+        setAddress(result.address.displayName);
+      }
+      showToast('Current GPS coordinates captured successfully', 'success');
+    } catch (err: any) {
+      setLocationStatus(err.message || 'GPS permission declined or unavailable.');
+      showToast(err.message || 'Unable to access location', 'error');
+    } finally {
+      setIsDetectingLocation(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -158,6 +222,7 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
       });
 
       setSubmittedReport(res.incident);
+      setReportPin(null); // Clear map report pin once recorded
       showToast('Incident report recorded. Thank you for protecting travelers.', 'success');
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -274,12 +339,12 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                 />
               </div>
 
-              {/* Automatic Geolocation & Manual Pin Adjust */}
+              {/* Interactive Mini Map & Location Section */}
               <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-bold text-white">
                     <MapPin className="w-4 h-4 text-amber-400" />
-                    <span>Location & Coordinates</span>
+                    <span>Pinpoint Incident Location (Drag or Click Map)</span>
                   </div>
                   <button
                     type="button"
@@ -290,6 +355,22 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                     <Navigation className={`w-3 h-3 ${isDetectingLocation ? 'animate-spin' : ''}`} />
                     <span>{isDetectingLocation ? 'Detecting...' : 'Detect My Location'}</span>
                   </button>
+                </div>
+
+                {/* Embedded Interactive Mini Leaflet Map with Draggable Pin */}
+                <div className="h-44 w-full rounded-xl overflow-hidden border border-slate-800 relative z-0">
+                  <MapContainer
+                    center={[lat, lng]}
+                    zoom={14}
+                    scrollWheelZoom={false}
+                    style={{ height: '100%', width: '100%' }}
+                  >
+                    <TileLayer
+                      url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                      attribution="&copy; OpenStreetMap &copy; CARTO"
+                    />
+                    <MiniMapController lat={lat} lng={lng} onPinChange={handleCoordinateUpdate} />
+                  </MapContainer>
                 </div>
 
                 {locationStatus && (
@@ -328,7 +409,7 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                   </div>
                 </div>
 
-                {/* Coordinate Pin Adjust */}
+                {/* Coordinate Pin Fine Adjustment */}
                 <div className="grid grid-cols-2 gap-2.5 pt-1 text-slate-400 text-[11px]">
                   <div>
                     <span className="block text-[10px] text-slate-500 uppercase font-bold">Latitude</span>
@@ -336,7 +417,11 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                       type="number"
                       step="0.0001"
                       value={lat}
-                      onChange={(e) => setLat(parseFloat(e.target.value))}
+                      onChange={(e) => {
+                        const newLat = parseFloat(e.target.value);
+                        setLat(newLat);
+                        handleCoordinateUpdate(newLat, lng);
+                      }}
                       className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white"
                     />
                   </div>
@@ -346,7 +431,11 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                       type="number"
                       step="0.0001"
                       value={lng}
-                      onChange={(e) => setLng(parseFloat(e.target.value))}
+                      onChange={(e) => {
+                        const newLng = parseFloat(e.target.value);
+                        setLng(newLng);
+                        handleCoordinateUpdate(lat, newLng);
+                      }}
                       className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white"
                     />
                   </div>
@@ -360,14 +449,14 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                     Amount Demanded (₹ Optional)
                   </label>
                   <div className="relative">
-                    <IndianRupee className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <IndianRupee className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-500" />
                     <input
                       type="number"
                       min="0"
                       value={amountDemanded}
                       onChange={(e) => setAmountDemanded(e.target.value)}
                       placeholder="e.g. 1500"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 font-medium"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 font-medium focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
@@ -377,73 +466,79 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
                     Amount Actually Paid (₹ Optional)
                   </label>
                   <div className="relative">
-                    <IndianRupee className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <IndianRupee className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-500" />
                     <input
                       type="number"
                       min="0"
                       value={amountPaid}
                       onChange={(e) => setAmountPaid(e.target.value)}
                       placeholder="e.g. 800"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 font-medium"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 font-medium focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Incident Date & Time */}
+              {/* Incident Date and Time */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                    Incident Date & Time
+                    Date & Time of Incident
                   </label>
-                  <input
-                    type="datetime-local"
-                    value={incidentDate}
-                    onChange={(e) => setIncidentDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-medium"
-                  />
+                  <div className="relative">
+                    <input
+                      type="datetime-local"
+                      value={incidentDate}
+                      onChange={(e) => setIncidentDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-medium focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                    Optional Photo / Receipt URL
+                    Photo / Evidence URL (Optional)
                   </label>
                   <div className="relative">
-                    <Camera className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Camera className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-500" />
                     <input
                       type="url"
                       value={evidenceUrl}
                       onChange={(e) => setEvidenceUrl(e.target.value)}
-                      placeholder="https://... photo or bill evidence"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3.5 py-2 text-xs text-white placeholder-slate-500 font-medium"
+                      placeholder="https://imgur.com/example.jpg"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-white placeholder-slate-500 font-medium focus:outline-none focus:border-amber-500"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Privacy Notice */}
-              <div className="p-3 rounded-xl bg-blue-950/40 border border-blue-800/40 flex items-start gap-2.5 text-[11px] text-blue-200">
-                <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-                <span>
-                  <strong>Privacy Protected:</strong> Your email, phone number, and personal profile are never publicly exposed. Only the incident details and approximate sector are shared to protect other travelers.
-                </span>
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-black transition-all shadow-lg shadow-red-900/30 flex items-center gap-2 active:scale-95"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Recording...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert className="w-4 h-4" />
+                      <span>Submit Incident Report</span>
+                    </>
+                  )}
+                </button>
               </div>
-
-              {/* Submit CTA */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-red-900/40 transition-all flex items-center justify-center gap-2 active:scale-95"
-              >
-                {isSubmitting ? (
-                  <span>Recording Report...</span>
-                ) : (
-                  <>
-                    <ShieldAlert className="w-4 h-4 text-white" />
-                    <span>Submit Verified Report</span>
-                  </>
-                )}
-              </button>
             </form>
           )}
         </div>

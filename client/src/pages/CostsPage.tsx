@@ -75,7 +75,7 @@ export const CostsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (currentCity && selectedCityId === 'ALL') {
+    if (currentCity) {
       setSelectedCityId(currentCity.id);
     }
   }, [currentCity]);

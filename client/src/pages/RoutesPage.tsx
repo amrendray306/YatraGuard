@@ -31,7 +31,7 @@ interface RoutesPageProps {
 }
 
 export const RoutesPage: React.FC<RoutesPageProps> = ({ onNavigateToMap }) => {
-  const { cities, currentCity } = useCity();
+  const { cities, currentCity, userAddress, requestUserLocation } = useCity();
   const { showToast } = useToast();
 
   const [fromName, setFromName] = useState('New Delhi Railway Station');
@@ -170,9 +170,22 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ onNavigateToMap }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Origin Location */}
             <div>
-              <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-1">
-                Origin / Starting Point
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                  Origin / Starting Point
+                </label>
+                {userAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setFromName(userAddress)}
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 transition-colors"
+                    title="Use detected current location"
+                  >
+                    <Navigation className="w-2.5 h-2.5" />
+                    <span>My Location</span>
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <MapPin className="w-4 h-4 text-emerald-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input

@@ -35,7 +35,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
   onOpenReportModal,
   onNavigateToMap,
 }) => {
-  const { cities, currentCity, userCoords } = useCity();
+  const { cities, currentCity, userCoords, userAddress, gpsStatus, requestUserLocation } = useCity();
   const { showToast } = useToast();
 
   const [incidents, setIncidents] = useState<any[]>([]);
@@ -223,6 +223,23 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+        {/* Nearby GPS indicator */}
+        {filterType === 'nearby' && (
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <div className="flex items-center gap-2 text-slate-300">
+              <Navigation className="w-3.5 h-3.5 text-blue-400" />
+              <span>Radius Center: <strong className="text-white">{userAddress}</strong> (25 km search perimeter)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => requestUserLocation(true)}
+              className="px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600/40 text-blue-300 text-[11px] font-bold border border-blue-500/40 transition-colors"
+            >
+              Refresh GPS
+            </button>
+          </div>
+        )}
+
         {/* Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
           {[

@@ -46,7 +46,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   openAuthModal,
   openIncidentModal,
 }) => {
-  const { cities, setCity, setUserCoords } = useCity();
+  const { cities, currentCity, setCity, setUserCoords, userAddress, gpsStatus, requestUserLocation } = useCity();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [communityPreview, setCommunityPreview] = useState<any[]>([]);
@@ -222,8 +222,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </button>
             </div>
 
-            {/* Quick Destination Corridor Pills */}
+            {/* Quick Destination Corridor Pills & Location Beacon */}
             <div className="flex flex-wrap items-center justify-center gap-1.5 pt-3 text-xs">
+              <button
+                onClick={async () => {
+                  const ok = await requestUserLocation(true);
+                  if (ok) {
+                    setCurrentTab('map');
+                  }
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-lg border text-xs font-bold transition-all mr-1 ${
+                  gpsStatus === 'granted'
+                    ? 'bg-emerald-950/90 text-emerald-300 border-emerald-700/60'
+                    : 'bg-blue-950/80 hover:bg-blue-900/90 text-blue-300 border-blue-700/60'
+                }`}
+                title="Detect your device GPS coordinates"
+              >
+                <Navigation className={`w-3 h-3 ${gpsStatus === 'locating' ? 'animate-spin' : ''}`} />
+                <span>{gpsStatus === 'granted' ? `GPS: ${userAddress}` : 'Use Current Location'}</span>
+              </button>
               <span className="text-slate-400 font-semibold mr-1">Popular Circuits:</span>
               {['Manali', 'Shimla', 'Rishikesh', 'Haridwar', 'Jaipur', 'Goa', 'Leh', 'Dehradun'].map(
                 (city) => (

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import {
   Shield,
@@ -27,8 +27,16 @@ import {
   Eye,
   ArrowRight,
   ShieldAlert,
+  SlidersHorizontal,
+  Globe,
+  CheckCircle2,
+  Navigation,
 } from 'lucide-react';
 import { MapCard } from './MapCard';
+import { useCity, ReportPinData } from '../../context/CityContext';
+import { useToast } from '../../context/ToastContext';
+import { mapProviderService, MapProvider } from '../../services/mapProviderService';
+import { locationService } from '../../services/locationService';
 
 // Component to dynamically re-center map when city or coords change
 function ChangeMapView({ coords, zoom }: { coords: [number, number]; zoom?: number }) {
@@ -47,6 +55,22 @@ function FlyToController({ target }: { target: [number, number] | null }) {
       map.flyTo(target, 16, { duration: 1.2 });
     }
   }, [target, map]);
+  return null;
+}
+
+// Map Event Listener for Click-to-Pin
+function MapClickEvents({
+  onMapClick,
+  isReportMode,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+  isReportMode: boolean;
+}) {
+  useMapEvents({
+    click(e) {
+      onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
   return null;
 }
 
@@ -88,16 +112,44 @@ const createCustomPin = (bgColor: string, symbol: string) => {
   });
 };
 
+// Pulsating user location beacon
 const userIcon = L.divIcon({
   className: 'user-beacon',
   html: `
-    <div style="position: relative; width: 26px; height: 26px;">
-      <div style="position: absolute; width: 26px; height: 26px; border-radius: 50%; background: #3B82F6; opacity: 0.4; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-      <div style="position: absolute; top: 4px; left: 4px; width: 18px; height: 18px; border-radius: 50%; background: #2563EB; border: 3px solid white; box-shadow: 0 0 10px rgba(37,99,235,0.9);"></div>
+    <div style="position: relative; width: 28px; height: 28px;">
+      <div style="position: absolute; width: 28px; height: 28px; border-radius: 50%; background: #3B82F6; opacity: 0.35; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+      <div style="position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: #2563EB; border: 3px solid white; box-shadow: 0 0 12px rgba(37,99,235,0.9);"></div>
     </div>
   `,
-  iconSize: [26, 26],
-  iconAnchor: [13, 13],
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+});
+
+// Interactive Draggable Report Pin Icon
+const reportDraggableIcon = L.divIcon({
+  className: 'report-draggable-pin',
+  html: `
+    <div style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+      <div style="position: absolute; width: 40px; height: 40px; border-radius: 50%; background: #EF4444; opacity: 0.4; animation: ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+      <div style="
+        width: 34px;
+        height: 34px;
+        border-radius: 50% 50% 50% 0;
+        background: #DC2626;
+        border: 2.5px solid #FFFFFF;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 14px rgba(220, 38, 38, 0.7);
+      ">
+        <span style="transform: rotate(45deg); font-size: 15px; color: white;">📍</span>
+      </div>
+    </div>
+  `,
+  iconSize: [40, 40],
+  iconAnchor: [20, 38],
+  popupAnchor: [0, -38],
 });
 
 // Category Pin Definitions
@@ -123,6 +175,7 @@ interface SafetyMapProps {
   onLocateMe?: () => void;
   onCheckFare?: (placeName: string) => void;
   onNavigateToFeed?: () => void;
+  onOpenIncidentModalWithPin?: (pin: ReportPinData) => void;
 }
 
 export const SafetyMap: React.FC<SafetyMapProps> = ({
@@ -136,13 +189,35 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   onLocateMe,
   onCheckFare,
   onNavigateToFeed,
+  onOpenIncidentModalWithPin,
 }) => {
+  const {
+    currentMapProviderId,
+    setCurrentMapProviderId,
+    switchMapProviderFallback,
+    isReportPinMode,
+    setIsReportPinMode,
+    reportPin,
+    setReportPin,
+    dropReportPinAt,
+    userAddress,
+    locationSource,
+    locationAccuracy,
+    lastLocationUpdate,
+  } = useCity();
+
+  const { showToast } = useToast();
+
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [isPoiDrawerOpen, setIsPoiDrawerOpen] = useState(false);
+  const [isProviderSelectorOpen, setIsProviderSelectorOpen] = useState(false);
   const [poiSearch, setPoiSearch] = useState('');
   const [poiCategoryFilter, setPoiCategoryFilter] = useState<string>('ALL');
   const [nearbyBannerDismissed, setNearbyBannerDismissed] = useState(false);
+
+  // Search Radius filter (1km, 5km, 10km, 25km, or null for citywide)
+  const [searchRadiusKm, setSearchRadiusKm] = useState<number | null>(null);
 
   // Active layers state (Multi-layer toggle)
   const [activeLayers, setActiveLayers] = useState<{
@@ -169,6 +244,10 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     safetyZones: true,
   });
 
+  const activeProvider = useMemo(() => {
+    return mapProviderService.getProviderById(currentMapProviderId);
+  }, [currentMapProviderId]);
+
   const toggleLayer = (layerKey: keyof typeof activeLayers) => {
     setActiveLayers((prev) => ({
       ...prev,
@@ -191,25 +270,57 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     });
   };
 
-  // Filter services by category according to active layers
-  const visibleServices = services.filter((s) => {
-    if (s.category === 'HOSPITAL') return activeLayers.hospitals;
-    if (s.category === 'POLICE') return activeLayers.police;
-    if (s.category === 'PHARMACY') return activeLayers.pharmacies;
-    if (s.category === 'TRANSPORT') return activeLayers.transport;
-    if (s.category === 'TOURIST_INFO') return activeLayers.attractions;
-    if (s.category === 'HOTEL') return activeLayers.hotels;
-    if (s.category === 'RESTAURANT') return activeLayers.restaurants;
-    return true;
-  });
+  // Automatic tile failure detection and fallback handler
+  const handleTileError = useCallback(() => {
+    const shouldSwitch = mapProviderService.recordTileError(currentMapProviderId);
+    if (shouldSwitch) {
+      const fallbackProviderName = switchMapProviderFallback();
+      showToast(`Tile timeout detected. Switching to alternative map service: ${fallbackProviderName}`, 'info');
+    }
+  }, [currentMapProviderId, switchMapProviderFallback, showToast]);
 
-  // Calculate nearby incidents within 5 km of current center
-  const nearbyIncidents = incidents.filter((inc) => {
-    const dLat = (inc.lat - center[0]) * 111;
-    const dLng = (inc.lng - center[1]) * 111 * Math.cos((center[0] * Math.PI) / 180);
-    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
-    return dist <= 5.0;
-  });
+  // Radius-filtered incidents
+  const filteredIncidents = useMemo(() => {
+    if (!searchRadiusKm) return incidents;
+    const origin = userLocation || center;
+    return incidents.filter((inc) => {
+      const dist = locationService.computeDistanceKm(origin[0], origin[1], inc.lat, inc.lng);
+      return dist <= searchRadiusKm;
+    });
+  }, [incidents, searchRadiusKm, userLocation, center]);
+
+  // Radius-filtered scams
+  const filteredScams = useMemo(() => {
+    if (!searchRadiusKm) return scams;
+    const origin = userLocation || center;
+    return scams.filter((scam) => {
+      const dist = locationService.computeDistanceKm(origin[0], origin[1], scam.lat, scam.lng);
+      return dist <= searchRadiusKm;
+    });
+  }, [scams, searchRadiusKm, userLocation, center]);
+
+  // Filter services by category according to active layers
+  const visibleServices = useMemo(() => {
+    return services.filter((s) => {
+      if (s.category === 'HOSPITAL') return activeLayers.hospitals;
+      if (s.category === 'POLICE') return activeLayers.police;
+      if (s.category === 'PHARMACY') return activeLayers.pharmacies;
+      if (s.category === 'TRANSPORT') return activeLayers.transport;
+      if (s.category === 'TOURIST_INFO') return activeLayers.attractions;
+      if (s.category === 'HOTEL') return activeLayers.hotels;
+      if (s.category === 'RESTAURANT') return activeLayers.restaurants;
+      return true;
+    });
+  }, [services, activeLayers]);
+
+  // Calculate nearby incidents within 5 km of current origin
+  const nearbyIncidents = useMemo(() => {
+    const origin = userLocation || center;
+    return incidents.filter((inc) => {
+      const dist = locationService.computeDistanceKm(origin[0], origin[1], inc.lat, inc.lng);
+      return dist <= 5.0;
+    });
+  }, [incidents, userLocation, center]);
 
   // Drawer filtered POIs
   const drawerPois = visibleServices.filter((s) => {
@@ -227,16 +338,29 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     setIsPoiDrawerOpen(false);
   };
 
+  // Map Click Handler for Dropping Report Pin
+  const handleMapClick = async (lat: number, lng: number) => {
+    // If in report mode or user clicks map when report pin is open, move or drop pin
+    await dropReportPinAt(lat, lng);
+    showToast(`Report pin dropped at coordinates [${lat.toFixed(4)}, ${lng.toFixed(4)}]`, 'info');
+  };
+
   return (
-    <div className="relative w-full overflow-hidden" style={{ height }}>
-      {/* Top Map Layer Controls */}
-      <div className="absolute top-28 sm:top-28 left-4 z-[997] flex items-center gap-1.5 max-w-[95%] sm:max-w-4xl bg-slate-950/90 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
+    <div
+      className={`relative w-full overflow-hidden ${
+        isReportPinMode ? 'cursor-crosshair' : ''
+      }`}
+      style={{ height }}
+    >
+      {/* Top Map Layer & Radius Controls */}
+      <div className="absolute top-28 sm:top-28 left-4 z-[997] flex flex-wrap items-center gap-1.5 max-w-[95%] sm:max-w-4xl bg-slate-950/90 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
+        {/* Layer Toggle: All */}
         <button
           onClick={() => setAllLayers(true)}
           className="px-2.5 py-1.5 rounded-xl text-[11px] font-black bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1 flex-shrink-0"
         >
           <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>All ({visibleServices.length + incidents.length + scams.length})</span>
+          <span>All ({visibleServices.length + filteredIncidents.length + filteredScams.length})</span>
         </button>
 
         {[
@@ -265,9 +389,102 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
             </button>
           );
         })}
+
+        {/* Radius Filter Pills */}
+        <div className="flex items-center gap-1 pl-2 border-l border-slate-800 flex-shrink-0">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-0.5">
+            <SlidersHorizontal className="w-3 h-3 text-amber-400" /> Radius:
+          </span>
+          {[
+            { label: 'All', val: null },
+            { label: '1km', val: 1 },
+            { label: '5km', val: 5 },
+            { label: '10km', val: 10 },
+            { label: '25km', val: 25 },
+          ].map((r) => (
+            <button
+              key={r.label}
+              onClick={() => setSearchRadiusKm(r.val)}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${
+                searchRadiusKm === r.val
+                  ? 'bg-amber-500 text-slate-950 font-black'
+                  : 'bg-slate-900 text-slate-400 hover:text-white'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Floating Nearby Scam Notice Alert Card (Section 2 Requirement) */}
+      {/* Floating Active Report Mode Banner */}
+      {isReportPinMode && (
+        <div className="absolute top-44 left-1/2 -translate-x-1/2 z-[999] px-4 py-2.5 bg-red-600/95 text-white rounded-2xl shadow-2xl backdrop-blur-md border border-white/20 flex items-center gap-3 animate-bounce">
+          <MapPin className="w-4 h-4 text-white animate-pulse" />
+          <span className="text-xs font-black">
+            Click anywhere on the map or drag the pin to set incident location
+          </span>
+          <button
+            onClick={() => setIsReportPinMode(false)}
+            className="px-2 py-0.5 rounded-lg bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white uppercase ml-1"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Floating Active Report Pin Card (When Pin is Placed) */}
+      {reportPin && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[998] w-[90%] max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-xl border border-red-500/80 shadow-2xl animate-fade-in text-white space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-red-600/30 text-red-400">
+                <MapPin className="w-4 h-4 text-red-400" />
+              </span>
+              <div>
+                <h4 className="text-xs font-black text-white">Report Incident at Selected Pin</h4>
+                <p className="text-[11px] text-slate-400 truncate max-w-[260px]">
+                  {reportPin.address || 'Resolving readable address...'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setReportPin(null)}
+              className="p-1 rounded-lg bg-slate-900 text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center justify-between pt-1 border-t border-slate-800 text-[10px] text-slate-400 font-mono">
+            <span>Lat: {reportPin.lat.toFixed(5)}</span>
+            <span>Lng: {reportPin.lng.toFixed(5)}</span>
+            <span className="text-amber-400 font-sans font-bold">Drag pin to reposition</span>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenIncidentModalWithPin) {
+                  onOpenIncidentModalWithPin(reportPin);
+                }
+              }}
+              className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs transition-all shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Fill Report Details for this Pin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportPin(null)}
+              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+            >
+              Clear Pin
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Nearby Scam Notice Alert Card */}
       {!nearbyBannerDismissed && nearbyIncidents.length > 0 && (
         <div className="absolute top-44 left-4 z-[997] max-w-sm sm:max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-amber-500/60 shadow-2xl animate-fade-in flex items-start gap-3">
           <div className="p-2 rounded-xl bg-amber-500 text-slate-950 flex-shrink-0 mt-0.5">
@@ -304,13 +521,49 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         </div>
       )}
 
-      {/* Map Legend Key (Bottom Right) */}
-      <div className="absolute bottom-6 right-20 sm:right-32 z-[997] hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-800 text-[10px] font-bold text-slate-300 shadow-xl">
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-600"></span> Verified Incident</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span> Awaiting Review</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span> Scam Warning</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Essential Service</span>
-        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Tourist Spot</span>
+      {/* Map Provider Selector & Resilient Fallback Switcher (Bottom Right) */}
+      <div className="absolute bottom-6 right-20 sm:right-32 z-[997] flex items-center gap-2">
+        <div className="relative">
+          <button
+            onClick={() => setIsProviderSelectorOpen(!isProviderSelectorOpen)}
+            className="px-3 py-2 rounded-xl bg-slate-950/90 hover:bg-slate-900 text-[11px] font-bold text-slate-200 border border-slate-800 shadow-xl flex items-center gap-1.5 backdrop-blur-md transition-colors"
+            title="Switch map rendering provider or toggle fallbacks"
+          >
+            <Globe className="w-3.5 h-3.5 text-blue-400" />
+            <span className="hidden sm:inline">Provider:</span>
+            <span className="text-amber-400 font-black">{activeProvider.name.split(' ')[0]}</span>
+          </button>
+
+          {isProviderSelectorOpen && (
+            <div className="absolute bottom-full right-0 mb-2 w-64 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-2 z-[1002] backdrop-blur-xl animate-fade-in space-y-1">
+              <div className="px-2 py-1.5 text-[10px] font-black uppercase text-slate-400 border-b border-slate-800 flex items-center justify-between">
+                <span>Select Map Provider</span>
+                <span className="text-emerald-400">Auto-Fallback ON</span>
+              </div>
+              {mapProviderService.getAllProviders().map((p: MapProvider) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setCurrentMapProviderId(p.id);
+                    setIsProviderSelectorOpen(false);
+                    showToast(`Switched map provider to ${p.name}`, 'info');
+                  }}
+                  className={`w-full text-left px-2.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                    currentMapProviderId === p.id
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : 'text-slate-300 hover:bg-slate-900'
+                  }`}
+                >
+                  <div>
+                    <div>{p.name}</div>
+                    <div className="text-[10px] opacity-75">{p.description}</div>
+                  </div>
+                  {currentMapProviderId === p.id && <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Floating Bottom Left POI Directory Drawer Trigger */}
@@ -343,20 +596,100 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       >
         <ChangeMapView coords={center} />
         <FlyToController target={flyTarget} />
+        <MapClickEvents onMapClick={handleMapClick} isReportMode={isReportPinMode} />
 
-        {/* Voyager Tile Layer */}
+        {/* Dynamic Provider Tile Layer with Key-Remount and TileError Fallback */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          key={activeProvider.id}
+          url={activeProvider.url}
+          attribution={activeProvider.attribution}
+          subdomains={activeProvider.subdomains || 'abc'}
+          maxZoom={activeProvider.maxZoom || 19}
+          eventHandlers={{
+            tileerror: handleTileError,
+          }}
         />
 
         {/* User GPS Location Beacon */}
         {userLocation && (
           <Marker position={userLocation} icon={userIcon}>
             <Popup>
-              <div className="text-xs p-1">
-                <strong className="text-blue-600">📍 You are here</strong>
-                <div className="text-slate-600 text-[10px]">Active GPS Monitoring</div>
+              <div className="text-xs p-1 space-y-1">
+                <strong className="text-blue-600 flex items-center gap-1">
+                  <Navigation className="w-3.5 h-3.5" /> You are here
+                </strong>
+                <div className="text-slate-700 text-[11px] font-medium">{userAddress}</div>
+                {locationAccuracy && (
+                  <div className="text-slate-500 text-[10px]">Accuracy: ±{Math.round(locationAccuracy)}m</div>
+                )}
+                {lastLocationUpdate && (
+                  <div className="text-slate-400 text-[9px]">
+                    Updated: {lastLocationUpdate.toLocaleTimeString()}
+                  </div>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        )}
+
+        {/* Radius Perimeter Range Circle around User */}
+        {searchRadiusKm && userLocation && (
+          <Circle
+            center={userLocation}
+            radius={searchRadiusKm * 1000}
+            pathOptions={{
+              color: '#3B82F6',
+              fillColor: '#3B82F6',
+              fillOpacity: 0.06,
+              weight: 1.5,
+              dashArray: '5, 8',
+            }}
+          />
+        )}
+
+        {/* Interactive Report Pin (When User Clicked or Dropped Pin) */}
+        {reportPin && (
+          <Marker
+            position={[reportPin.lat, reportPin.lng]}
+            icon={reportDraggableIcon}
+            draggable={true}
+            eventHandlers={{
+              dragend: (e) => {
+                const marker = e.target;
+                const position = marker.getLatLng();
+                dropReportPinAt(position.lat, position.lng);
+              },
+            }}
+          >
+            <Popup>
+              <div className="p-1 space-y-1.5 text-xs text-slate-900">
+                <div className="font-extrabold text-red-600 flex items-center gap-1">
+                  <span>📍 Incident Report Pin</span>
+                </div>
+                <div className="text-[11px] text-slate-700 font-medium">
+                  {reportPin.address || `${reportPin.lat.toFixed(4)}, ${reportPin.lng.toFixed(4)}`}
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  Coordinates: {reportPin.lat.toFixed(5)}, {reportPin.lng.toFixed(5)}
+                </div>
+                <div className="flex items-center gap-1 pt-1">
+                  <button
+                    onClick={() => {
+                      if (onOpenIncidentModalWithPin) {
+                        onOpenIncidentModalWithPin(reportPin);
+                      }
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-black text-[11px] transition-colors"
+                  >
+                    Submit Report Here
+                  </button>
+                  <button
+                    onClick={() => setReportPin(null)}
+                    className="px-2 py-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-[11px]"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             </Popup>
           </Marker>
@@ -410,6 +743,10 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
           if (service.category === 'HOTEL') icon = hotelIcon;
           if (service.category === 'RESTAURANT') icon = restaurantIcon;
 
+          const dist = userLocation
+            ? locationService.computeDistanceKm(userLocation[0], userLocation[1], service.lat, service.lng)
+            : null;
+
           return (
             <Marker
               key={service.id}
@@ -424,6 +761,11 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
                   <div className="text-sm font-black">{service.name}</div>
                   <div className="text-[11px] text-slate-600 font-semibold">{service.category}</div>
                   <div className="text-[10px] text-slate-500 mt-0.5">{service.address}</div>
+                  {dist !== null && (
+                    <div className="text-[10px] text-blue-600 font-bold mt-1">
+                      📍 {dist} km from current location
+                    </div>
+                  )}
                   {service.openStatus && (
                     <div className="text-[10px] text-emerald-700 font-bold mt-1">
                       {service.openStatus}
@@ -437,37 +779,51 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
         {/* Scam Alerts Markers (Yellow: Community Warnings) */}
         {activeLayers.scams &&
-          scams.map((scam) => (
-            <Marker
-              key={scam.id}
-              position={[scam.lat, scam.lng]}
-              icon={scamWarningIcon}
-              eventHandlers={{
-                click: () =>
-                  setSelectedItem({
-                    ...scam,
-                    category: 'SCAM_WARNING',
-                    name: scam.title,
-                  }),
-              }}
-            >
-              <Popup>
-                <div className="text-xs p-1">
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 font-black">
-                    ⚠️ Community Warning
-                  </span>
-                  <div className="font-extrabold text-sm text-slate-900 mt-1">{scam.title}</div>
-                  <p className="text-[11px] text-slate-600 mt-1">{scam.description}</p>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          filteredScams.map((scam) => {
+            const dist = userLocation
+              ? locationService.computeDistanceKm(userLocation[0], userLocation[1], scam.lat, scam.lng)
+              : null;
+
+            return (
+              <Marker
+                key={scam.id}
+                position={[scam.lat, scam.lng]}
+                icon={scamWarningIcon}
+                eventHandlers={{
+                  click: () =>
+                    setSelectedItem({
+                      ...scam,
+                      category: 'SCAM_WARNING',
+                      name: scam.title,
+                    }),
+                }}
+              >
+                <Popup>
+                  <div className="text-xs p-1 space-y-1">
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 font-black">
+                      ⚠️ Community Warning
+                    </span>
+                    <div className="font-extrabold text-sm text-slate-900 mt-1">{scam.title}</div>
+                    <p className="text-[11px] text-slate-600">{scam.description}</p>
+                    {dist !== null && (
+                      <div className="text-[10px] text-amber-800 font-bold">
+                        📍 {dist} km from you
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
 
         {/* Incident Hotspots Markers (Red: Verified High Priority, Orange: Pending/Under Review) */}
         {activeLayers.incidents &&
-          incidents.map((incident) => {
+          filteredIncidents.map((incident) => {
             const isVerified = incident.status === 'VERIFIED';
             const icon = isVerified ? verifiedIncidentIcon : pendingIncidentIcon;
+            const dist = userLocation
+              ? locationService.computeDistanceKm(userLocation[0], userLocation[1], incident.lat, incident.lng)
+              : null;
 
             return (
               <Marker
@@ -496,6 +852,11 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
                     </span>
                     <div className="font-extrabold text-sm text-slate-900">{incident.title}</div>
                     <p className="text-[11px] text-slate-600">{incident.description}</p>
+                    {dist !== null && (
+                      <div className="text-[10px] text-red-700 font-bold">
+                        📍 {dist} km from you
+                      </div>
+                    )}
                     {incident.amountDemanded && (
                       <div className="text-[10px] text-red-600 font-bold">
                         Demanded: ₹{incident.amountDemanded}
@@ -538,14 +899,19 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
           {/* Search & Category Filter */}
           <div className="p-4 border-b border-slate-800 space-y-3">
             <div className="relative flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-2">
-              <Search className="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" />
+              <Search className="w-4 h-4 text-slate-400 mr-2" />
               <input
                 type="text"
-                placeholder="Search hospital, police, transit, hotel..."
+                placeholder="Search POI by name or street..."
                 value={poiSearch}
                 onChange={(e) => setPoiSearch(e.target.value)}
-                className="w-full bg-transparent text-white text-xs placeholder-slate-500 focus:outline-none"
+                className="w-full bg-transparent text-xs text-white placeholder-slate-500 focus:outline-none"
               />
+              {poiSearch && (
+                <button onClick={() => setPoiSearch('')}>
+                  <X className="w-3.5 h-3.5 text-slate-400 hover:text-white" />
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
@@ -555,8 +921,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
                 { id: 'POLICE', label: '👮 Police' },
                 { id: 'PHARMACY', label: '💊 Pharmacy' },
                 { id: 'TRANSPORT', label: '🚇 Transit' },
-                { id: 'HOTEL', label: '🏨 Stays' },
-                { id: 'RESTAURANT', label: '🍽️ Dining' },
+                { id: 'TOURIST_INFO', label: '🏛️ Attractions' },
               ].map((c) => (
                 <button
                   key={c.id}
@@ -564,7 +929,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors ${
                     poiCategoryFilter === c.id
                       ? 'bg-amber-500 text-slate-950 font-black'
-                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                      : 'bg-slate-900 text-slate-400 hover:text-white'
                   }`}
                 >
                   {c.label}
@@ -573,39 +938,36 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
             </div>
           </div>
 
-          {/* POI List Items */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          {/* POI List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
             {drawerPois.length === 0 ? (
-              <div className="p-8 text-center text-xs text-slate-400">
-                No matching verified locations found.
+              <div className="py-12 text-center text-slate-500 text-xs">
+                No verified location points match your filter.
               </div>
             ) : (
               drawerPois.map((poi) => (
                 <div
                   key={poi.id}
                   onClick={() => handleSelectPoi(poi)}
-                  className="p-3 bg-slate-900/80 hover:bg-slate-850 border border-slate-800/80 rounded-2xl cursor-pointer transition-all flex items-start justify-between gap-3 group"
+                  className="p-3 rounded-xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all flex items-start justify-between gap-3 group"
                 >
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-white group-hover:text-amber-400 transition-colors">
-                        {poi.name}
+                    <div className="text-xs font-black text-white group-hover:text-amber-400 transition-colors">
+                      {poi.name}
+                    </div>
+                    <div className="text-[11px] text-slate-400">{poi.address}</div>
+                    <div className="flex items-center gap-2 pt-1 text-[10px]">
+                      <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold uppercase">
+                        {poi.category}
                       </span>
-                    </div>
-                    <div className="text-[11px] text-slate-400 leading-tight">
-                      {poi.address}
-                    </div>
-                    <div className="flex items-center gap-2 pt-0.5 text-[10px] text-slate-500">
-                      <span className="text-emerald-400 font-bold">{poi.openStatus || 'Verified'}</span>
                       {poi.rating && (
-                        <span className="flex items-center gap-0.5 text-amber-400">
-                          <Star className="w-3 h-3 fill-amber-400" />
-                          {poi.rating}
+                        <span className="flex items-center gap-0.5 text-amber-400 font-bold">
+                          <Star className="w-3 h-3 fill-amber-400" /> {poi.rating}
                         </span>
                       )}
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-amber-400 transition-colors flex-shrink-0 mt-1" />
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-1" />
                 </div>
               ))
             )}
@@ -613,7 +975,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         </div>
       )}
 
-      {/* Selected Item Floating MapCard Drawer */}
+      {/* Selected Item Floating Detail Card */}
       {selectedItem && (
         <MapCard
           item={selectedItem}
