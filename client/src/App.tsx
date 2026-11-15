@@ -18,6 +18,8 @@ import { TranslatorPage } from './pages/TranslatorPage';
 import { AdminPage } from './pages/AdminPage';
 import { CommunityPage } from './pages/CommunityPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AlertsPage } from './pages/AlertsPage';
+import { RoutesPage } from './pages/RoutesPage';
 import { EmergencyModal } from './components/EmergencyModal';
 import { IncidentModal } from './components/IncidentModal';
 import { AuthModal } from './components/AuthModal';
@@ -65,6 +67,14 @@ export const App: React.FC = () => {
       setCurrentTab('profile');
     } else if (path === '/community') {
       setCurrentTab('community');
+    } else if (path === '/safety/alerts' || path === '/alerts') {
+      setCurrentTab('alerts');
+    } else if (path === '/safety/map' || path === '/map') {
+      setCurrentTab('map');
+    } else if (path === '/explore/routes' || path === '/routes') {
+      setCurrentTab('routes');
+    } else if (path === '/explore/prices' || path === '/prices') {
+      setCurrentTab('fare');
     }
   }, []);
 
@@ -87,6 +97,7 @@ export const App: React.FC = () => {
         setCurrentTab={setCurrentTab}
         openEmergencyModal={openEmergency}
         openAuthModal={openAuth}
+        openIncidentModal={openIncident}
       />
 
       {/* Main Content Router */}
@@ -118,25 +129,35 @@ export const App: React.FC = () => {
           />
         )}
 
+        {/* Real-Time Community Scam & Safety Alert Feed (/safety/alerts) */}
+        {currentTab === 'alerts' && (
+          <AlertsPage
+            onOpenReportModal={openIncident}
+            onNavigateToMap={() => setCurrentTab('map')}
+          />
+        )}
+
+        {/* Real Route-Wise Price Intelligence & Comparison (/explore/routes) */}
+        {currentTab === 'routes' && (
+          <RoutesPage
+            onNavigateToMap={() => setCurrentTab('map')}
+          />
+        )}
+
+        {/* City-Wise Local Prices & Benchmarks (Food, Stays, Activities & RTO Tariffs) */}
+        {(currentTab === 'fare' || currentTab === 'costs') && <CostsPage />}
+
         {currentTab === 'safety' && <SafetyPage />}
 
         {currentTab === 'scams' && <ScamsPage />}
 
         {currentTab === 'services' && <ServicesPage />}
 
-        {currentTab === 'routes' && (
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 pb-16">
-            <RouteSafetyModal />
-          </div>
-        )}
-
         {currentTab === 'guardian' && <GuardianPage />}
 
         {currentTab === 'trips' && <TripsPage />}
 
         {currentTab === 'vault' && <VaultPage />}
-
-        {(currentTab === 'fare' || currentTab === 'costs') && <FareIntelligencePage />}
 
         {currentTab === 'translator' && <TranslatorPage />}
 

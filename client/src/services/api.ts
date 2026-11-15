@@ -64,14 +64,101 @@ export const fetchNearbyServices = async (params: {
 export const fetchMapData = async (params: { cityId?: string; lat?: number; lng?: number }) =>
   (await api.get('/map/data', { params })).data;
 
-export const fetchIncidents = async (params?: { cityId?: string; category?: string; status?: string }) =>
-  (await api.get('/incidents', { params })).data;
+export const fetchIncidents = async (params?: {
+  cityId?: string;
+  category?: string;
+  status?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  filterType?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) => (await api.get('/incidents', { params })).data;
 
-export const submitIncident = async (payload: any) =>
-  (await api.post('/incidents', payload)).data;
+export const submitIncident = async (payload: {
+  category: string;
+  title: string;
+  description: string;
+  lat: number;
+  lng: number;
+  address: string;
+  cityId?: string;
+  cityName?: string;
+  amountDemanded?: number;
+  amountPaid?: number;
+  evidenceUrl?: string;
+  incidentDate?: string;
+}) => (await api.post('/incidents', payload)).data;
+
+export const verifyIncident = async (
+  id: string,
+  payload: { action: 'CONFIRM_RELEVANT' | 'MARK_OUTDATED' | 'FLAG_INACCURATE' | 'ADD_EVIDENCE'; notes?: string; evidenceUrl?: string }
+) => (await api.post(`/incidents/${id}/verify`, payload)).data;
 
 export const confirmIncident = async (id: string) =>
-  (await api.post(`/incidents/${id}/confirm`)).data;
+  (await api.post(`/incidents/${id}/confirm`, { action: 'CONFIRM_RELEVANT' })).data;
+
+// --- ROUTE-WISE PRICE INTELLIGENCE API ---
+export const fetchRoutePricing = async (payload: {
+  fromName: string;
+  toName: string;
+  fromLat?: number;
+  fromLng?: number;
+  toLat?: number;
+  toLng?: number;
+  cityId?: string;
+  cityName?: string;
+  travelHour?: number;
+  travelDate?: string;
+}) => (await api.post('/routes/pricing', payload)).data;
+
+export const reportRouteOvercharge = async (payload: {
+  originName: string;
+  destinationName: string;
+  cityName?: string;
+  transportModeId?: string;
+  expectedPriceMin?: number;
+  expectedPriceMax?: number;
+  amountDemanded: number;
+  amountActuallyPaid?: number;
+  lat?: number;
+  lng?: number;
+  notes?: string;
+}) => (await api.post('/routes/report-overcharge', payload)).data;
+
+// --- CITY-WISE LOCAL PRICE DATABASE API ---
+export const fetchPriceRecords = async (params?: {
+  cityId?: string;
+  category?: string;
+  search?: string;
+  verificationStatus?: string;
+}) => (await api.get('/prices', { params })).data;
+
+export const submitPriceRecord = async (payload: {
+  cityId: string;
+  category: string;
+  itemName: string;
+  minPrice: number;
+  maxPrice: number;
+  notes?: string;
+  sourceReference?: string;
+}) => (await api.post('/prices', payload)).data;
+
+// --- NEARBY SAFETY NOTIFICATIONS API ---
+export const fetchNearbyAlerts = async (params?: {
+  lat?: number;
+  lng?: number;
+  cityId?: string;
+  radiusKm?: number;
+}) => (await api.get('/notifications/nearby-alerts', { params })).data;
+
+export const fetchNotificationPreferences = async () =>
+  (await api.get('/user/notification-preferences')).data;
+
+export const updateNotificationPreferences = async (payload: any) =>
+  (await api.put('/user/notification-preferences', payload)).data;
 
 export const fetchScams = async (params?: { cityId?: string; category?: string }) =>
   (await api.get('/scams', { params })).data;

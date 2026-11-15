@@ -22,6 +22,11 @@ import {
   Star,
   Phone,
   ChevronRight,
+  ShieldCheck,
+  Clock,
+  Eye,
+  ArrowRight,
+  ShieldAlert,
 } from 'lucide-react';
 import { MapCard } from './MapCard';
 
@@ -45,7 +50,13 @@ function FlyToController({ target }: { target: [number, number] | null }) {
   return null;
 }
 
-// Custom Leaflet DivIcons with color-coded pins
+// Custom Leaflet DivIcons with color-coded pins adhering to exact required legend:
+// Red: Verified high-priority safety incident
+// Orange: Report awaiting verification
+// Yellow: Community warning / Scam report
+// Green: Essential service (Hospital / Police / Pharmacy)
+// Blue: Tourist attraction
+// Blue location dot: Current user location
 const createCustomPin = (bgColor: string, symbol: string) => {
   return L.divIcon({
     className: 'custom-map-pin',
@@ -90,15 +101,16 @@ const userIcon = L.divIcon({
 });
 
 // Category Pin Definitions
-const hospitalIcon = createCustomPin('#10B981', '🏥');
-const policeIcon = createCustomPin('#3B82F6', '👮');
-const pharmacyIcon = createCustomPin('#8B5CF6', '💊');
+const verifiedIncidentIcon = createCustomPin('#DC2626', '🚨'); // Red: Verified high-priority incident
+const pendingIncidentIcon = createCustomPin('#F97316', '⏳'); // Orange: Awaiting verification
+const scamWarningIcon = createCustomPin('#EAB308', '⚠️'); // Yellow: Community warning
+const essentialHospitalIcon = createCustomPin('#16A34A', '🏥'); // Green: Hospital
+const essentialPoliceIcon = createCustomPin('#16A34A', '👮'); // Green: Police
+const pharmacyIcon = createCustomPin('#16A34A', '💊'); // Green: Essential pharmacy
+const touristAttractionIcon = createCustomPin('#2563EB', '🏛️'); // Blue: Tourist attraction
 const transportIcon = createCustomPin('#06B6D4', '🚇');
-const touristIcon = createCustomPin('#6366F1', '🏛️');
-const hotelIcon = createCustomPin('#F59E0B', '🏨');
+const hotelIcon = createCustomPin('#8B5CF6', '🏨');
 const restaurantIcon = createCustomPin('#F43F5E', '🍽️');
-const scamIcon = createCustomPin('#EAB308', '⚠️');
-const incidentIcon = createCustomPin('#EF4444', '🚨');
 
 interface SafetyMapProps {
   center: [number, number];
@@ -110,6 +122,7 @@ interface SafetyMapProps {
   height?: string;
   onLocateMe?: () => void;
   onCheckFare?: (placeName: string) => void;
+  onNavigateToFeed?: () => void;
 }
 
 export const SafetyMap: React.FC<SafetyMapProps> = ({
@@ -122,13 +135,14 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   height = 'calc(100vh - 4rem)',
   onLocateMe,
   onCheckFare,
+  onNavigateToFeed,
 }) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
   const [isPoiDrawerOpen, setIsPoiDrawerOpen] = useState(false);
   const [poiSearch, setPoiSearch] = useState('');
   const [poiCategoryFilter, setPoiCategoryFilter] = useState<string>('ALL');
-  const [showLayers, setShowLayers] = useState(true);
+  const [nearbyBannerDismissed, setNearbyBannerDismissed] = useState(false);
 
   // Active layers state (Multi-layer toggle)
   const [activeLayers, setActiveLayers] = useState<{
@@ -189,6 +203,14 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     return true;
   });
 
+  // Calculate nearby incidents within 5 km of current center
+  const nearbyIncidents = incidents.filter((inc) => {
+    const dLat = (inc.lat - center[0]) * 111;
+    const dLng = (inc.lng - center[1]) * 111 * Math.cos((center[0] * Math.PI) / 180);
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+    return dist <= 5.0;
+  });
+
   // Drawer filtered POIs
   const drawerPois = visibleServices.filter((s) => {
     const matchesSearch =
@@ -207,27 +229,25 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
   return (
     <div className="relative w-full overflow-hidden" style={{ height }}>
-      {/* Dynamic Layer Toggle Bar - Elevated to avoid search bar collision */}
+      {/* Top Map Layer Controls */}
       <div className="absolute top-28 sm:top-28 left-4 z-[997] flex items-center gap-1.5 max-w-[95%] sm:max-w-4xl bg-slate-950/90 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
         <button
           onClick={() => setAllLayers(true)}
           className="px-2.5 py-1.5 rounded-xl text-[11px] font-black bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1 flex-shrink-0"
         >
           <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>All ({visibleServices.length})</span>
+          <span>All ({visibleServices.length + incidents.length + scams.length})</span>
         </button>
 
         {[
-          { key: 'safetyZones' as const, label: 'Safety Zones', color: 'bg-emerald-600', icon: '🛡️' },
-          { key: 'police' as const, label: 'Police', color: 'bg-blue-600', icon: '👮' },
-          { key: 'hospitals' as const, label: 'Hospitals', color: 'bg-emerald-600', icon: '🏥' },
-          { key: 'pharmacies' as const, label: 'Pharmacies', color: 'bg-purple-600', icon: '💊' },
+          { key: 'incidents' as const, label: 'Incidents (Red/Orange)', color: 'bg-red-600', icon: '🚨' },
+          { key: 'scams' as const, label: 'Scam Warnings (Yellow)', color: 'bg-amber-500', icon: '⚠️' },
+          { key: 'police' as const, label: 'Police (Green)', color: 'bg-emerald-600', icon: '👮' },
+          { key: 'hospitals' as const, label: 'Hospitals (Green)', color: 'bg-emerald-600', icon: '🏥' },
+          { key: 'attractions' as const, label: 'Attractions (Blue)', color: 'bg-blue-600', icon: '🏛️' },
           { key: 'transport' as const, label: 'Transit', color: 'bg-cyan-600', icon: '🚇' },
-          { key: 'attractions' as const, label: 'Attractions', color: 'bg-indigo-600', icon: '🏛️' },
-          { key: 'hotels' as const, label: 'Hotels', color: 'bg-amber-600', icon: '🏨' },
-          { key: 'restaurants' as const, label: 'Dining', color: 'bg-rose-600', icon: '🍽️' },
-          { key: 'scams' as const, label: 'Scams', color: 'bg-amber-500', icon: '⚠️' },
-          { key: 'incidents' as const, label: 'Incidents', color: 'bg-red-600', icon: '🚨' },
+          { key: 'hotels' as const, label: 'Stays', color: 'bg-purple-600', icon: '🏨' },
+          { key: 'safetyZones' as const, label: 'Safety Zones', color: 'bg-emerald-600', icon: '🛡️' },
         ].map((layer) => {
           const isActive = activeLayers[layer.key];
           return (
@@ -245,6 +265,52 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
             </button>
           );
         })}
+      </div>
+
+      {/* Floating Nearby Scam Notice Alert Card (Section 2 Requirement) */}
+      {!nearbyBannerDismissed && nearbyIncidents.length > 0 && (
+        <div className="absolute top-44 left-4 z-[997] max-w-sm sm:max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-amber-500/60 shadow-2xl animate-fade-in flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-amber-500 text-slate-950 flex-shrink-0 mt-0.5">
+            <AlertTriangle className="w-4 h-4 text-slate-950" />
+          </div>
+          <div className="flex-1 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-white">Local Safety Advisory</span>
+              <button
+                onClick={() => setNearbyBannerDismissed(true)}
+                className="text-slate-400 hover:text-white p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p className="text-slate-300 mt-1 leading-relaxed">
+              <strong>Notice:</strong> {nearbyIncidents.length} reported incident
+              {nearbyIncidents.length > 1 ? 's have' : ' has'} been recorded near this sector (within 5 km).
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-900 text-amber-300 font-bold border border-slate-800">
+                Latest: {new Date(nearbyIncidents[0].reportedAt).toLocaleDateString()} ({nearbyIncidents[0].status})
+              </span>
+              {onNavigateToFeed && (
+                <button
+                  onClick={onNavigateToFeed}
+                  className="text-[10px] text-amber-400 font-bold hover:underline"
+                >
+                  View Feed →
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Map Legend Key (Bottom Right) */}
+      <div className="absolute bottom-6 right-20 sm:right-32 z-[997] hidden md:flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-800 text-[10px] font-bold text-slate-300 shadow-xl">
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-red-600"></span> Verified Incident</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-orange-500"></span> Awaiting Review</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400"></span> Scam Warning</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Essential Service</span>
+        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Tourist Spot</span>
       </div>
 
       {/* Floating Bottom Left POI Directory Drawer Trigger */}
@@ -336,11 +402,11 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
         {/* Location Services Markers */}
         {visibleServices.map((service) => {
-          let icon = hospitalIcon;
-          if (service.category === 'POLICE') icon = policeIcon;
+          let icon = essentialHospitalIcon;
+          if (service.category === 'POLICE') icon = essentialPoliceIcon;
           if (service.category === 'PHARMACY') icon = pharmacyIcon;
           if (service.category === 'TRANSPORT') icon = transportIcon;
-          if (service.category === 'TOURIST_INFO') icon = touristIcon;
+          if (service.category === 'TOURIST_INFO') icon = touristAttractionIcon;
           if (service.category === 'HOTEL') icon = hotelIcon;
           if (service.category === 'RESTAURANT') icon = restaurantIcon;
 
@@ -369,41 +435,80 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
           );
         })}
 
-        {/* Scam Alerts Markers */}
+        {/* Scam Alerts Markers (Yellow: Community Warnings) */}
         {activeLayers.scams &&
           scams.map((scam) => (
             <Marker
               key={scam.id}
               position={[scam.lat, scam.lng]}
-              icon={scamIcon}
+              icon={scamWarningIcon}
               eventHandlers={{
                 click: () =>
                   setSelectedItem({
                     ...scam,
-                    category: 'SCAM_ALERT',
+                    category: 'SCAM_WARNING',
                     name: scam.title,
                   }),
               }}
-            />
+            >
+              <Popup>
+                <div className="text-xs p-1">
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-yellow-100 text-yellow-800 font-black">
+                    ⚠️ Community Warning
+                  </span>
+                  <div className="font-extrabold text-sm text-slate-900 mt-1">{scam.title}</div>
+                  <p className="text-[11px] text-slate-600 mt-1">{scam.description}</p>
+                </div>
+              </Popup>
+            </Marker>
           ))}
 
-        {/* Incident Hotspots Markers */}
+        {/* Incident Hotspots Markers (Red: Verified High Priority, Orange: Pending/Under Review) */}
         {activeLayers.incidents &&
-          incidents.map((incident) => (
-            <Marker
-              key={incident.id}
-              position={[incident.lat, incident.lng]}
-              icon={incidentIcon}
-              eventHandlers={{
-                click: () =>
-                  setSelectedItem({
-                    ...incident,
-                    category: 'INCIDENT_ALERT',
-                    name: incident.title,
-                  }),
-              }}
-            />
-          ))}
+          incidents.map((incident) => {
+            const isVerified = incident.status === 'VERIFIED';
+            const icon = isVerified ? verifiedIncidentIcon : pendingIncidentIcon;
+
+            return (
+              <Marker
+                key={incident.id}
+                position={[incident.lat, incident.lng]}
+                icon={icon}
+                eventHandlers={{
+                  click: () =>
+                    setSelectedItem({
+                      ...incident,
+                      category: isVerified ? 'VERIFIED_INCIDENT' : 'PENDING_INCIDENT',
+                      name: incident.title,
+                    }),
+                }}
+              >
+                <Popup>
+                  <div className="text-xs p-1 space-y-1">
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded font-black ${
+                        isVerified
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-orange-100 text-orange-800'
+                      }`}
+                    >
+                      {isVerified ? '🚨 Verified Safety Incident' : '⏳ Awaiting Verification'}
+                    </span>
+                    <div className="font-extrabold text-sm text-slate-900">{incident.title}</div>
+                    <p className="text-[11px] text-slate-600">{incident.description}</p>
+                    {incident.amountDemanded && (
+                      <div className="text-[10px] text-red-600 font-bold">
+                        Demanded: ₹{incident.amountDemanded}
+                      </div>
+                    )}
+                    <div className="text-[10px] text-slate-500 pt-1">
+                      Reported: {new Date(incident.reportedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
       </MapContainer>
 
       {/* POI Directory Slide-Over Drawer */}
@@ -450,14 +555,13 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
                 { id: 'POLICE', label: '👮 Police' },
                 { id: 'PHARMACY', label: '💊 Pharmacy' },
                 { id: 'TRANSPORT', label: '🚇 Transit' },
-                { id: 'TOURIST_INFO', label: '🏛️ Attractions' },
-                { id: 'HOTEL', label: '🏨 Hotels' },
+                { id: 'HOTEL', label: '🏨 Stays' },
                 { id: 'RESTAURANT', label: '🍽️ Dining' },
               ].map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setPoiCategoryFilter(c.id)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex-shrink-0 transition-colors ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors ${
                     poiCategoryFilter === c.id
                       ? 'bg-amber-500 text-slate-950 font-black'
                       : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
@@ -469,42 +573,39 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
             </div>
           </div>
 
-          {/* List of POIs */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+          {/* POI List Items */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-2">
             {drawerPois.length === 0 ? (
-              <div className="py-12 text-center text-slate-500 text-xs">
-                No location services found matching your criteria.
+              <div className="p-8 text-center text-xs text-slate-400">
+                No matching verified locations found.
               </div>
             ) : (
               drawerPois.map((poi) => (
                 <div
                   key={poi.id}
                   onClick={() => handleSelectPoi(poi)}
-                  className="p-3.5 bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 rounded-2xl transition-all cursor-pointer group flex items-start justify-between gap-3"
+                  className="p-3 bg-slate-900/80 hover:bg-slate-850 border border-slate-800/80 rounded-2xl cursor-pointer transition-all flex items-start justify-between gap-3 group"
                 >
-                  <div className="space-y-1 min-w-0">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
-                        {poi.category}
+                      <span className="font-bold text-xs text-white group-hover:text-amber-400 transition-colors">
+                        {poi.name}
                       </span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 leading-tight">
+                      {poi.address}
+                    </div>
+                    <div className="flex items-center gap-2 pt-0.5 text-[10px] text-slate-500">
+                      <span className="text-emerald-400 font-bold">{poi.openStatus || 'Verified'}</span>
                       {poi.rating && (
-                        <span className="text-[10px] font-bold text-slate-300 flex items-center gap-0.5">
-                          <Star className="w-2.5 h-2.5 text-amber-400 fill-current" />
-                          <span>{poi.rating}</span>
+                        <span className="flex items-center gap-0.5 text-amber-400">
+                          <Star className="w-3 h-3 fill-amber-400" />
+                          {poi.rating}
                         </span>
                       )}
                     </div>
-                    <h5 className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors truncate">
-                      {poi.name}
-                    </h5>
-                    <p className="text-[11px] text-slate-400 line-clamp-1">{poi.address}</p>
-                    {poi.openStatus && (
-                      <span className="text-[10px] text-emerald-400 font-semibold block">
-                        {poi.openStatus}
-                      </span>
-                    )}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-2" />
+                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-amber-400 transition-colors flex-shrink-0 mt-1" />
                 </div>
               ))
             )}
@@ -512,7 +613,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         </div>
       )}
 
-      {/* Selected Marker Detail Card */}
+      {/* Selected Item Floating MapCard Drawer */}
       {selectedItem && (
         <MapCard
           item={selectedItem}

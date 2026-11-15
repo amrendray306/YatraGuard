@@ -32,6 +32,10 @@ model User {
   updatedAt             DateTime             @updatedAt
   trips                 Trip[]
   incidents             IncidentReport[]
+  incidentVerifications IncidentVerification[]
+  incidentFlags         IncidentFlag[]
+  priceSubmissions      PriceRecord[]
+  notificationPrefs     NotificationPreference?
   aiConversations       AIConversation[]
   vaultItems            VaultItem[]
   emergencyLogs         EmergencyLog[]
@@ -62,6 +66,7 @@ model City {
   weatherAlerts      WeatherAlert[]
   fareRules          CityFareRule[]
   fareReports        FareReport[]
+  priceRecords       PriceRecord[]
   createdAt          DateTime          @default(now())
 }
 
@@ -135,22 +140,102 @@ model LocationService {
 }
 
 model IncidentReport {
-  id              String   @id @default(uuid())
-  category        String   // theft, pickpocketing, scam, harassment, unsafe_road, suspicious_activity, transport_issue, medical_emergency, lost_item, other
-  title           String
-  description     String
-  lat             Float
-  lng             Float
-  address         String
-  cityId          String
-  city            City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  status          String   @default("PENDING") // PENDING, COMMUNITY_CONFIRMED, ADMIN_VERIFIED, REJECTED
-  confidenceScore Int      @default(45) // 0-100%
-  confirmations   Int      @default(1)
-  evidenceUrl     String?
-  reportedAt      DateTime @default(now())
-  reporterId      String?
-  reporter        User?    @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  id                 String                 @id @default(uuid())
+  category           String                 // taxi_overcharging, auto_overcharging, fake_tour_operator, hotel_scam, fake_guide, shopping_scam, online_fraud, theft, harassment, unsafe_location, suspicious_activity, other
+  title              String
+  description        String
+  lat                Float
+  lng                Float
+  address            String
+  cityId             String
+  city               City                   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  status             String                 @default("PENDING") // PENDING, UNDER_REVIEW, VERIFIED, REJECTED, RESOLVED, EXPIRED
+  confidenceScore    Int                    @default(45) // 0-100%
+  confirmations      Int                    @default(1)
+  confirmationsCount Int                    @default(0)
+  outdatedCount      Int                    @default(0)
+  flagsCount         Int                    @default(0)
+  amountDemanded     Float?
+  amountPaid         Float?
+  evidenceUrl        String?
+  incidentDate       DateTime               @default(now())
+  reportedAt         DateTime               @default(now())
+  reporterId         String?
+  reporter           User?                  @relation(fields: [reporterId], references: [id], onDelete: SetNull)
+  verifications      IncidentVerification[]
+  flags              IncidentFlag[]
+}
+
+model IncidentVerification {
+  id         String         @id @default(uuid())
+  incidentId String
+  incident   IncidentReport @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String         // CONFIRM_RELEVANT, MARK_OUTDATED, ADD_EVIDENCE
+  notes      String?
+  createdAt  DateTime       @default(now())
+
+  @@unique([incidentId, userId, type])
+}
+
+model IncidentFlag {
+  id         String         @id @default(uuid())
+  incidentId String
+  incident   IncidentReport @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason     String         // INACCURATE, SPAM, ABUSIVE, FALSE_REPORT
+  details    String?
+  createdAt  DateTime       @default(now())
+}
+
+model PriceRecord {
+  id                 String   @id @default(uuid())
+  cityId             String
+  city               City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  category           String   // FOOD_DINING, STREET_FOOD, HOTEL_RESORT, HOSTEL, HOMESTAY, ATTRACTION_ENTRY, ADVENTURE_ACTIVITY, LOCAL_SHOPPING, PARKING, LOCAL_TRANSPORT, SERVICES
+  itemName           String   // e.g., "Full Thali Meal", "White Water Rafting (16km)", "Standard Scooter Rental"
+  minPrice           Float
+  maxPrice           Float
+  currency           String   @default("INR (₹)")
+  sourceType         String   @default("OFFICIAL_BENCHMARK") // OFFICIAL_BENCHMARK, VERIFIED_PROVIDER, COMMUNITY_SUBMISSION, GOVT_TARIFF
+  sourceReference    String?  // Reference note / authority
+  verificationStatus String   @default("VERIFIED") // VERIFIED, PENDING, REJECTED
+  submittedById      String?
+  submittedBy        User?    @relation(fields: [submittedById], references: [id], onDelete: SetNull)
+  notes              String?
+  lastUpdated        DateTime @default(now())
+  createdAt          DateTime @default(now())
+}
+
+model RoutePriceQuery {
+  id             String   @id @default(uuid())
+  cityId         String?
+  fromName       String
+  toName         String
+  fromLat        Float?
+  fromLng        Float?
+  toLat          Float?
+  toLng          Float?
+  transportType  String   // WALKING, BUS, METRO, AUTO, E_RICKSHAW, TAXI, SHARED_TAXI, BIKE_TAXI, RENTAL
+  distanceKm     Float
+  durationMins   Int
+  estimatedPrice Float
+  minPrice       Float
+  maxPrice       Float
+  createdAt      DateTime @default(now())
+}
+
+model NotificationPreference {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nearbyAlerts     Boolean  @default(true)
+  fareAudits       Boolean  @default(true)
+  communityUpdates Boolean  @default(true)
+  radiusKm         Float    @default(5.0)
+  updatedAt        DateTime @default(now())
 }
 
 model ScamReport {

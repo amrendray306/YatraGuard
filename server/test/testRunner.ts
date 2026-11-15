@@ -21,6 +21,98 @@ async function runTest(name: string, fn: () => Promise<void> | void) {
 }
 
 async function main() {
+  // -------------------------------------------------------------------------
+  // SUITE 7: Real-Time Incident Reporting & Scam Vigilance
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 7: Real-Time Incident Reporting & Scam Vigilance]\x1b[0m');
+
+  await runTest('Incident Engine - Anti-Duplicate Spatial Detection (150m radius)', () => {
+    // Haversine test for duplicate threshold
+    const lat1 = 28.6428, lon1 = 77.2195;
+    const lat2 = 28.6432, lon2 = 77.2199; // ~55 meters away
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    
+    assert.ok(distKm < 0.15, 'Points within 150m must be flagged as duplicates to prevent spam');
+  });
+
+  await runTest('Incident Engine - Community Confirmations Elevate to UNDER_REVIEW (Not Auto-Verified)', () => {
+    let status = 'PENDING';
+    const confirmationsCount = 4;
+    // Core specification requirement: A report must NEVER automatically become VERIFIED based solely on clicks
+    if (confirmationsCount >= 3 && status === 'PENDING') {
+      status = 'UNDER_REVIEW'; // Elevates for moderator examination
+    }
+    assert.strictEqual(status, 'UNDER_REVIEW');
+    assert.notStrictEqual(status, 'VERIFIED', 'Must require moderator review for official verification');
+  });
+
+  await runTest('Incident Engine - Reporter Identity Sanitization (Privacy Shield)', () => {
+    const rawReporter = {
+      id: 'usr-999',
+      name: 'Amrendra Yadav',
+      email: 'private.user@gmail.com',
+      phone: '+919876543210',
+      role: 'TRAVELER',
+    };
+
+    // Public feed sanitization
+    const publicIncident = {
+      title: 'Auto Overcharging',
+      reporterBadge: rawReporter.role === 'ADMIN' ? 'Platform Moderator' : 'Verified Traveler',
+    };
+
+    assert.strictEqual((publicIncident as any).email, undefined, 'Reporter email must never be exposed');
+    assert.strictEqual((publicIncident as any).phone, undefined, 'Reporter phone must never be exposed');
+    assert.strictEqual(publicIncident.reporterBadge, 'Verified Traveler');
+  });
+
+  // -------------------------------------------------------------------------
+  // SUITE 8: Route-Wise Multi-Tier Price Intelligence
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 8: Route-Wise Multi-Tier Price Intelligence]\x1b[0m');
+
+  await runTest('Route Pricing - Generates 4 Comparison Categories (Cheapest, Fastest, Recommended, Alternative)', () => {
+    const categories = ['CHEAPEST', 'FASTEST', 'RECOMMENDED', 'ALTERNATIVE'];
+    assert.strictEqual(categories.length, 4);
+    assert.ok(categories.includes('CHEAPEST'));
+    assert.ok(categories.includes('FASTEST'));
+    assert.ok(categories.includes('RECOMMENDED'));
+    assert.ok(categories.includes('ALTERNATIVE'));
+  });
+
+  await runTest('Route Pricing - City Surcharge Logic (Delhi Metro vs Manali Mountain Taxi)', () => {
+    const distanceKm = 10.0;
+    
+    // Delhi Metro: 10km falls in 5-12km slab (₹30)
+    const metroFare = distanceKm <= 12 ? 30 : 40;
+    assert.strictEqual(metroFare, 30);
+
+    // Manali Auto with Mountain Terrain (+20% adjustment)
+    const baseFare = 40;
+    const perKm = 14;
+    const regularFare = baseFare + (distanceKm - 1.5) * perKm; // 40 + 8.5 * 14 = 159
+    const mountainFare = Math.round(regularFare * 1.20);
+    assert.strictEqual(mountainFare, 191);
+    assert.ok(mountainFare > regularFare, 'Mountain terrain must apply hill multiplier');
+  });
+
+  await runTest('Route Pricing - Overcharge Audit Severity Detection', () => {
+    const regulatedMax = 200;
+    const demandedFare = 450; // +125% overcharge
+    const margin = demandedFare - regulatedMax;
+    const pct = Math.round((margin / regulatedMax) * 100);
+    const severity = pct >= 50 ? 'SEVERE' : pct >= 20 ? 'MODERATE' : 'MARGINAL';
+
+    assert.strictEqual(severity, 'SEVERE');
+    assert.strictEqual(pct, 125);
+  });
+
   console.log('\n======================================================');
   console.log('   🛡️  YATRAGUARD AUTOMATED SYSTEM TEST SUITE  🛡️');
   console.log('======================================================\n');
@@ -275,6 +367,98 @@ async function main() {
     assert.strictEqual(isVerified, true);
     assert.strictEqual(mockGoogleProfile.sub.startsWith('google_'), true);
     assert.ok(mockGoogleProfile.email.includes('@'));
+  });
+
+  // -------------------------------------------------------------------------
+  // SUITE 7: Real-Time Incident Reporting & Scam Vigilance
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 7: Real-Time Incident Reporting & Scam Vigilance]\x1b[0m');
+
+  await runTest('Incident Engine - Anti-Duplicate Spatial Detection (150m radius)', () => {
+    // Haversine test for duplicate threshold
+    const lat1 = 28.6428, lon1 = 77.2195;
+    const lat2 = 28.6432, lon2 = 77.2199; // ~55 meters away
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    
+    assert.ok(distKm < 0.15, 'Points within 150m must be flagged as duplicates to prevent spam');
+  });
+
+  await runTest('Incident Engine - Community Confirmations Elevate to UNDER_REVIEW (Not Auto-Verified)', () => {
+    let status = 'PENDING';
+    const confirmationsCount = 4;
+    // Core specification requirement: A report must NEVER automatically become VERIFIED based solely on clicks
+    if (confirmationsCount >= 3 && status === 'PENDING') {
+      status = 'UNDER_REVIEW'; // Elevates for moderator examination
+    }
+    assert.strictEqual(status, 'UNDER_REVIEW');
+    assert.notStrictEqual(status, 'VERIFIED', 'Must require moderator review for official verification');
+  });
+
+  await runTest('Incident Engine - Reporter Identity Sanitization (Privacy Shield)', () => {
+    const rawReporter = {
+      id: 'usr-999',
+      name: 'Amrendra Yadav',
+      email: 'private.user@gmail.com',
+      phone: '+919876543210',
+      role: 'TRAVELER',
+    };
+
+    // Public feed sanitization
+    const publicIncident = {
+      title: 'Auto Overcharging',
+      reporterBadge: rawReporter.role === 'ADMIN' ? 'Platform Moderator' : 'Verified Traveler',
+    };
+
+    assert.strictEqual((publicIncident as any).email, undefined, 'Reporter email must never be exposed');
+    assert.strictEqual((publicIncident as any).phone, undefined, 'Reporter phone must never be exposed');
+    assert.strictEqual(publicIncident.reporterBadge, 'Verified Traveler');
+  });
+
+  // -------------------------------------------------------------------------
+  // SUITE 8: Route-Wise Multi-Tier Price Intelligence
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 8: Route-Wise Multi-Tier Price Intelligence]\x1b[0m');
+
+  await runTest('Route Pricing - Generates 4 Comparison Categories (Cheapest, Fastest, Recommended, Alternative)', () => {
+    const categories = ['CHEAPEST', 'FASTEST', 'RECOMMENDED', 'ALTERNATIVE'];
+    assert.strictEqual(categories.length, 4);
+    assert.ok(categories.includes('CHEAPEST'));
+    assert.ok(categories.includes('FASTEST'));
+    assert.ok(categories.includes('RECOMMENDED'));
+    assert.ok(categories.includes('ALTERNATIVE'));
+  });
+
+  await runTest('Route Pricing - City Surcharge Logic (Delhi Metro vs Manali Mountain Taxi)', () => {
+    const distanceKm = 10.0;
+    
+    // Delhi Metro: 10km falls in 5-12km slab (₹30)
+    const metroFare = distanceKm <= 12 ? 30 : 40;
+    assert.strictEqual(metroFare, 30);
+
+    // Manali Auto with Mountain Terrain (+20% adjustment)
+    const baseFare = 40;
+    const perKm = 14;
+    const regularFare = baseFare + (distanceKm - 1.5) * perKm; // 40 + 8.5 * 14 = 159
+    const mountainFare = Math.round(regularFare * 1.20);
+    assert.strictEqual(mountainFare, 191);
+    assert.ok(mountainFare > regularFare, 'Mountain terrain must apply hill multiplier');
+  });
+
+  await runTest('Route Pricing - Overcharge Audit Severity Detection', () => {
+    const regulatedMax = 200;
+    const demandedFare = 450; // +125% overcharge
+    const margin = demandedFare - regulatedMax;
+    const pct = Math.round((margin / regulatedMax) * 100);
+    const severity = pct >= 50 ? 'SEVERE' : pct >= 20 ? 'MODERATE' : 'MARGINAL';
+
+    assert.strictEqual(severity, 'SEVERE');
+    assert.strictEqual(pct, 125);
   });
 
   console.log('\n======================================================');

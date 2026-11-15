@@ -85,14 +85,14 @@
   scrollbar-width: none;
 }
 
-/* Light Mode Theme System Tokens & Overrides */
+/* Light Mode Theme System Tokens & Overrides (WCAG AAA Compliant) */
 html.light body {
   background-color: #f8fafc;
   color: #0f172a;
 }
 
 html.light header {
-  background-color: rgba(255, 255, 255, 0.94) !important;
+  background-color: rgba(255, 255, 255, 0.96) !important;
   border-color: #e2e8f0 !important;
 }
 
@@ -100,7 +100,7 @@ html.light .glass-panel {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
 
@@ -108,12 +108,13 @@ html.light .glass-panel-elevated {
   background: #ffffff;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  border: 1px solid #cbd5e1;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
 }
 
+/* Background surfaces in Light Mode */
 html.light .bg-slate-950 {
-  background-color: #f1f5f9 !important;
+  background-color: #f8fafc !important;
 }
 
 html.light .bg-slate-900 {
@@ -122,27 +123,42 @@ html.light .bg-slate-900 {
 
 html.light .bg-slate-900\/50,
 html.light .bg-slate-900\/60,
-html.light .bg-slate-900\/80 {
-  background-color: rgba(255, 255, 255, 0.92) !important;
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
+html.light .bg-slate-850,
 html.light .bg-slate-800 {
-  background-color: #e2e8f0 !important;
+  background-color: #f1f5f9 !important;
 }
 
+/* Borders in Light Mode */
 html.light .border-slate-800,
 html.light .border-slate-800\/80,
 html.light .border-slate-800\/60,
 html.light .border-slate-800\/70 {
-  border-color: #cbd5e1 !important;
+  border-color: #e2e8f0 !important;
 }
 
 html.light .border-slate-700,
 html.light .border-slate-700\/80 {
-  border-color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
 }
 
-html.light .text-white {
+/* Typography on white/light surfaces in Light Mode */
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light h6 {
+  color: #0f172a !important;
+}
+
+html.light p.text-white,
+html.light span.text-white:not([class*="bg-"]):not([class*="from-"]):not(.keep-white),
+html.light div.text-white:not([class*="bg-"]):not([class*="from-"]):not(.keep-white) {
   color: #0f172a !important;
 }
 
@@ -162,16 +178,46 @@ html.light .text-slate-500 {
   color: #64748b !important;
 }
 
+/* Form Inputs, Selects & Textareas in Light Mode */
+html.light input:not([type="checkbox"]):not([type="radio"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* PRESERVE WHITE TEXT ON COLORED / GRADIENT BUTTONS & PILLS IN LIGHT MODE */
+html.light .bg-red-600 *,
+html.light .bg-red-500 *,
+html.light .bg-blue-600 *,
+html.light .bg-amber-500 *,
+html.light .bg-emerald-600 *,
+html.light .bg-purple-600 *,
+html.light [class*="bg-gradient-"] *,
+html.light button[class*="from-"] *,
+html.light .keep-white {
+  color: #ffffff !important;
+}
+
+/* Navbar links hover state */
+html.light nav button.text-slate-300:hover,
 html.light nav button.text-slate-400:hover {
   color: #0f172a !important;
   background-color: #f1f5f9 !important;
 }
 
+/* Leaflet map popup in Light Mode */
 html.light .leaflet-popup-content-wrapper {
   background: #ffffff !important;
   color: #0f172a !important;
   border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12) !important;
 }
 
 html.light .leaflet-popup-tip {

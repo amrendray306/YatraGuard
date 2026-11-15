@@ -30,6 +30,7 @@ interface NavbarProps {
   setCurrentTab: (tab: string) => void;
   openEmergencyModal: () => void;
   openAuthModal?: (mode?: 'LOGIN' | 'REGISTER') => void;
+  openIncidentModal?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -37,6 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCurrentTab,
   openEmergencyModal,
   openAuthModal,
+  openIncidentModal,
 }) => {
   const { cities, currentCity, setCity, safetyScoreData } = useCity();
   const { user, logout, quickLogin } = useAuth();
@@ -47,11 +49,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
 
   // Exact requested Navigation:
-  // Home, Explore Destinations, Safety Map, Local Prices, Travel Community, About Us
+  // Home, Explore Destinations, Safety Map, Scam Alerts, Route Prices, Local Prices, Travel Community, About Us
   const navItems = [
     { id: 'landing', label: 'Home', icon: Compass },
     { id: 'dashboard', label: 'Explore Destinations', icon: MapPin },
     { id: 'map', label: 'Safety Map', icon: Navigation },
+    { id: 'alerts', label: 'Scam Alerts', icon: AlertTriangle },
+    { id: 'routes', label: 'Route Prices', icon: Compass },
     { id: 'fare', label: 'Local Prices', icon: IndianRupee },
     { id: 'community', label: 'Travel Community', icon: Users },
   ];
@@ -188,6 +192,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Moon className="w-4 h-4 text-indigo-500" />
                 )}
               </button>
+
+              {/* Report Scam / Safety Incident Button */}
+              {openIncidentModal && (
+                <button
+                  onClick={openIncidentModal}
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700/60 text-red-300 font-extrabold text-xs shadow-sm transition-all active:scale-95"
+                  title="Report tout, overcharging, fake operator or safety hazard"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                  <span>Report Scam</span>
+                </button>
+              )}
 
               {/* SOS Emergency Button */}
               <button
@@ -368,10 +384,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 { id: 'landing', label: 'Home', icon: Compass },
                 { id: 'dashboard', label: 'Explore Destinations', icon: MapPin },
                 { id: 'map', label: 'Safety Map', icon: Navigation },
+                { id: 'alerts', label: 'Scam Alerts', icon: AlertTriangle },
+                { id: 'routes', label: 'Route Prices', icon: Compass },
                 { id: 'fare', label: 'Local Prices', icon: IndianRupee },
                 { id: 'community', label: 'Travel Community', icon: Users },
                 { id: 'safety', label: 'Safety Scores', icon: ShieldCheck },
-                { id: 'routes', label: 'Safe Routes', icon: Navigation },
                 { id: 'services', label: 'Hospitals & Police', icon: Building2 },
                 { id: 'guardian', label: 'AI Guardian', icon: Bot },
                 { id: 'profile', label: 'My Profile', icon: UserIcon },

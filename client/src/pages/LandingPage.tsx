@@ -352,12 +352,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* 2. Smart Route Recommendations */}
           <FeatureCard
-            title="2. Smart Safe Routes"
-            description="Multi-criteria routing prioritizing illuminated arterial roads and active police desks over unsafe shortcuts."
+            title="2. Route Price & Safety"
+            description="Compare cheapest, fastest, recommended, and alternative routes with official RTO tariffs and night surcharges."
             icon={Navigation}
-            badge="Safest Path"
+            badge="4 Comparison Modes"
             badgeColor="bg-blue-950 text-blue-300 border-blue-800"
-            ctaText="Plan Safe Route"
+            ctaText="Compare Route Prices"
             onClick={() => setCurrentTab('routes')}
             accentColor="blue"
           />
@@ -377,11 +377,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* 4. Local Price Intelligence */}
           <FeatureCard
             title="4. Local Price Intelligence"
-            description="RTO regulated taxi, auto, and bus tariff calculator with automatic hill terrain and midnight surcharge multipliers."
+            description="City-wise price benchmarks for food, street snacks, hotels, homestays, adventure sports, and entry tickets."
             icon={IndianRupee}
             badge="Anti-Overcharge"
             badgeColor="bg-amber-950 text-amber-300 border-amber-800"
-            ctaText="Audit Transit Fare"
+            ctaText="Explore Local Prices"
             onClick={() => setCurrentTab('fare')}
             accentColor="amber"
           />
@@ -412,16 +412,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           {/* 7. Community Incident Reports */}
           <FeatureCard
-            title="7. Community Incidents"
-            description="Crowdsourced and officer-verified reports on road hazards, tout overcharging, and tourist scams."
+            title="7. Scam & Safety Alerts"
+            description="Live community scam feed with GPS distance, verification statuses, and one-click incident reporting."
             icon={AlertTriangle}
-            badge="Crowdsourced"
+            badge="Live Vigilance"
             badgeColor="bg-amber-950 text-amber-300 border-amber-800"
-            ctaText="Report / View Pin"
-            onClick={() => {
-              if (openIncidentModal) openIncidentModal();
-              else setCurrentTab('map');
-            }}
+            ctaText="View Scam Feed"
+            onClick={() => setCurrentTab('alerts')}
             accentColor="amber"
           />
 

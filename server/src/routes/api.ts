@@ -37,11 +37,27 @@ import {
 import {
   getIncidents,
   createIncident,
-  confirmIncident,
+  verifyIncidentCommunity,
+  updateIncidentStatus,
   getScams,
   createScam,
   voteScam,
 } from '../controllers/incidentController.js';
+import {
+  getPriceRecords,
+  submitPriceRecord,
+  adminUpdatePrice,
+  adminDeletePrice,
+} from '../controllers/priceController.js';
+import {
+  calculateRoutePricing,
+  reportRouteOvercharge,
+} from '../controllers/routePricingController.js';
+import {
+  getNearbySafetyAlerts,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+} from '../controllers/notificationController.js';
 import {
   getCities,
   getCity,
@@ -161,10 +177,27 @@ router.get('/fare/rules/:cityId', getCityRules);
 router.get('/fare/modes', getTransportModes);
 router.get('/fare/reports', getRecentCommunityReports);
 
-// --- INCIDENT REPORTING ---
+// --- REAL-TIME SCAM & SAFETY INCIDENT REPORTING ---
 router.get('/incidents', getIncidents);
 router.post('/incidents', optionalAuth, createIncident);
-router.post('/incidents/:id/confirm', optionalAuth, confirmIncident);
+router.post('/incidents/:id/confirm', optionalAuth, verifyIncidentCommunity);
+router.post('/incidents/:id/verify', optionalAuth, verifyIncidentCommunity);
+router.put('/admin/incidents/:id/status', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), updateIncidentStatus);
+
+// --- CITY-WISE LOCAL PRICE DATABASE (Food, Hotels, Activities, etc.) ---
+router.get('/prices', getPriceRecords);
+router.post('/prices', optionalAuth, submitPriceRecord);
+router.put('/admin/prices/:id', authenticateToken, requireRole(['ADMIN']), adminUpdatePrice);
+router.delete('/admin/prices/:id', authenticateToken, requireRole(['ADMIN']), adminDeletePrice);
+
+// --- ROUTE-WISE PRICE INTELLIGENCE MODULE ---
+router.post('/routes/pricing', calculateRoutePricing);
+router.post('/routes/report-overcharge', optionalAuth, reportRouteOvercharge);
+
+// --- SAFETY ALERT NOTIFICATIONS & PREFERENCES ---
+router.get('/notifications/nearby-alerts', optionalAuth, getNearbySafetyAlerts);
+router.get('/user/notification-preferences', optionalAuth, getNotificationPreferences);
+router.put('/user/notification-preferences', authenticateToken, updateNotificationPreferences);
 
 // --- SCAM INTELLIGENCE ---
 router.get('/scams', getScams);
