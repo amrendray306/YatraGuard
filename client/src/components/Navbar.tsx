@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ShieldAlert,
   MapPin,
@@ -351,18 +352,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => openAuthModal?.('LOGIN')}
-                    className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-colors"
+                  <Link
+                    to="/login"
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-colors inline-flex items-center"
                   >
                     Login
-                  </button>
-                  <button
-                    onClick={() => openAuthModal?.('REGISTER')}
-                    className="hidden sm:inline-flex px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-md transition-all active:scale-95"
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="hidden sm:inline-flex px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-md transition-all active:scale-95 items-center"
                   >
                     Register
-                  </button>
+                  </Link>
                 </div>
               )}
 
@@ -415,6 +416,25 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 );
               })}
+
+              {!user && (
+                <div className="col-span-2 pt-2 border-t border-slate-800 flex gap-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex-1 text-center py-2 bg-amber-500 hover:bg-amber-400 rounded-xl text-xs font-black text-slate-950 shadow-md"
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>

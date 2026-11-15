@@ -1,5 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'travel-guardian-secure-jwt-secret-key-2025';
 
@@ -61,17 +64,35 @@ export function optionalAuth(
 }
 
 export function requireRole(allowedRoles: Array<'TRAVELER' | 'MODERATOR' | 'ADMIN'>) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        error: `Permission denied. Required role: ${allowedRoles.join(' or ')}`,
+    try {
+      // Revalidate role and active status directly against PostgreSQL to enforce immediate revocation
+      const dbUser = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { id: true, role: true, isActive: true },
       });
-    }
 
-    next();
+      if (!dbUser || !dbUser.isActive) {
+        return res.status(403).json({ error: 'Account is inactive or suspended' });
+      }
+
+      // Sync fresh database role to request user
+      req.user.role = dbUser.role as any;
+
+      if (!allowedRoles.includes(dbUser.role as any)) {
+        return res.status(403).json({
+          error: `Permission denied. Required role: ${allowedRoles.join(' or ')}`,
+        });
+      }
+
+      next();
+    } catch (err) {
+      console.error('requireRole database check error:', err);
+      return res.status(500).json({ error: 'Authorization verification failed' });
+    }
   };
 }

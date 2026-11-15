@@ -16,7 +16,7 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (user.role !== 'ADMIN') {
@@ -38,10 +38,10 @@ export function AdminRoute({ children }: { children: React.ReactNode }) {
               <ArrowLeft className="w-4 h-4" /> Return to Site
             </a>
             <a
-              href="/admin/login"
+              href="/login"
               className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold rounded-xl transition-colors"
             >
-              Admin Sign In
+              Sign In
             </a>
           </div>
         </div>

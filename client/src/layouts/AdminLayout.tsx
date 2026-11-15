@@ -50,7 +50,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/admin/login');
+    navigate('/login');
   };
 
   const currentNav = navItems.find((n) => location.pathname === n.path || location.pathname.startsWith(n.path + '/'));

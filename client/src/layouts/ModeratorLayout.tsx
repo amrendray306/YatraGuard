@@ -45,7 +45,7 @@ export function ModeratorLayout({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/moderator/login');
+    navigate('/login');
   };
 
   const currentNav = modNavItems.find(

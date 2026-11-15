@@ -5,6 +5,11 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AdminRoute } from './components/guards/AdminRoute';
 import { ModeratorRoute } from './components/guards/ModeratorRoute';
 
+// Unified Authentication Pages
+import { LoginPage } from './pages/auth/LoginPage';
+import { RegisterPage } from './pages/auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+
 // Admin Pages
 import { AdminLoginPage } from './pages/admin/AdminLoginPage';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
@@ -125,9 +130,21 @@ export const App: React.FC = () => {
   return (
     <Routes>
       {/* ========================================= */}
+      {/* 0. UNIFIED AUTHENTICATION ROUTES          */}
+      {/* ========================================= */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+      {/* Legacy / Direct Role Login Redirects to Unified Login */}
+      <Route path="/admin/login" element={<Navigate to="/login" replace />} />
+      <Route path="/moderator/login" element={<Navigate to="/login" replace />} />
+      <Route path="/user/login" element={<Navigate to="/login" replace />} />
+      <Route path="/user" element={<Navigate to="/dashboard" replace />} />
+
+      {/* ========================================= */}
       {/* 1. ADMIN ENVIRONMENT ROUTES              */}
       {/* ========================================= */}
-      <Route path="/admin/login" element={<AdminLoginPage />} />
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
@@ -145,7 +162,6 @@ export const App: React.FC = () => {
       {/* ========================================= */}
       {/* 2. MODERATOR ENVIRONMENT ROUTES          */}
       {/* ========================================= */}
-      <Route path="/moderator/login" element={<ModeratorLoginPage />} />
       <Route path="/moderator" element={<Navigate to="/moderator/dashboard" replace />} />
       <Route path="/moderator/dashboard" element={<ModeratorRoute><ModeratorDashboard /></ModeratorRoute>} />
       <Route path="/moderator/reports" element={<ModeratorRoute><ModeratorReportsPage /></ModeratorRoute>} />

@@ -36,7 +36,8 @@ export async function register(req: Request, res: Response) {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const assignedRole = role === 'ADMIN' || role === 'MODERATOR' ? role : 'TRAVELER';
+    // All public registrations strictly receive TRAVELER role
+    const assignedRole = 'TRAVELER';
 
     const user = await prisma.user.create({
       data: {
@@ -68,6 +69,7 @@ export async function register(req: Request, res: Response) {
         phone: user.phone,
         avatarUrl: user.avatarUrl,
         authProvider: user.authProvider,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
@@ -92,6 +94,10 @@ export async function login(req: Request, res: Response) {
     const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ error: 'This account has been suspended. Please contact YatraGuard support.' });
     }
 
     // Check if account was created purely via Google OAuth without a password
@@ -124,6 +130,7 @@ export async function login(req: Request, res: Response) {
         phone: user.phone,
         avatarUrl: user.avatarUrl,
         authProvider: user.authProvider,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
@@ -224,6 +231,7 @@ export async function googleAuth(req: Request, res: Response) {
         phone: user.phone,
         avatarUrl: user.avatarUrl,
         authProvider: user.authProvider,
+        isActive: user.isActive,
       },
     });
   } catch (error) {
@@ -335,12 +343,17 @@ export async function getProfile(req: AuthenticatedRequest, res: Response) {
         phone: true,
         avatarUrl: true,
         authProvider: true,
+        isActive: true,
         createdAt: true,
       },
     });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({ error: 'Account has been suspended' });
     }
 
     return res.json({ user });
