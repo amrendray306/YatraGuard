@@ -189,6 +189,11 @@ export async function googleAuth(req: Request, res: Response) {
     });
 
     if (user) {
+      if (!user.isActive) {
+        return res.status(403).json({
+          error: 'Your account has been deactivated. Please contact support.',
+        });
+      }
       // Link Google ID and avatar if not present
       user = await prisma.user.update({
         where: { id: user.id },
