@@ -619,3 +619,170 @@ export async function reviewFareReport(req: AuthenticatedRequest, res: Response)
     return res.status(500).json({ error: 'Failed to update fare report status' });
   }
 }
+
+export async function getAdminModerators(req: AuthenticatedRequest, res: Response) {
+  try {
+    const moderators = await prisma.user.findMany({
+      where: { role: 'MODERATOR' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+        isActive: true,
+        location: true,
+        createdAt: true,
+        _count: {
+          select: {
+            moderationActions: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({ moderators });
+  } catch (error: any) {
+    console.error('getAdminModerators error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve moderators' });
+  }
+}
+
+export async function promoteUserToModerator(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const adminId = req.user?.id;
+
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (targetUser.role === 'ADMIN') {
+      return res.status(400).json({ error: 'Cannot alter role of another Administrator' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role: 'MODERATOR' },
+    });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        'PROMOTE_MODERATOR',
+        'USER',
+        id,
+        `Promoted user ${targetUser.email} (${targetUser.name}) to MODERATOR`
+      );
+    }
+
+    // Send in-app notification
+    await prisma.notification.create({
+      data: {
+        userId: id,
+        title: 'Promoted to Safety Moderator',
+        message: 'You have been granted Safety Moderator privileges on YatraGuard. You now have access to the Moderator Portal at /moderator/dashboard.',
+        type: 'INFO',
+        linkUrl: '/moderator/dashboard',
+      },
+    }).catch(() => {});
+
+    return res.json({
+      success: true,
+      message: `User ${targetUser.name} has been promoted to Moderator`,
+      user: updated,
+    });
+  } catch (error: any) {
+    console.error('promoteUserToModerator error:', error);
+    return res.status(500).json({ error: error.message || 'Promotion failed' });
+  }
+}
+
+export async function revokeModerator(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const adminId = req.user?.id;
+
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (targetUser.role === 'ADMIN') {
+      return res.status(400).json({ error: 'Cannot revoke an Administrator' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role: 'TRAVELER' },
+    });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        'REVOKE_MODERATOR',
+        'USER',
+        id,
+        `Revoked MODERATOR role from ${targetUser.email}. User reverted to TRAVELER.`
+      );
+    }
+
+    // Notify user
+    await prisma.notification.create({
+      data: {
+        userId: id,
+        title: 'Moderator Role Revoked',
+        message: 'Your YatraGuard Moderator role has been revoked by an administrator. You can continue using your standard Traveler account.',
+        type: 'INFO',
+      },
+    }).catch(() => {});
+
+    return res.json({
+      success: true,
+      message: `Moderator privileges revoked for ${targetUser.name}`,
+      user: updated,
+    });
+  } catch (error: any) {
+    console.error('revokeModerator error:', error);
+    return res.status(500).json({ error: error.message || 'Revocation failed' });
+  }
+}
+
+export async function getAdminImages(req: AuthenticatedRequest, res: Response) {
+  try {
+    const [profileImages, postImages] = await Promise.all([
+      prisma.profileImage.findMany({
+        take: 50,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, role: true },
+          },
+        },
+      }),
+      prisma.postMedia.findMany({
+        take: 50,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true },
+          },
+          post: {
+            select: { id: true, title: true, destinationName: true },
+          },
+        },
+      }),
+    ]);
+
+    return res.json({
+      profileImages,
+      postImages,
+    });
+  } catch (error: any) {
+    console.error('getAdminImages error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve image repository' });
+  }
+}
+

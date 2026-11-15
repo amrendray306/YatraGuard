@@ -16,8 +16,12 @@ import {
   X,
   UserCheck,
   AlertTriangle,
+  Upload,
+  Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 import {
+  api,
   fetchCommunityPosts,
   submitCommunityPost,
   likeCommunityPost,
@@ -46,6 +50,12 @@ export const CommunityPage: React.FC = () => {
   const [isBuddyModalOpen, setIsBuddyModalOpen] = useState(false);
   const [commentingPostId, setCommentingPostId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
+
+  // Multi-image upload states
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
   // Form states
   const [newPost, setNewPost] = useState({
@@ -130,6 +140,33 @@ export const CommunityPage: React.FC = () => {
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    if (selectedFiles.length + files.length > 8) {
+      alert('Maximum of 8 photos allowed per community post.');
+      return;
+    }
+
+    const updated = [...selectedFiles, ...files].slice(0, 8);
+    setSelectedFiles(updated);
+
+    // Generate previews
+    const previews: string[] = [];
+    updated.forEach((f) => {
+      previews.push(URL.createObjectURL(f));
+    });
+    setFilePreviews(previews);
+  };
+
+  const removeSelectedFile = (index: number) => {
+    const updatedFiles = selectedFiles.filter((_, i) => i !== index);
+    const updatedPreviews = filePreviews.filter((_, i) => i !== index);
+    setSelectedFiles(updatedFiles);
+    setFilePreviews(updatedPreviews);
+  };
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPost.title || !newPost.content || !newPost.destinationName) {
@@ -138,7 +175,30 @@ export const CommunityPage: React.FC = () => {
     }
 
     try {
-      await submitCommunityPost(newPost);
+      setUploadingImages(true);
+      let mediaItems: any[] = [];
+
+      // If user selected files, upload them first
+      if (selectedFiles.length > 0) {
+        const formData = new FormData();
+        selectedFiles.forEach((file) => formData.append('images', file));
+
+        const token = localStorage.getItem('travel_guardian_token');
+        const uploadRes = await api.post('/upload/community', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        mediaItems = uploadRes.data.images || [];
+      }
+
+      await submitCommunityPost({
+        ...newPost,
+        media: mediaItems,
+        imageUrl: mediaItems[0]?.url || newPost.imageUrl,
+      });
+
       setIsPostModalOpen(false);
       setNewPost({
         title: '',
@@ -147,11 +207,18 @@ export const CommunityPage: React.FC = () => {
         content: '',
         imageUrl: '',
       });
+      setSelectedFiles([]);
+      setFilePreviews([]);
       setStatusMessage({ text: 'Experience posted to the travel community!', type: 'success' });
       loadPosts();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create post:', err);
-      setStatusMessage({ text: 'Failed to create post. Please try again.', type: 'error' });
+      setStatusMessage({
+        text: err?.response?.data?.error || 'Failed to create post. Please try again.',
+        type: 'error',
+      });
+    } finally {
+      setUploadingImages(false);
     }
   };
 
@@ -355,9 +422,11 @@ export const CommunityPage: React.FC = () => {
                 commentsCount={post.comments?.length || 0}
                 createdAt={new Date(post.createdAt).toLocaleDateString()}
                 imageUrl={post.imageUrl}
+                media={post.media}
                 isLiked={post.isLiked}
                 onLike={() => handleLike(post.id)}
                 onComment={() => setCommentingPostId(commentingPostId === post.id ? null : post.id)}
+                onImageClick={(url) => setLightboxImage(url)}
               />
 
               {/* Comments Dropdown */}
@@ -546,7 +615,45 @@ export const CommunityPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">Photo URL (Optional)</label>
+                <label className="block text-slate-300 font-bold mb-1">
+                  Upload Photos (Up to 8 Images — JPG, PNG, WebP)
+                </label>
+                <div className="space-y-3">
+                  <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-700 hover:border-amber-400 rounded-2xl cursor-pointer bg-slate-950/60 transition-colors">
+                    <Upload className="w-6 h-6 text-amber-400 mb-1" />
+                    <span className="text-xs font-bold text-slate-300">Click to Select Photos</span>
+                    <span className="text-[10px] text-slate-500">Max 10MB per image, up to 8 images</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {/* Previews Grid */}
+                  {filePreviews.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {filePreviews.map((src, i) => (
+                        <div key={i} className="relative h-20 rounded-xl overflow-hidden group border border-slate-700">
+                          <img src={src} alt="preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeSelectedFile(i)}
+                            className="absolute top-1 right-1 p-1 bg-red-600/90 text-white rounded-full hover:bg-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Or Photo URL (Optional)</label>
                 <input
                   type="url"
                   value={newPost.imageUrl}
@@ -566,9 +673,10 @@ export const CommunityPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg"
+                  disabled={uploadingImages}
+                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-lg disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  Publish Experience
+                  {uploadingImages ? 'Uploading Images...' : 'Publish Experience'}
                 </button>
               </div>
             </form>
@@ -668,6 +776,24 @@ export const CommunityPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* FULLSCREEN PHOTO LIGHTBOX */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in"
+          onClick={() => setLightboxImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl">
+            <img src={lightboxImage} alt="Community Photo Fullscreen" className="w-full h-full object-contain" />
+            <button
+              onClick={() => setLightboxImage(null)}
+              className="absolute top-4 right-4 p-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
       )}

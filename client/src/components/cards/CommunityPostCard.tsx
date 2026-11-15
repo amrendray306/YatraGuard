@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, MessageSquare, MapPin, Share2, ShieldCheck, Tag } from 'lucide-react';
+import { Heart, MessageSquare, MapPin, Share2, ShieldCheck, Tag, Eye } from 'lucide-react';
 
 export interface CommunityPostCardProps {
   id: string;
@@ -14,10 +14,12 @@ export interface CommunityPostCardProps {
   commentsCount?: number;
   createdAt?: string;
   imageUrl?: string;
+  media?: Array<{ id: string; url: string; altText?: string }>;
   isLiked?: boolean;
   onLike?: () => void;
   onComment?: () => void;
   onShare?: () => void;
+  onImageClick?: (url: string) => void;
 }
 
 const categoryBadges: Record<string, { label: string; color: string }> = {
@@ -41,28 +43,68 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
   commentsCount = 0,
   createdAt = 'Recently',
   imageUrl,
+  media,
   isLiked = false,
   onLike,
   onComment,
   onShare,
+  onImageClick,
 }) => {
   const cat = categoryBadges[category] || {
     label: category,
     color: 'bg-slate-800 text-slate-300 border-slate-700',
   };
 
+  const images = (media && media.length > 0)
+    ? media.map((m) => m.url)
+    : (imageUrl ? [imageUrl] : []);
+
   return (
-    <div className="bg-slate-900/95 border border-slate-800 hover:border-slate-700 rounded-2xl overflow-hidden transition-all duration-300 shadow-xl flex flex-col justify-between">
-      {imageUrl && (
-        <div className="relative h-44 sm:h-48 w-full overflow-hidden">
-          <img
-            src={imageUrl}
-            alt={title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
-          <div className="absolute top-3 left-3">
+    <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl overflow-hidden transition-all duration-300 shadow-xl flex flex-col justify-between">
+      {/* Multi-Image Gallery or Single Header Image */}
+      {images.length > 0 && (
+        <div className="relative w-full bg-slate-950">
+          {images.length === 1 ? (
+            <div
+              className="relative h-48 sm:h-56 w-full overflow-hidden cursor-pointer group"
+              onClick={() => onImageClick?.(images[0])}
+            >
+              <img
+                src={images[0]}
+                alt={title}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1 h-52 sm:h-60 p-1">
+              {images.slice(0, 4).map((imgUrl, index) => {
+                const isFourth = index === 3 && images.length > 4;
+                return (
+                  <div
+                    key={index}
+                    className="relative w-full h-full overflow-hidden rounded-xl cursor-pointer group"
+                    onClick={() => onImageClick?.(imgUrl)}
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`${title} - Photo ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                    />
+                    {isFourth && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-sm">
+                        +{images.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="absolute top-3 left-3 pointer-events-none">
             <span
               className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border backdrop-blur-md ${cat.color}`}
             >
@@ -72,7 +114,7 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
         </div>
       )}
 
-      <div className="p-5 space-y-4 flex-1 flex flex-col justify-between">
+      <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
         <div className="space-y-3">
           {/* Author Header */}
           <div className="flex items-center justify-between gap-2">
@@ -107,7 +149,7 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
             </span>
           </div>
 
-          {!imageUrl && (
+          {images.length === 0 && (
             <div>
               <span
                 className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${cat.color}`}

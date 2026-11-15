@@ -79,6 +79,35 @@ import {
   deleteVaultItem,
 } from '../controllers/tripController.js';
 import {
+  uploadProfileImage,
+  deleteProfileImage,
+  uploadCommunityImages,
+  adminDeleteImage,
+} from '../controllers/uploadController.js';
+import {
+  uploadProfileMiddleware,
+  uploadCommunityMiddleware,
+} from '../services/uploadService.js';
+import {
+  getModeratorDashboard,
+  getModeratorReports,
+  moderateReport,
+  getModeratorCommunity,
+  hidePost,
+  escalatePost,
+  getModeratorPrices,
+  moderatePrice,
+  getModeratorComplaints,
+  getModeratorHistory,
+  getModeratorProfile,
+} from '../controllers/moderationController.js';
+import {
+  getAdminModerators,
+  promoteUserToModerator,
+  revokeModerator,
+  getAdminImages,
+} from '../controllers/adminController.js';
+import {
   getAdminOverview,
   getAdminUsers,
   updateUserStatus,
@@ -324,5 +353,36 @@ router.post(
   requireRole(['ADMIN', 'MODERATOR']),
   reviewFareReport
 );
+
+// ==========================================
+// UPLOAD ROUTES (Profile & Multi-Image Community)
+// ==========================================
+router.post('/upload/profile', authenticateToken, uploadProfileMiddleware, uploadProfileImage);
+router.delete('/upload/profile', authenticateToken, deleteProfileImage);
+router.post('/upload/community', authenticateToken, uploadCommunityMiddleware, uploadCommunityImages);
+router.delete('/upload/image/:id', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), adminDeleteImage);
+
+// ==========================================
+// MODERATOR PORTAL ROUTES
+// ==========================================
+router.get('/moderator/dashboard', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), getModeratorDashboard);
+router.get('/moderator/reports', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), getModeratorReports);
+router.post('/moderator/reports/:id/action', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), moderateReport);
+router.get('/moderator/community', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), getModeratorCommunity);
+router.post('/moderator/posts/:id/hide', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), hidePost);
+router.post('/moderator/posts/:id/escalate', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), escalatePost);
+router.get('/moderator/prices', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), getModeratorPrices);
+router.post('/moderator/prices/:id/action', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), moderatePrice);
+router.get('/moderator/complaints', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), getModeratorComplaints);
+router.get('/moderator/history', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), getModeratorHistory);
+router.get('/moderator/profile', authenticateToken, requireRole(['MODERATOR', 'ADMIN']), getModeratorProfile);
+
+// ==========================================
+// ADMIN MODERATOR APPOINTMENT & IMAGE MGMT
+// ==========================================
+router.get('/admin/moderators', authenticateToken, requireRole(['ADMIN']), getAdminModerators);
+router.post('/admin/users/:id/promote', authenticateToken, requireRole(['ADMIN']), promoteUserToModerator);
+router.post('/admin/users/:id/demote', authenticateToken, requireRole(['ADMIN']), revokeModerator);
+router.get('/admin/images', authenticateToken, requireRole(['ADMIN']), getAdminImages);
 
 export default router;

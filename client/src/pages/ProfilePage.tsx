@@ -36,6 +36,7 @@ import {
 import { ProfileCard } from '../components/cards/ProfileCard';
 import { EmergencyContactCard } from '../components/cards/EmergencyContactCard';
 import { NotificationCard } from '../components/cards/NotificationCard';
+import { ProfileImageModal } from '../components/shared/ProfileImageModal';
 
 interface ProfilePageProps {
   setCurrentTab: (tab: string) => void;
@@ -54,6 +55,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [activeSection, setActiveSection] = useState<'OVERVIEW' | 'SETTINGS'>('OVERVIEW');
 
   // Modals
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -222,6 +224,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       {profileUser && (
         <ProfileCard
           user={profileUser}
+          onEditPhoto={() => setIsPhotoModalOpen(true)}
           onEditProfile={() => setIsEditModalOpen(true)}
           onChangePassword={() => setIsPasswordModalOpen(true)}
           onLogout={() => {
@@ -805,6 +808,14 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         </div>
       )}
+
+      {/* PROFILE PHOTO UPLOAD & CROP MODAL */}
+      <ProfileImageModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentAvatarUrl={profileUser?.avatarUrl}
+        onSuccess={() => loadData()}
+      />
     </div>
   );
 };

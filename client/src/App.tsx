@@ -1,4 +1,34 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+
+// Layouts & Route Guards
+import { AdminRoute } from './components/guards/AdminRoute';
+import { ModeratorRoute } from './components/guards/ModeratorRoute';
+
+// Admin Pages
+import { AdminLoginPage } from './pages/admin/AdminLoginPage';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { AdminUsersPage } from './pages/admin/AdminUsersPage';
+import { AdminModeratorsPage } from './pages/admin/AdminModeratorsPage';
+import { AdminIncidentsPage } from './pages/admin/AdminIncidentsPage';
+import { AdminCommunityPage } from './pages/admin/AdminCommunityPage';
+import { AdminDestinationsPage } from './pages/admin/AdminDestinationsPage';
+import { AdminPricesPage } from './pages/admin/AdminPricesPage';
+import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
+import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
+import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
+
+// Moderator Pages
+import { ModeratorLoginPage } from './pages/moderator/ModeratorLoginPage';
+import { ModeratorDashboard } from './pages/moderator/ModeratorDashboard';
+import { ModeratorReportsPage } from './pages/moderator/ModeratorReportsPage';
+import { ModeratorCommunityPage } from './pages/moderator/ModeratorCommunityPage';
+import { ModeratorPricesPage } from './pages/moderator/ModeratorPricesPage';
+import { ModeratorComplaintsPage } from './pages/moderator/ModeratorComplaintsPage';
+import { ModeratorHistoryPage } from './pages/moderator/ModeratorHistoryPage';
+import { ModeratorProfilePage } from './pages/moderator/ModeratorProfilePage';
+
+// User SPA Components & Pages
 import { Navbar } from './components/Navbar';
 import { MobileNav } from './components/MobileNav';
 import { LandingPage } from './pages/LandingPage';
@@ -23,6 +53,7 @@ import { RoutesPage } from './pages/RoutesPage';
 import { EmergencyModal } from './components/EmergencyModal';
 import { IncidentModal } from './components/IncidentModal';
 import { AuthModal } from './components/AuthModal';
+
 import {
   ShieldAlert,
   Compass,
@@ -49,20 +80,20 @@ export const App: React.FC = () => {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [shareToken, setShareToken] = useState<string | null>(null);
 
-  // Check URL query parameters or pathname for direct navigation
+  const location = useLocation();
+
+  // Sync tab with pathname on URL navigation
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const tab = params.get('tab');
-    const path = window.location.pathname;
+    const path = location.pathname;
 
     if (token) {
       setShareToken(token);
       setCurrentTab('shared_trip');
     } else if (tab) {
       setCurrentTab(tab);
-    } else if (path === '/admin' || path === '/admin/login' || path === '/admin/dashboard') {
-      setCurrentTab('admin');
     } else if (path === '/profile') {
       setCurrentTab('profile');
     } else if (path === '/community') {
@@ -75,8 +106,10 @@ export const App: React.FC = () => {
       setCurrentTab('routes');
     } else if (path === '/explore/prices' || path === '/prices') {
       setCurrentTab('fare');
+    } else if (path === '/dashboard') {
+      setCurrentTab('dashboard');
     }
-  }, []);
+  }, [location.pathname, location.search]);
 
   const openEmergency = () => setIsEmergencyOpen(true);
   const closeEmergency = () => setIsEmergencyOpen(false);
@@ -90,170 +123,214 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pb-16 md:pb-0">
-      {/* Top Navbar */}
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        openEmergencyModal={openEmergency}
-        openAuthModal={openAuth}
-        openIncidentModal={openIncident}
-      />
+    <Routes>
+      {/* ========================================= */}
+      {/* 1. ADMIN ENVIRONMENT ROUTES              */}
+      {/* ========================================= */}
+      <Route path="/admin/login" element={<AdminLoginPage />} />
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+      <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+      <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
+      <Route path="/admin/moderators" element={<AdminRoute><AdminModeratorsPage /></AdminRoute>} />
+      <Route path="/admin/incidents" element={<AdminRoute><AdminIncidentsPage /></AdminRoute>} />
+      <Route path="/admin/community" element={<AdminRoute><AdminCommunityPage /></AdminRoute>} />
+      <Route path="/admin/destinations" element={<AdminRoute><AdminDestinationsPage /></AdminRoute>} />
+      <Route path="/admin/prices" element={<AdminRoute><AdminPricesPage /></AdminRoute>} />
+      <Route path="/admin/analytics" element={<AdminRoute><AdminAnalyticsPage /></AdminRoute>} />
+      <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogsPage /></AdminRoute>} />
+      <Route path="/admin/settings" element={<AdminRoute><AdminSettingsPage /></AdminRoute>} />
+      <Route path="/admin/ai-config" element={<AdminRoute><AdminSettingsPage /></AdminRoute>} />
+      <Route path="/admin/api-mgmt" element={<AdminRoute><AdminSettingsPage /></AdminRoute>} />
 
-      {/* Main Content Router */}
-      <main className="flex-1">
-        {/* Landing Page */}
-        {currentTab === 'landing' && (
-          <LandingPage
-            setCurrentTab={setCurrentTab}
-            openEmergencyModal={openEmergency}
-            openAuthModal={openAuth}
-            openIncidentModal={openIncident}
-          />
-        )}
+      {/* ========================================= */}
+      {/* 2. MODERATOR ENVIRONMENT ROUTES          */}
+      {/* ========================================= */}
+      <Route path="/moderator/login" element={<ModeratorLoginPage />} />
+      <Route path="/moderator" element={<Navigate to="/moderator/dashboard" replace />} />
+      <Route path="/moderator/dashboard" element={<ModeratorRoute><ModeratorDashboard /></ModeratorRoute>} />
+      <Route path="/moderator/reports" element={<ModeratorRoute><ModeratorReportsPage /></ModeratorRoute>} />
+      <Route path="/moderator/community" element={<ModeratorRoute><ModeratorCommunityPage /></ModeratorRoute>} />
+      <Route path="/moderator/reported-posts" element={<ModeratorRoute><ModeratorCommunityPage /></ModeratorRoute>} />
+      <Route path="/moderator/reported-comments" element={<ModeratorRoute><ModeratorCommunityPage /></ModeratorRoute>} />
+      <Route path="/moderator/prices" element={<ModeratorRoute><ModeratorPricesPage /></ModeratorRoute>} />
+      <Route path="/moderator/complaints" element={<ModeratorRoute><ModeratorComplaintsPage /></ModeratorRoute>} />
+      <Route path="/moderator/history" element={<ModeratorRoute><ModeratorHistoryPage /></ModeratorRoute>} />
+      <Route path="/moderator/notifications" element={<ModeratorRoute><ModeratorDashboard /></ModeratorRoute>} />
+      <Route path="/moderator/profile" element={<ModeratorRoute><ModeratorProfilePage /></ModeratorRoute>} />
 
-        {/* Primary Screen Views */}
-        {currentTab === 'dashboard' && (
-          <Dashboard
-            setCurrentTab={setCurrentTab}
-            openEmergencyModal={openEmergency}
-            openIncidentModal={openIncident}
-          />
-        )}
+      {/* ========================================= */}
+      {/* 3. USER ENVIRONMENT (CATCH-ALL SPA)      */}
+      {/* ========================================= */}
+      <Route
+        path="*"
+        element={
+          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pb-16 md:pb-0">
+            {/* Top Navbar */}
+            <Navbar
+              currentTab={currentTab}
+              setCurrentTab={setCurrentTab}
+              openEmergencyModal={openEmergency}
+              openAuthModal={openAuth}
+              openIncidentModal={openIncident}
+            />
 
-        {currentTab === 'map' && (
-          <MapPage
-            openEmergencyModal={openEmergency}
-            openIncidentModal={openIncident}
-            setCurrentTab={setCurrentTab}
-          />
-        )}
+            {/* Main Content Router */}
+            <main className="flex-1">
+              {/* Landing Page */}
+              {currentTab === 'landing' && (
+                <LandingPage
+                  setCurrentTab={setCurrentTab}
+                  openEmergencyModal={openEmergency}
+                  openAuthModal={openAuth}
+                  openIncidentModal={openIncident}
+                />
+              )}
 
-        {/* Real-Time Community Scam & Safety Alert Feed (/safety/alerts) */}
-        {currentTab === 'alerts' && (
-          <AlertsPage
-            onOpenReportModal={openIncident}
-            onNavigateToMap={() => setCurrentTab('map')}
-          />
-        )}
+              {/* Primary Screen Views */}
+              {currentTab === 'dashboard' && (
+                <Dashboard
+                  setCurrentTab={setCurrentTab}
+                  openEmergencyModal={openEmergency}
+                  openIncidentModal={openIncident}
+                />
+              )}
 
-        {/* Real Route-Wise Price Intelligence & Comparison (/explore/routes) */}
-        {currentTab === 'routes' && (
-          <RoutesPage
-            onNavigateToMap={() => setCurrentTab('map')}
-          />
-        )}
+              {currentTab === 'map' && (
+                <MapPage
+                  openEmergencyModal={openEmergency}
+                  openIncidentModal={openIncident}
+                  setCurrentTab={setCurrentTab}
+                />
+              )}
 
-        {/* City-Wise Local Prices & Benchmarks (Food, Stays, Activities & RTO Tariffs) */}
-        {(currentTab === 'fare' || currentTab === 'costs') && <CostsPage />}
+              {/* Real-Time Community Scam & Safety Alert Feed (/safety/alerts) */}
+              {currentTab === 'alerts' && (
+                <AlertsPage
+                  onOpenReportModal={openIncident}
+                  onNavigateToMap={() => setCurrentTab('map')}
+                />
+              )}
 
-        {currentTab === 'safety' && <SafetyPage />}
+              {/* Real Route-Wise Price Intelligence & Comparison (/explore/routes) */}
+              {currentTab === 'routes' && (
+                <RoutesPage
+                  onNavigateToMap={() => setCurrentTab('map')}
+                />
+              )}
 
-        {currentTab === 'scams' && <ScamsPage />}
+              {/* City-Wise Local Prices & Benchmarks (Food, Stays, Activities & RTO Tariffs) */}
+              {(currentTab === 'fare' || currentTab === 'costs') && <CostsPage />}
 
-        {currentTab === 'services' && <ServicesPage />}
+              {currentTab === 'safety' && <SafetyPage />}
 
-        {currentTab === 'guardian' && <GuardianPage />}
+              {currentTab === 'scams' && <ScamsPage />}
 
-        {currentTab === 'trips' && <TripsPage />}
+              {currentTab === 'services' && <ServicesPage />}
 
-        {currentTab === 'vault' && <VaultPage />}
+              {currentTab === 'guardian' && <GuardianPage />}
 
-        {currentTab === 'translator' && <TranslatorPage />}
+              {currentTab === 'trips' && <TripsPage />}
 
-        {/* Travel Community & Travel Buddy Finder */}
-        {currentTab === 'community' && <CommunityPage />}
+              {currentTab === 'vault' && <VaultPage />}
 
-        {/* Dedicated User Profile & Personal Dashboard */}
-        {currentTab === 'profile' && (
-          <ProfilePage
-            setCurrentTab={setCurrentTab}
-            openEmergencyModal={openEmergency}
-            openAuthModal={openAuth}
-          />
-        )}
+              {currentTab === 'translator' && <TranslatorPage />}
 
-        {/* Dedicated Admin Portal & Dashboard */}
-        {currentTab === 'admin' && <AdminPage />}
+              {/* Travel Community & Travel Buddy Finder */}
+              {currentTab === 'community' && <CommunityPage />}
 
-        {currentTab === 'shared_trip' && shareToken && (
-          <SharedTripPage
-            token={shareToken}
-            onBack={() => {
-              setShareToken(null);
-              setCurrentTab('dashboard');
-            }}
-          />
-        )}
-      </main>
+              {/* Dedicated User Profile & Personal Dashboard */}
+              {currentTab === 'profile' && (
+                <ProfilePage
+                  setCurrentTab={setCurrentTab}
+                  openEmergencyModal={openEmergency}
+                  openAuthModal={openAuth}
+                />
+              )}
 
-      {/* Persistent Bottom Navigation for Mobile */}
-      <MobileNav
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        openMoreSheet={() => setIsMoreSheetOpen(true)}
-      />
+              {/* Legacy Tab Admin Fallback */}
+              {currentTab === 'admin' && <AdminPage />}
 
-      {/* Mobile "More" Drawer Sheet */}
-      {isMoreSheetOpen && (
-        <div className="md:hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-end animate-fade-in">
-          <div className="bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 max-h-[85dvh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="font-extrabold text-sm text-white">All Platform Features</span>
-              <button
-                onClick={() => setIsMoreSheetOpen(false)}
-                className="text-xs text-slate-400 hover:text-white font-bold p-1 touch-min"
-              >
-                Close
-              </button>
-            </div>
+              {currentTab === 'shared_trip' && shareToken && (
+                <SharedTripPage
+                  token={shareToken}
+                  onBack={() => {
+                    setShareToken(null);
+                    setCurrentTab('dashboard');
+                  }}
+                />
+              )}
+            </main>
 
-            <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-              {[
-                { id: 'landing', label: 'Home Page', icon: Compass },
-                { id: 'community', label: 'Community & Buddies', icon: Users },
-                { id: 'profile', label: 'My Profile & Vault', icon: UserIcon },
-                { id: 'routes', label: 'Safe Routes', icon: Navigation },
-                { id: 'scams', label: 'Scam Alerts', icon: AlertTriangle },
-                { id: 'services', label: 'Nearby Services', icon: Building2 },
-                { id: 'trips', label: 'Trip Sharing', icon: Compass },
-                { id: 'vault', label: 'Emergency Vault', icon: Lock },
-                { id: 'fare', label: 'Fare Intelligence', icon: IndianRupee },
-                { id: 'translator', label: 'Hindi Translator', icon: Languages },
-                { id: 'admin', label: 'Admin Portal', icon: ShieldAlert },
-              ].map((item) => {
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setCurrentTab(item.id);
-                      setIsMoreSheetOpen(false);
-                    }}
-                    className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-2 text-slate-200 text-left"
-                  >
-                    <Icon className="w-4 h-4 text-amber-400" />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {/* Persistent Bottom Navigation for Mobile */}
+            <MobileNav
+              currentTab={currentTab}
+              setCurrentTab={setCurrentTab}
+              openMoreSheet={() => setIsMoreSheetOpen(true)}
+            />
+
+            {/* Mobile "More" Drawer Sheet */}
+            {isMoreSheetOpen && (
+              <div className="md:hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-end animate-fade-in">
+                <div className="bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 max-h-[85dvh] overflow-y-auto">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="font-extrabold text-sm text-white">All Platform Features</span>
+                    <button
+                      onClick={() => setIsMoreSheetOpen(false)}
+                      className="text-xs text-slate-400 hover:text-white font-bold p-1 touch-min"
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                    {[
+                      { id: 'landing', label: 'Home Page', icon: Compass },
+                      { id: 'community', label: 'Community & Buddies', icon: Users },
+                      { id: 'profile', label: 'My Profile & Vault', icon: UserIcon },
+                      { id: 'routes', label: 'Safe Routes', icon: Navigation },
+                      { id: 'scams', label: 'Scam Alerts', icon: AlertTriangle },
+                      { id: 'services', label: 'Nearby Services', icon: Building2 },
+                      { id: 'trips', label: 'Trip Sharing', icon: Compass },
+                      { id: 'vault', label: 'Emergency Vault', icon: Lock },
+                      { id: 'fare', label: 'Fare Intelligence', icon: IndianRupee },
+                      { id: 'translator', label: 'Hindi Translator', icon: Languages },
+                      { id: 'admin', label: 'Admin Portal', icon: ShieldAlert },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setCurrentTab(item.id);
+                            setIsMoreSheetOpen(false);
+                          }}
+                          className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-2 text-slate-200 text-left"
+                        >
+                          <Icon className="w-4 h-4 text-amber-400" />
+                          <span>{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Emergency Modal Dialog */}
+            <EmergencyModal isOpen={isEmergencyOpen} onClose={closeEmergency} />
+
+            {/* Crowdsourced Incident Submission Modal Dialog */}
+            <IncidentModal isOpen={isIncidentOpen} onClose={closeIncident} />
+
+            {/* User Authentication & Onboarding Modal (Google OAuth & Email/Password) */}
+            <AuthModal
+              isOpen={isAuthOpen}
+              onClose={() => setIsAuthOpen(false)}
+              initialMode={authMode}
+            />
           </div>
-        </div>
-      )}
-
-      {/* Emergency Modal Dialog */}
-      <EmergencyModal isOpen={isEmergencyOpen} onClose={closeEmergency} />
-
-      {/* Crowdsourced Incident Submission Modal Dialog */}
-      <IncidentModal isOpen={isIncidentOpen} onClose={closeIncident} />
-
-      {/* User Authentication & Onboarding Modal (Google OAuth & Email/Password) */}
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        initialMode={authMode}
+        }
       />
-    </div>
+    </Routes>
   );
 };

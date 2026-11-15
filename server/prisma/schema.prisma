@@ -46,6 +46,9 @@ model User {
   notifications         Notification[]
   savedDestinations     SavedDestination[]
   adminAuditLogs        AdminAuditLog[]
+  moderationActions     ModerationAction[]
+  profileImage          ProfileImage?
+  postMedia             PostMedia[]
 }
 
 model City {
@@ -377,6 +380,7 @@ model CommunityPost {
   category        String        @default("STORY") // STORY, RECOMMENDATION, SAFETY_TIP, BUDGET, HIDDEN_GEM
   likesCount      Int           @default(0)
   imageUrl        String?
+  media           PostMedia[]
   comments        PostComment[]
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -432,9 +436,51 @@ model AdminAuditLog {
   id           String   @id @default(uuid())
   adminId      String
   admin        User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
-  action       String   // VERIFY_INCIDENT, UPDATE_FARE, SUSPEND_USER, DELETE_POST, VERIFY_FARE
+  action       String   // VERIFY_INCIDENT, UPDATE_FARE, SUSPEND_USER, DELETE_POST, VERIFY_FARE, PROMOTE_MODERATOR, REVOKE_MODERATOR
   targetEntity String   // INCIDENT, FARE, USER, POST
   targetId     String?
   details      String?
   createdAt    DateTime @default(now())
 }
+
+model PostMedia {
+  id        String        @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String?
+  mimeType  String
+  fileSize  Int
+  width     Int?
+  height    Int?
+  altText   String?
+  sortOrder Int           @default(0)
+  createdAt DateTime      @default(now())
+}
+
+model ModerationAction {
+  id           String   @id @default(uuid())
+  moderatorId  String
+  moderator    User     @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+  action       String   // VERIFY, REJECT, REQUEST_INFO, ESCALATE, HIDE_POST, FLAG_CONTENT
+  targetEntity String   // INCIDENT, POST, COMMENT, USER
+  targetId     String
+  reason       String?
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model ProfileImage {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  publicId  String?
+  mimeType  String
+  fileSize  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

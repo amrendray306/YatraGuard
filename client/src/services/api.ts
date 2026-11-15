@@ -297,6 +297,7 @@ export const submitCommunityPost = async (payload: {
   destinationName: string;
   category?: string;
   imageUrl?: string;
+  media?: any[];
 }) => (await api.post('/community/posts', payload)).data;
 export const likeCommunityPost = async (id: string) => (await api.post(`/community/posts/${id}/like`)).data;
 export const submitPostComment = async (postId: string, content: string) =>

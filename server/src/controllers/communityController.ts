@@ -21,6 +21,9 @@ export async function getCommunityPosts(req: Request, res: Response) {
       take: parseInt(limit as string, 10),
       orderBy: { createdAt: 'desc' },
       include: {
+        media: {
+          orderBy: { sortOrder: 'asc' },
+        },
         user: {
           select: {
             id: true,
@@ -55,7 +58,7 @@ export async function getCommunityPosts(req: Request, res: Response) {
 
 export async function createCommunityPost(req: AuthenticatedRequest, res: Response) {
   try {
-    const { title, content, destinationName, category, imageUrl } = req.body;
+    const { title, content, destinationName, category, imageUrl, media: incomingMedia } = req.body;
 
     if (!title || !content || !destinationName) {
       return res.status(400).json({ error: 'Title, content and destination are required' });
@@ -71,6 +74,8 @@ export async function createCommunityPost(req: AuthenticatedRequest, res: Respon
       return res.status(401).json({ error: 'Authentication required' });
     }
 
+    const firstImageUrl = imageUrl || (Array.isArray(incomingMedia) && incomingMedia[0]?.url) || null;
+
     const post = await prisma.communityPost.create({
       data: {
         userId,
@@ -78,9 +83,26 @@ export async function createCommunityPost(req: AuthenticatedRequest, res: Respon
         content,
         destinationName,
         category: category || 'STORY',
-        imageUrl: imageUrl || null,
+        imageUrl: firstImageUrl,
+        ...(Array.isArray(incomingMedia) && incomingMedia.length > 0
+          ? {
+              media: {
+                create: incomingMedia.map((m: any, idx: number) => ({
+                  userId,
+                  url: m.url,
+                  publicId: m.publicId || null,
+                  mimeType: m.mimeType || 'image/jpeg',
+                  fileSize: m.fileSize || 0,
+                  sortOrder: idx,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
+        media: {
+          orderBy: { sortOrder: 'asc' },
+        },
         user: {
           select: {
             id: true,

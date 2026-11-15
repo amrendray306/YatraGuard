@@ -6,8 +6,14 @@ export interface User {
   name: string;
   phone?: string;
   role: Role;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   authProvider?: string;
+  location?: string;
+  aboutMe?: string;
+  travelPreferences?: string;
+  reputationScore?: number;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
   createdAt?: string;
 }
 

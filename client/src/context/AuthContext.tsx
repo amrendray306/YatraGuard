@@ -29,6 +29,7 @@ interface AuthContextType {
   requestPasswordReset: (email: string) => Promise<any>;
   resetPasswordWithToken: (resetToken: string, newPassword: string) => Promise<any>;
   quickLogin: (role: 'TRAVELER' | 'ADMIN' | 'MODERATOR') => Promise<void>;
+  updateUser: (updatedUser: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -115,18 +116,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return await apiResetPassword({ resetToken, newPassword });
   };
 
+  const updateUser = (updatedFields: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedFields } : null));
+  };
+
   const quickLogin = async (role: 'TRAVELER' | 'ADMIN' | 'MODERATOR') => {
     setIsLoading(true);
     try {
       const emailMap = {
         TRAVELER: 'traveler@example.com',
-        ADMIN: 'admin@travelguardian.in',
-        MODERATOR: 'mod@travelguardian.in',
+        ADMIN: 'admin@yatraguard.in',
+        MODERATOR: 'moderator@yatraguard.in',
       };
       const passMap = {
         TRAVELER: 'Traveler@123',
-        ADMIN: 'Admin@123',
-        MODERATOR: 'Mod@123',
+        ADMIN: 'YatraAdmin@2025',
+        MODERATOR: 'YatraMod@2025',
       };
 
       const res = await api.post('/auth/login', {
@@ -157,6 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         requestPasswordReset,
         resetPasswordWithToken,
         quickLogin,
+        updateUser,
       }}
     >
       {children}

@@ -61,6 +61,12 @@ app.get('/api/health', (req: Request, res: Response) => {
 // 6. Mount Primary API Router
 app.use('/api', apiRouter);
 
+// 6b. Serve uploaded static media if using local disk fallback
+const localUploadsDir = path.resolve(process.cwd(), 'public/uploads');
+if (fs.existsSync(localUploadsDir)) {
+  app.use('/uploads', express.static(localUploadsDir));
+}
+
 // 7. Unified Production Serving: Serve client SPA static files if built
 const possibleDistPaths = [
   path.resolve(process.cwd(), 'client/dist'),
