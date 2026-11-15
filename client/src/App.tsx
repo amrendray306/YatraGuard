@@ -55,6 +55,8 @@ import { CommunityPage } from './pages/CommunityPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AlertsPage } from './pages/AlertsPage';
 import { RoutesPage } from './pages/RoutesPage';
+import { TravelBuddyPage } from './pages/TravelBuddyPage';
+import { OnboardingModal } from './components/OnboardingModal';
 import { EmergencyModal } from './components/EmergencyModal';
 import { IncidentModal } from './components/IncidentModal';
 import { AuthModal } from './components/AuthModal';
@@ -82,10 +84,22 @@ export const App: React.FC = () => {
   const [isIncidentOpen, setIsIncidentOpen] = useState(false);
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [shareToken, setShareToken] = useState<string | null>(null);
 
   const location = useLocation();
+
+  // Show onboarding on first launch if not yet completed
+  useEffect(() => {
+    const hasSeenOnboarding = localStorage.getItem('yatraguard_onboarding_completed');
+    if (!hasSeenOnboarding) {
+      const timer = setTimeout(() => {
+        setIsOnboardingOpen(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Sync tab with pathname on URL navigation
   useEffect(() => {
@@ -103,6 +117,16 @@ export const App: React.FC = () => {
       setCurrentTab('profile');
     } else if (path === '/community') {
       setCurrentTab('community');
+    } else if (path === '/buddy' || path === '/travel-buddy') {
+      setCurrentTab('buddy');
+    } else if (path === '/services' || path === '/nearby-services') {
+      setCurrentTab('services');
+    } else if (path === '/assistant' || path === '/guardian') {
+      setCurrentTab('guardian');
+    } else if (path === '/trips' || path === '/my-trips') {
+      setCurrentTab('trips');
+    } else if (path === '/emergency') {
+      setIsEmergencyOpen(true);
     } else if (path === '/safety/alerts' || path === '/alerts') {
       setCurrentTab('alerts');
     } else if (path === '/safety/map' || path === '/map') {
@@ -111,7 +135,7 @@ export const App: React.FC = () => {
       setCurrentTab('routes');
     } else if (path === '/explore/prices' || path === '/prices') {
       setCurrentTab('fare');
-    } else if (path === '/dashboard') {
+    } else if (path === '/explore' || path === '/dashboard') {
       setCurrentTab('dashboard');
     }
   }, [location.pathname, location.search]);
@@ -194,6 +218,7 @@ export const App: React.FC = () => {
               openEmergencyModal={openEmergency}
               openAuthModal={openAuth}
               openIncidentModal={openIncident}
+              openOnboarding={() => setIsOnboardingOpen(true)}
             />
 
             {/* Main Content Router */}
@@ -259,6 +284,9 @@ export const App: React.FC = () => {
 
               {/* Travel Community & Travel Buddy Finder */}
               {currentTab === 'community' && <CommunityPage />}
+
+              {/* Dedicated Travel Buddy Exploration & Connections */}
+              {currentTab === 'buddy' && <TravelBuddyPage />}
 
               {/* Dedicated User Profile & Personal Dashboard */}
               {currentTab === 'profile' && (
@@ -349,6 +377,16 @@ export const App: React.FC = () => {
               isOpen={isAuthOpen}
               onClose={() => setIsAuthOpen(false)}
               initialMode={authMode}
+            />
+
+            {/* First-Time User Interactive Onboarding Guided Walkthrough */}
+            <OnboardingModal
+              isOpen={isOnboardingOpen}
+              onClose={() => setIsOnboardingOpen(false)}
+              onNavigateToTab={(tab) => {
+                setCurrentTab(tab);
+                setIsOnboardingOpen(false);
+              }}
             />
           </div>
         }

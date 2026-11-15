@@ -21,6 +21,7 @@ import {
   Users,
   Info,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +33,7 @@ interface NavbarProps {
   openEmergencyModal: () => void;
   openAuthModal?: (mode?: 'LOGIN' | 'REGISTER') => void;
   openIncidentModal?: () => void;
+  openOnboarding?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -40,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   openEmergencyModal,
   openAuthModal,
   openIncidentModal,
+  openOnboarding,
 }) => {
   const { cities, currentCity, setCity, safetyScoreData } = useCity();
   const { user, logout, quickLogin } = useAuth();
@@ -53,12 +56,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Home, Explore Destinations, Safety Map, Scam Alerts, Route Prices, Local Prices, Travel Community, About Us
   const navItems = [
     { id: 'landing', label: 'Home', icon: Compass },
-    { id: 'dashboard', label: 'Explore Destinations', icon: MapPin },
+    { id: 'dashboard', label: 'Explore', icon: MapPin },
     { id: 'map', label: 'Safety Map', icon: Navigation },
-    { id: 'alerts', label: 'Scam Alerts', icon: AlertTriangle },
-    { id: 'routes', label: 'Route Prices', icon: Compass },
     { id: 'fare', label: 'Local Prices', icon: IndianRupee },
-    { id: 'community', label: 'Travel Community', icon: Users },
+    { id: 'community', label: 'Community', icon: Users },
+    { id: 'buddy', label: 'Travel Buddy', icon: Users },
+    { id: 'guardian', label: 'AI Assistant', icon: Bot },
+    { id: 'routes', label: 'Tariffs', icon: Compass },
   ];
 
   const scoreColor =
@@ -174,8 +178,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-900 transition-all"
               >
                 <Info className="w-3.5 h-3.5 text-slate-400" />
-                <span>About Us</span>
+                <span>About</span>
               </button>
+
+              {/* Onboarding Tour Guide */}
+              {openOnboarding && (
+                <button
+                  onClick={openOnboarding}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-300 hover:text-white hover:bg-slate-900 transition-all border border-amber-500/30"
+                  title="Take the interactive platform tour"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Guide</span>
+                </button>
+              )}
             </nav>
 
             {/* Right Action Buttons */}
@@ -389,6 +405,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 { id: 'routes', label: 'Route Prices', icon: Compass },
                 { id: 'fare', label: 'Local Prices', icon: IndianRupee },
                 { id: 'community', label: 'Travel Community', icon: Users },
+                { id: 'buddy', label: 'Travel Buddy', icon: Users },
                 { id: 'safety', label: 'Safety Scores', icon: ShieldCheck },
                 { id: 'services', label: 'Hospitals & Police', icon: Building2 },
                 { id: 'guardian', label: 'AI Guardian', icon: Bot },
