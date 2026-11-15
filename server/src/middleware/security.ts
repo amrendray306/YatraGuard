@@ -25,14 +25,15 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   // Restrict browser permissions/features
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 
-  // Strict Content Security Policy
+  // Strict Content Security Policy allowing Google OAuth & Map assets
   const csp = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+    "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://accounts.google.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://unpkg.com",
-    "connect-src 'self' https://* http://localhost:* ws://* wss://*",
+    "img-src 'self' data: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://unpkg.com https://images.unsplash.com https://lh3.googleusercontent.com https://*.googleusercontent.com",
+    "connect-src 'self' https://* http://localhost:* http://127.0.0.1:* ws://* wss://*",
+    "frame-src 'self' https://accounts.google.com",
     "frame-ancestors 'none'",
   ].join('; ');
 
