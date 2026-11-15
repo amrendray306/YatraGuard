@@ -151,7 +151,7 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-red-950/85 backdrop-blur-xl animate-fade-in overflow-y-auto">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-2 sm:p-4 bg-red-950/85 backdrop-blur-xl animate-fade-in overflow-y-auto">
       <div className="relative w-full max-w-2xl bg-slate-950 border-2 border-red-500 rounded-3xl shadow-2xl shadow-red-900/60 overflow-hidden my-auto max-h-[92dvh] flex flex-col">
         {/* Emergency Alert Banner */}
         <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between text-white flex-shrink-0">

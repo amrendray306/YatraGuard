@@ -353,7 +353,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       style={{ height }}
     >
       {/* Top Map Layer & Radius Controls */}
-      <div className="absolute top-28 sm:top-28 left-4 z-[997] flex flex-wrap items-center gap-1.5 max-w-[95%] sm:max-w-4xl bg-slate-950/90 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
+      <div className="absolute top-28 sm:top-28 left-4 z-20 flex flex-wrap items-center gap-1.5 max-w-[95%] sm:max-w-4xl bg-slate-950/90 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
         {/* Layer Toggle: All */}
         <button
           onClick={() => setAllLayers(true)}
@@ -419,7 +419,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* Floating Active Report Mode Banner */}
       {isReportPinMode && (
-        <div className="absolute top-44 left-1/2 -translate-x-1/2 z-[999] px-4 py-2.5 bg-red-600/95 text-white rounded-2xl shadow-2xl backdrop-blur-md border border-white/20 flex items-center gap-3 animate-bounce">
+        <div className="absolute top-44 left-1/2 -translate-x-1/2 z-30 px-4 py-2.5 bg-red-600/95 text-white rounded-2xl shadow-2xl backdrop-blur-md border border-white/20 flex items-center gap-3 animate-bounce">
           <MapPin className="w-4 h-4 text-white animate-pulse" />
           <span className="text-xs font-black">
             Click anywhere on the map or drag the pin to set incident location
@@ -435,7 +435,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* Floating Active Report Pin Card (When Pin is Placed) */}
       {reportPin && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-[998] w-[90%] max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-xl border border-red-500/80 shadow-2xl animate-fade-in text-white space-y-2">
+        <div className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-30 w-[92%] max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-xl border border-red-500/80 shadow-2xl animate-fade-in text-white space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="p-1.5 rounded-lg bg-red-600/30 text-red-400">
@@ -486,7 +486,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* Floating Nearby Scam Notice Alert Card */}
       {!nearbyBannerDismissed && nearbyIncidents.length > 0 && (
-        <div className="absolute top-44 left-4 z-[997] max-w-sm sm:max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-amber-500/60 shadow-2xl animate-fade-in flex items-start gap-3">
+        <div className="absolute top-44 left-4 z-20 max-w-sm sm:max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-amber-500/60 shadow-2xl animate-fade-in flex items-start gap-3">
           <div className="p-2 rounded-xl bg-amber-500 text-slate-950 flex-shrink-0 mt-0.5">
             <AlertTriangle className="w-4 h-4 text-slate-950" />
           </div>
@@ -522,7 +522,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       )}
 
       {/* Map Provider Selector & Resilient Fallback Switcher (Bottom Right) */}
-      <div className="absolute bottom-6 right-20 sm:right-32 z-[997] flex items-center gap-2">
+      <div className="absolute bottom-6 right-20 sm:right-32 z-20 flex items-center gap-2">
         <div className="relative">
           <button
             onClick={() => setIsProviderSelectorOpen(!isProviderSelectorOpen)}
@@ -535,7 +535,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
           </button>
 
           {isProviderSelectorOpen && (
-            <div className="absolute bottom-full right-0 mb-2 w-64 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-2 z-[1002] backdrop-blur-xl animate-fade-in space-y-1">
+            <div className="absolute bottom-full right-0 mb-2 w-64 bg-slate-950/95 border border-slate-800 rounded-2xl shadow-2xl p-2 z-40 backdrop-blur-xl animate-fade-in space-y-1">
               <div className="px-2 py-1.5 text-[10px] font-black uppercase text-slate-400 border-b border-slate-800 flex items-center justify-between">
                 <span>Select Map Provider</span>
                 <span className="text-emerald-400">Auto-Fallback ON</span>
@@ -569,7 +569,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       {/* Floating Bottom Left POI Directory Drawer Trigger */}
       <button
         onClick={() => setIsPoiDrawerOpen(true)}
-        className="absolute bottom-6 left-6 z-[998] px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800 text-white font-extrabold text-xs shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-2 transition-transform active:scale-95"
+        className="absolute bottom-6 left-6 z-20 px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800 text-white font-extrabold text-xs shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-2 transition-transform active:scale-95"
       >
         <List className="w-4 h-4 text-amber-400" />
         <span>Browse City Directory ({visibleServices.length} POIs)</span>
@@ -579,7 +579,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       {onLocateMe && (
         <button
           onClick={onLocateMe}
-          className="absolute bottom-6 right-6 z-[998] p-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-2xl border border-blue-400/40 transition-transform active:scale-90 flex items-center gap-2 text-xs font-bold"
+          className="absolute bottom-6 right-6 z-20 p-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-2xl border border-blue-400/40 transition-transform active:scale-90 flex items-center gap-2 text-xs font-bold"
           title="Locate my GPS position"
         >
           <Crosshair className="w-5 h-5 animate-pulse" />
@@ -874,7 +874,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* POI Directory Slide-Over Drawer */}
       {isPoiDrawerOpen && (
-        <div className="fixed inset-y-0 left-0 z-[1001] w-full max-w-md bg-slate-950/95 backdrop-blur-xl border-r border-slate-800 shadow-2xl flex flex-col animate-slide-right">
+        <div className="fixed inset-y-0 left-0 z-[150] w-full max-w-md bg-slate-950/95 backdrop-blur-xl border-r border-slate-800 shadow-2xl flex flex-col animate-slide-right">
           {/* Drawer Header */}
           <div className="p-4 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">

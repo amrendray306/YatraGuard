@@ -70,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-slate-950/95 backdrop-blur-md border-b border-slate-800">
+      <header className="sticky top-0 z-[100] bg-slate-950/95 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 gap-3">
             {/* Logo & Brand Identity */}
@@ -109,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
 
               {showCityMenu && (
-                <div className="absolute left-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in max-h-72 overflow-y-auto">
+                <div className="absolute left-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-[110] animate-in fade-in max-h-72 overflow-y-auto">
                   <div className="px-3 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     Supported Destinations
                   </div>
@@ -241,7 +241,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
 
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50 text-xs animate-in fade-in zoom-in-95">
+                    <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-[110] text-xs animate-in fade-in zoom-in-95">
                       <div className="px-4 py-2.5 border-b border-slate-800">
                         <div className="font-bold text-white text-sm">{user.name}</div>
                         <div className="text-slate-400 text-[11px] truncate">{user.email}</div>
@@ -442,7 +442,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* ABOUT US MODAL */}
       {isAboutModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl relative">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center gap-2.5">

@@ -15,6 +15,7 @@ import {
   Globe,
   SlidersHorizontal,
   CheckCircle2,
+  X,
 } from 'lucide-react';
 import { mapProviderService } from '../services/mapProviderService';
 
@@ -83,24 +84,25 @@ export const MapPage: React.FC<MapPageProps> = ({
     }
   };
 
-  // Toggle Report Pin Mode or Place Initial Pin at Map Center
+  // Toggle Report Pin Mode or Open Incident Report Form
   const handleToggleReportPin = async () => {
-    if (isReportPinMode) {
+    if (reportPin) {
+      // Pin already placed -> Open incident report form immediately!
+      openIncidentModal();
+    } else if (isReportPinMode) {
       setIsReportPinMode(false);
     } else {
       setIsReportPinMode(true);
-      if (!reportPin) {
-        await dropReportPinAt(userCoords.lat, userCoords.lng);
-      }
+      await dropReportPinAt(userCoords.lat, userCoords.lng);
     }
   };
 
   const activeProvider = mapProviderService.getProviderById(currentMapProviderId);
 
   return (
-    <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden bg-slate-950">
+    <div className="relative w-full h-[calc(100dvh-8rem)] md:h-[calc(100dvh-4rem)] overflow-hidden bg-slate-950">
       {/* Top Floating Destination Search & Controls */}
-      <div className="absolute top-4 left-4 right-4 z-[999] pointer-events-none flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+      <div className="absolute top-3 left-3 right-3 sm:top-4 sm:left-4 sm:right-4 z-30 pointer-events-none flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
         {/* Search Bar Container */}
         <div className="w-full md:max-w-md pointer-events-auto">
           <DestinationSearch
@@ -156,14 +158,16 @@ export const MapPage: React.FC<MapPageProps> = ({
           <button
             onClick={handleToggleReportPin}
             className={`flex items-center gap-1.5 px-3 py-2 rounded-xl shadow-xl text-xs font-bold border transition-all ${
-              isReportPinMode || reportPin
+              reportPin
                 ? 'bg-red-600 hover:bg-red-500 text-white border-red-400 ring-2 ring-red-400/30'
+                : isReportPinMode
+                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 border-amber-300'
                 : 'bg-slate-900/90 hover:bg-slate-800 text-amber-400 border-slate-700'
             }`}
-            title="Click to place or move an incident report pin"
+            title="Click to place pin or open incident report form"
           >
             <MapPin className="w-4 h-4" />
-            <span>{isReportPinMode ? 'Pinning Mode ON' : reportPin ? 'View Pin' : 'Report Pin'}</span>
+            <span>{reportPin ? 'View / Submit Pin Form' : isReportPinMode ? 'Pinning Mode ON' : 'Report Pin'}</span>
           </button>
 
           {/* Emergency SOS Button */}
@@ -177,8 +181,53 @@ export const MapPage: React.FC<MapPageProps> = ({
         </div>
       </div>
 
+      {/* Prominent Active Report Pin Card Above Map */}
+      {reportPin && (
+        <div className="absolute top-20 sm:top-20 right-3 sm:right-4 z-30 max-w-sm w-[calc(100%-1.5rem)] sm:w-auto bg-slate-950/95 backdrop-blur-xl border-2 border-red-500 rounded-2xl p-3.5 shadow-2xl flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-2 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-xl bg-red-600 text-white animate-pulse">
+                <MapPin className="w-4 h-4" />
+              </span>
+              <div>
+                <div className="text-xs font-black text-white flex items-center gap-1.5">
+                  <span>📍 Incident Pin Selected</span>
+                </div>
+                <div className="text-[11px] text-slate-300 truncate max-w-[220px]">
+                  {reportPin.address || `[${reportPin.lat.toFixed(4)}, ${reportPin.lng.toFixed(4)}]`}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setReportPin(null)}
+              className="p-1 rounded-lg bg-slate-900 text-slate-400 hover:text-white"
+              title="Remove pin"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-800">
+            <button
+              type="button"
+              onClick={openIncidentModal}
+              className="flex-1 py-2 px-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs shadow-lg shadow-red-900/40 flex items-center justify-center gap-1.5 transition-all active:scale-95"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Fill Report Form</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsReportPinMode(!isReportPinMode)}
+              className="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs"
+            >
+              {isReportPinMode ? 'Done Moving' : 'Move Pin'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Quick Destination Corridor Pills (Floating under Search on desktop) */}
-      <div className="absolute top-20 left-4 z-[998] hidden sm:flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl max-w-2xl overflow-x-auto no-scrollbar">
+      <div className="absolute top-20 left-4 z-20 hidden sm:flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl max-w-xl overflow-x-auto no-scrollbar">
         <span className="text-[10px] font-black uppercase text-amber-400 px-2 flex items-center gap-1 flex-shrink-0">
           <Sparkles className="w-3 h-3" /> Quick Switch:
         </span>

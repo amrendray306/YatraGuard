@@ -180,7 +180,13 @@ export const App: React.FC = () => {
       <Route
         path="*"
         element={
-          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pb-16 md:pb-0">
+          <div
+            className={`bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 ${
+              currentTab === 'map'
+                ? 'h-[100dvh] overflow-hidden'
+                : 'min-h-screen pb-16 md:pb-0'
+            }`}
+          >
             {/* Top Navbar */}
             <Navbar
               currentTab={currentTab}
