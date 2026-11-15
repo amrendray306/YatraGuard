@@ -7,6 +7,12 @@ async function main() {
   console.log('🌱 Starting database seeding for YatraGuard...');
 
   // 1. Clean existing records (in reverse dependency order)
+  await prisma.adminAuditLog.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.savedDestination.deleteMany();
+  await prisma.travelBuddyRequest.deleteMany();
+  await prisma.postComment.deleteMany();
+  await prisma.communityPost.deleteMany();
   await prisma.fareReport.deleteMany();
   await prisma.cityFareRule.deleteMany();
   await prisma.transportationMode.deleteMany();
@@ -56,6 +62,12 @@ async function main() {
       name: 'Amrendra Yadav',
       phone: '+919876501234',
       role: 'TRAVELER',
+      location: 'Bengaluru / New Delhi',
+      aboutMe: 'Software engineer and mountain trail enthusiast. Passionate about safe solo backpacking, heritage exploration, and community transit transparency.',
+      travelPreferences: 'Mountains, Heritage, Budget, Solo, High Safety',
+      emergencyContactName: 'Rajesh Yadav (Father)',
+      emergencyContactPhone: '+919876543210',
+      isActive: true,
     },
   });
 
@@ -166,6 +178,22 @@ async function main() {
       lng: 77.1887,
       defaultSafetyScore: 86,
       description: 'High-altitude Himalayan resort town on the Beas River. Gateway to Solang Valley, Rohtang Pass, and Atal Tunnel. High tourist influx requires local taxi tariff awareness and mountain road caution.',
+    },
+    {
+      name: 'Shimla',
+      state: 'Himachal Pradesh',
+      lat: 31.1048,
+      lng: 77.1734,
+      defaultSafetyScore: 88,
+      description: 'Queen of the Hills and Himachal capital. Pedestrian Mall Road, historic Ridge, UNESCO heritage toy train, and vigilant tourist police desks.',
+    },
+    {
+      name: 'Leh',
+      state: 'Ladakh',
+      lat: 34.1526,
+      lng: 77.5771,
+      defaultSafetyScore: 89,
+      description: 'High-altitude capital of Ladakh situated at 3,500m. Acclimatization is essential. High safety index with Tibetan Buddhist cultural hospitality and active Army medical posts.',
     },
   ];
 
@@ -918,6 +946,444 @@ async function main() {
       openStatus: 'Open 24/7 (Paramount Security & VIP Protocol)',
       isVerified: true,
     },
+
+    // --- SHIMLA ---
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'IGMC (Indira Gandhi Medical College & Hospital)',
+      category: 'HOSPITAL',
+      lat: 31.1070,
+      lng: 77.1845,
+      address: 'Circular Road, Lakkar Bazaar, Shimla',
+      phone: '+91-177-2804251 / 108',
+      rating: 4.7,
+      openStatus: 'Open 24/7 (Trauma & Emergency Care)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'Mall Road Tourist Police Reporting Desk',
+      category: 'POLICE',
+      lat: 31.1042,
+      lng: 77.1740,
+      address: 'The Mall Road, Near Scandal Point, Shimla',
+      phone: '+91-177-2652123 / 112',
+      rating: 4.8,
+      openStatus: 'Open 24/7 (Dedicated Tourist Desk)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'Apollo Sanjauli Pharmacy & High Altitude Care',
+      category: 'PHARMACY',
+      lat: 31.1015,
+      lng: 77.1912,
+      address: 'Sanjauli Chowk, Shimla',
+      phone: '+91-177-2841020',
+      rating: 4.5,
+      openStatus: '08:00 AM – 10:30 PM',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'Shimla Heritage Railway Station & Kalka Toy Train',
+      category: 'TRANSPORT',
+      lat: 31.1030,
+      lng: 77.1650,
+      address: 'Station Road, Below Cart Road, Shimla',
+      phone: '139 (Indian Railways)',
+      rating: 4.7,
+      openStatus: '05:00 AM – 09:30 PM (UNESCO World Heritage)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'The Ridge & Christ Church Promenade',
+      category: 'TOURIST_INFO',
+      lat: 31.1055,
+      lng: 77.1755,
+      address: 'The Ridge, Mall Road, Shimla',
+      phone: '+91-177-2658302',
+      rating: 4.9,
+      openStatus: 'Open 24/7 (Pedestrian Zone - No Motor Vehicles)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'Wildflower Hall Luxury Mountain Resort',
+      category: 'HOTEL',
+      lat: 31.1180,
+      lng: 77.2420,
+      address: 'Chharabra, Shimla, Himachal Pradesh',
+      phone: '+91-177-2648585',
+      rating: 4.9,
+      openStatus: 'Open 24/7 (Oberoi Verified Safe Stay)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'Cafe Simla Times & Bakery',
+      category: 'RESTAURANT',
+      lat: 31.1045,
+      lng: 77.1738,
+      address: 'Near Scandal Point, Mall Road, Shimla',
+      phone: '+91-177-2655555',
+      rating: 4.6,
+      openStatus: '10:00 AM – 10:30 PM (Scenic Rooftop & Safe Kitchen)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      name: 'HDFC Bank 24x7 ATM The Mall',
+      category: 'ATM',
+      lat: 31.1040,
+      lng: 77.1732,
+      address: 'Scandal Point, The Mall Road, Shimla',
+      phone: '1800-202-6161',
+      rating: 4.5,
+      openStatus: 'Open 24/7 (Guarded ATM Kiosk)',
+      isVerified: true,
+    },
+
+    // --- LEH ---
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'SNM District Hospital & High Altitude Mountain Medicine Centre',
+      category: 'HOSPITAL',
+      lat: 34.1560,
+      lng: 77.5810,
+      address: 'Hospital Road, Skalzangling, Leh, Ladakh',
+      phone: '+91-1982-252014 / 108',
+      rating: 4.8,
+      openStatus: 'Open 24/7 (Hyperbaric Chamber & Oxygen Emergency)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'Leh Police Station & Foreigner Regional Registration Outpost',
+      category: 'POLICE',
+      lat: 34.1645,
+      lng: 77.5840,
+      address: 'Fort Road, Near Main Bazaar, Leh',
+      phone: '+91-1982-252277 / 112',
+      rating: 4.7,
+      openStatus: 'Open 24/7 (Inner Line Permit Verification Desk)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'Ladakh Medical Chemist & Portable Oxygen Refill',
+      category: 'PHARMACY',
+      lat: 34.1630,
+      lng: 77.5848,
+      address: 'Main Bazaar, Leh, Ladakh',
+      phone: '+91-1982-253301',
+      rating: 4.6,
+      openStatus: '07:30 AM – 10:00 PM (Oxygen Cans & Pulse Oximeters)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'Kushok Bakula Rimpochee Airport Prepaid Taxi Stand',
+      category: 'TRANSPORT',
+      lat: 34.1359,
+      lng: 77.5465,
+      address: 'Airport Exit Terminal, Leh, Ladakh',
+      phone: '+91-1982-251781',
+      rating: 4.6,
+      openStatus: '06:00 AM – 03:00 PM (Authorized Ladakh Taxi Union Counter)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'Shanti Stupa Ladakh Peace Monument & Panorama',
+      category: 'TOURIST_INFO',
+      lat: 34.1668,
+      lng: 77.5742,
+      address: 'Changsma, Leh, Ladakh',
+      phone: '+91-1982-252000',
+      rating: 4.9,
+      openStatus: '05:00 AM – 09:00 PM (Paved Stairs & Viewpoint)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'The Grand Dragon Ladakh Luxury Eco Resort',
+      category: 'HOTEL',
+      lat: 34.1540,
+      lng: 77.5790,
+      address: 'Old Road Sheynam, Leh, Ladakh',
+      phone: '+91-1982-257786',
+      rating: 4.9,
+      openStatus: 'Open 24/7 (Central Heating & Doctor on Call)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'Gesmo Restaurant & German Bakery Leh',
+      category: 'RESTAURANT',
+      lat: 34.1640,
+      lng: 77.5835,
+      address: 'Fort Road, Leh, Ladakh',
+      phone: '+91-1982-252445',
+      rating: 4.7,
+      openStatus: '07:30 AM – 10:00 PM (Yak Cheese, Pizza & Purified Water)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      name: 'State Bank of India 24x7 ATM Main Bazaar',
+      category: 'ATM',
+      lat: 34.1648,
+      lng: 77.5850,
+      address: 'Main Bazaar, Near Central Mosque, Leh',
+      phone: '1800-1234',
+      rating: 4.5,
+      openStatus: 'Open 24/7 (High Altitude Reliable Cash Dispenser)',
+      isVerified: true,
+    },
+
+    // --- ADDITIONAL POIs ACROSS KEY DESTINATIONS ---
+    // Manali additions
+    {
+      cityId: createdCities['Manali'].id,
+      name: 'Old Manali Wooden Bridge & Tourist Information Post',
+      category: 'TOURIST_INFO',
+      lat: 32.2530,
+      lng: 77.1820,
+      address: 'Manalsu River Crossing, Old Manali',
+      phone: '+91-1902-251200',
+      rating: 4.7,
+      openStatus: 'Open 24/7 (Pedestrian Cafe Zone)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Manali'].id,
+      name: 'Atal Tunnel South Portal Safety & Police Checkpost',
+      category: 'POLICE',
+      lat: 32.3640,
+      lng: 77.1350,
+      address: 'Dhundi Highway, South Portal, Manali',
+      phone: '112 / +91-1902-250100',
+      rating: 4.9,
+      openStatus: 'Open 24/7 (Mountain Weather & Road Clearance Control)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Manali'].id,
+      name: 'Cafe 1947 Old Manali',
+      category: 'RESTAURANT',
+      lat: 32.2540,
+      lng: 77.1810,
+      address: 'Near Old Manali Bridge, Himachal Pradesh',
+      phone: '+91-98160-00194',
+      rating: 4.6,
+      openStatus: '11:00 AM – 11:00 PM (Riverside Italian & Live Acoustic)',
+      isVerified: true,
+    },
+
+    // Rishikesh additions
+    {
+      cityId: createdCities['Rishikesh'].id,
+      name: 'Triveni Ghat Evening Aarti & Tourist Assistance Outpost',
+      category: 'TOURIST_INFO',
+      lat: 30.1030,
+      lng: 78.2910,
+      address: 'Mayakund, Rishikesh, Uttarakhand',
+      phone: '+91-135-2430015',
+      rating: 4.8,
+      openStatus: 'Open 24/7 (Daily Aarti 06:00 PM)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Rishikesh'].id,
+      name: 'Ganga Kinare Riverside Boutique Resort',
+      category: 'HOTEL',
+      lat: 30.0980,
+      lng: 78.2890,
+      address: '23 Barrage Road, Rishikesh',
+      phone: '+91-135-2435243',
+      rating: 4.8,
+      openStatus: 'Open 24/7 (Ganga Facing Verified Stay)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Rishikesh'].id,
+      name: 'Little Buddha Cafe Tapovan',
+      category: 'RESTAURANT',
+      lat: 30.1310,
+      lng: 78.3240,
+      address: 'Laxman Jhula Road, Tapovan, Rishikesh',
+      phone: '+91-135-2442220',
+      rating: 4.7,
+      openStatus: '08:00 AM – 10:30 PM (Organic European & Indian Fusion)',
+      isVerified: true,
+    },
+
+    // Haridwar additions
+    {
+      cityId: createdCities['Haridwar'].id,
+      name: 'Mansa Devi Temple Ropeway (Udan Khatola) Station',
+      category: 'TRANSPORT',
+      lat: 29.9575,
+      lng: 78.1610,
+      address: 'Bilwa Parvat Ropeway Terminal, Haridwar',
+      phone: '+91-1334-227001',
+      rating: 4.5,
+      openStatus: '07:00 AM – 07:00 PM (Govt Certified Cable Car)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Haridwar'].id,
+      name: 'Haveli Hari Ganga Heritage Riverside Hotel',
+      category: 'HOTEL',
+      lat: 29.9560,
+      lng: 78.1690,
+      address: '21 Pilibhit House, Ramghat, Haridwar',
+      phone: '+91-1334-226443',
+      rating: 4.8,
+      openStatus: 'Open 24/7 (Private Bathing Ghat & Security)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Haridwar'].id,
+      name: 'Chotiwala Heritage Vegetarian Restaurant',
+      category: 'RESTAURANT',
+      lat: 29.9555,
+      lng: 78.1685,
+      address: 'Subhash Ghat, Haridwar',
+      phone: '+91-1334-227845',
+      rating: 4.4,
+      openStatus: '07:00 AM – 10:30 PM (Pure Vegetarian & Satvik Food)',
+      isVerified: true,
+    },
+
+    // Jaipur additions
+    {
+      cityId: createdCities['Jaipur'].id,
+      name: 'City Palace & Jantar Mantar Tourist Police Outpost',
+      category: 'POLICE',
+      lat: 26.9258,
+      lng: 75.8236,
+      address: 'Jaleb Chowk, City Palace Complex, Jaipur',
+      phone: '+91-141-2601954 / 112',
+      rating: 4.7,
+      openStatus: 'Open 24/7 (Heritage Patrol Desk)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Jaipur'].id,
+      name: 'Rambagh Palace Heritage Luxury Hotel',
+      category: 'HOTEL',
+      lat: 26.8970,
+      lng: 75.8080,
+      address: 'Bhawani Singh Road, Jaipur, Rajasthan',
+      phone: '+91-141-2385700',
+      rating: 4.9,
+      openStatus: 'Open 24/7 (Taj Heritage Verified Stay)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Jaipur'].id,
+      name: 'LMB (Laxmi Mishthan Bhandar) Johari Bazaar',
+      category: 'RESTAURANT',
+      lat: 26.9215,
+      lng: 75.8260,
+      address: 'Johari Bazaar, Old City, Jaipur',
+      phone: '+91-141-2565844',
+      rating: 4.5,
+      openStatus: '08:00 AM – 11:00 PM (Rajasthani Thali & Ghewar)',
+      isVerified: true,
+    },
+
+    // Goa additions
+    {
+      cityId: createdCities['Goa'].id,
+      name: 'Baga Beach Tourist Police Desk & Lifeguard Tower',
+      category: 'POLICE',
+      lat: 15.5560,
+      lng: 73.7515,
+      address: 'Tito Lane End, Baga Beach, Goa',
+      phone: '+91-832-2277211 / 112',
+      rating: 4.6,
+      openStatus: 'Open 24/7 (Night Patrol & Beach Safety)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Goa'].id,
+      name: 'Candolim Lifeguard & Drishti Beach Safety Outpost',
+      category: 'TOURIST_INFO',
+      lat: 15.5180,
+      lng: 73.7640,
+      address: 'Candolim Beach Road, North Goa',
+      phone: '+91-832-2438888',
+      rating: 4.8,
+      openStatus: '07:00 AM – 06:30 PM (Certified Water Rescue)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Goa'].id,
+      name: 'The Fisherman Wharf Panaji',
+      category: 'RESTAURANT',
+      lat: 15.4980,
+      lng: 73.8270,
+      address: 'Campal, Near Vivanta, Panaji, Goa',
+      phone: '+91-832-2423300',
+      rating: 4.7,
+      openStatus: '12:00 PM – 11:30 PM (Goan Seafood & Hygiene Certified)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Goa'].id,
+      name: 'Taj Exotica Resort & Spa Benaulim',
+      category: 'HOTEL',
+      lat: 15.2530,
+      lng: 73.9210,
+      address: 'Calwaddo, Benaulim, South Goa',
+      phone: '+91-832-6683333',
+      rating: 4.9,
+      openStatus: 'Open 24/7 (Paramount Beach Security)',
+      isVerified: true,
+    },
+
+    // Dehradun additions
+    {
+      cityId: createdCities['Dehradun'].id,
+      name: 'Clock Tower (Ghanta Ghar) Tourist Police Desk',
+      category: 'POLICE',
+      lat: 30.3245,
+      lng: 78.0420,
+      address: 'Rajpur Road, Clock Tower Chowk, Dehradun',
+      phone: '+91-135-2657100 / 112',
+      rating: 4.6,
+      openStatus: 'Open 24/7 (Heart of Dehradun Patrol)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Dehradun'].id,
+      name: 'Robbers Cave (Guchhupani) Tourist Eco Post',
+      category: 'TOURIST_INFO',
+      lat: 30.3780,
+      lng: 78.0620,
+      address: 'Anarwala, Dehradun, Uttarakhand',
+      phone: '+91-135-2735000',
+      rating: 4.7,
+      openStatus: '07:00 AM – 06:00 PM (Natural Limestone Gorge)',
+      isVerified: true,
+    },
+    {
+      cityId: createdCities['Dehradun'].id,
+      name: 'Welcomhotel By ITC Hotels The Savoy Mussoorie Road Dehradun',
+      category: 'HOTEL',
+      lat: 30.3640,
+      lng: 78.0710,
+      address: 'Rajpur Road, Kirsali, Dehradun',
+      phone: '+91-135-6178000',
+      rating: 4.8,
+      openStatus: 'Open 24/7 (Verified Security & Valet)',
+      isVerified: true,
+    },
+
   ];
 
   for (const s of services) {
@@ -1608,6 +2074,28 @@ async function main() {
       alertMessage: 'Water level moderate. Rafting permitted with certified life jackets.',
       severity: 'LOW',
     },
+
+    {
+      cityId: createdCities['Shimla'].id,
+      temp: 18.0,
+      condition: 'Crisp Alpine Sunshine',
+      rainChance: 10,
+      humidity: 45,
+      windKmh: 10.0,
+      alertMessage: 'Pleasant daytime hill breeze. Light jacket advised for evening strolls along The Ridge.',
+      severity: 'LOW',
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      temp: 12.0,
+      condition: 'Clear Mountain Sun & Dry Atmosphere',
+      rainChance: 2,
+      humidity: 25,
+      windKmh: 14.5,
+      alertMessage: 'Critical Acclimatization Advisory: Altitude 3,500m. Drink 4L water daily and strictly rest on Day 1.',
+      severity: 'MODERATE',
+    },
+
   ];
 
   for (const w of weatherList) {
@@ -2143,6 +2631,95 @@ async function main() {
       reliabilityScore: 88,
       notes: 'Lal Bahadur Shastri Airport (Babatpur) to Ghats/Cantt is standard ₹850-₹1100.',
     },
+
+    // --- SHIMLA ---
+    {
+      cityId: createdCities['Shimla'].id,
+      transportModeId: 'LOCAL_TAXI',
+      baseFare: 150.0,
+      baseDistanceKm: 2.0,
+      perKmRate: 20.0,
+      waitingChargePerHour: 50.0,
+      nightSurchargePct: 25.0,
+      hillTerrainSurchargePct: 20.0,
+      sourceType: 'UNION_NOTIFIED',
+      officialCircularRef: 'Shimla Taxi Operator Union Official Rate Card',
+      reliabilityScore: 90,
+      notes: 'Mountain road rate. Always request the official printed union rate chart available at Mall Road & ISBT counters.',
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      transportModeId: 'SHARED_TAXI',
+      baseFare: 30.0,
+      baseDistanceKm: 3.0,
+      perKmRate: 6.0,
+      waitingChargePerHour: 0.0,
+      nightSurchargePct: 0.0,
+      hillTerrainSurchargePct: 0.0,
+      sourceType: 'COMMUNITY_BENCHMARK',
+      officialCircularRef: 'Shimla-Sanjauli-Dhalli Shared Jeep Standard Slabs',
+      reliabilityScore: 92,
+      notes: 'Most economical local transport between Sanjauli, Lakkar Bazaar, and Old Bus Stand.',
+    },
+    {
+      cityId: createdCities['Shimla'].id,
+      transportModeId: 'GOVT_BUS',
+      baseFare: 10.0,
+      baseDistanceKm: 3.0,
+      perKmRate: 2.0,
+      waitingChargePerHour: 0.0,
+      nightSurchargePct: 0.0,
+      hillTerrainSurchargePct: 0.0,
+      sourceType: 'OFFICIAL_GOVT',
+      officialCircularRef: 'HRTC Local Shimla Ring Road Fleet',
+      reliabilityScore: 98,
+      notes: 'HRTC city buses connect ISBT Tutikandi, Old Bus Stand, and Sanjauli frequent intervals.',
+    },
+
+    // --- LEH ---
+    {
+      cityId: createdCities['Leh'].id,
+      transportModeId: 'LOCAL_TAXI',
+      baseFare: 350.0,
+      baseDistanceKm: 3.0,
+      perKmRate: 30.0,
+      waitingChargePerHour: 80.0,
+      nightSurchargePct: 25.0,
+      hillTerrainSurchargePct: 25.0,
+      sourceType: 'UNION_NOTIFIED',
+      officialCircularRef: 'Ladakh Taxi Operator Cooperative Union Tariff Book',
+      reliabilityScore: 95,
+      notes: 'Strict union regulated rates for high altitude terrain (Leh Airport to Main Bazaar is flat union fare ₹450-₹550).',
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      transportModeId: 'SHARED_TAXI',
+      baseFare: 50.0,
+      baseDistanceKm: 5.0,
+      perKmRate: 8.0,
+      waitingChargePerHour: 0.0,
+      nightSurchargePct: 0.0,
+      hillTerrainSurchargePct: 0.0,
+      sourceType: 'COMMUNITY_BENCHMARK',
+      officialCircularRef: 'Leh-Choglamsar Local Van Services',
+      reliabilityScore: 90,
+      notes: 'Local Eco Vans ply between Polo Ground / Main Gate and Choglamsar or Shey.',
+    },
+    {
+      cityId: createdCities['Leh'].id,
+      transportModeId: 'GOVT_BUS',
+      baseFare: 15.0,
+      baseDistanceKm: 5.0,
+      perKmRate: 2.5,
+      waitingChargePerHour: 0.0,
+      nightSurchargePct: 0.0,
+      hillTerrainSurchargePct: 0.0,
+      sourceType: 'OFFICIAL_GOVT',
+      officialCircularRef: 'JKSRTC / Ladakh Roadways Regional Services',
+      reliabilityScore: 92,
+      notes: 'Operates scheduled services from New Bus Stand Leh towards surrounding monastic villages.',
+    },
+
   ];
 
   for (const fr of fareRules) {
@@ -2286,6 +2863,257 @@ async function main() {
   });
 
   console.log(`✅ Seeded Demo Trip & Emergency Vault items`);
+  
+  // 15. Seed Community Posts & Comments for Top Destinations
+  const communityPostsData = [
+    {
+      userId: traveler.id,
+      destinationName: 'Manali',
+      title: 'Solang Valley Paragliding: How to Verify Licensed Operators',
+      content: 'Just visited Solang Valley! Make sure to book paragliding only from the authorized HP Tourism counter near the cable car base. Unlicensed touts near the parking area charge ₹3500 without safety insurance, whereas the official ticket is ₹2000 with certified pilot.',
+      category: 'SAFETY_TIP',
+      likesCount: 24,
+      imageUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      userId: moderator.id,
+      destinationName: 'Shimla',
+      title: 'Heritage Kalka-Shimla Toy Train Solo Traveler Experience',
+      content: 'Taking the 5:30 AM Shivalik Deluxe Express from Kalka is magical. The pedestrian Ridge and Mall Road have zero motor vehicles, making it the safest evening walk for solo female travelers in Himachal. Highly recommend staying near Scandal Point.',
+      category: 'STORY',
+      likesCount: 38,
+      imageUrl: 'https://images.unsplash.com/photo-1597074866923-dc0589150358?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      userId: traveler.id,
+      destinationName: 'Rishikesh',
+      title: 'Shivpuri River Rafting: Official Safety Rules & Best Grade Sections',
+      content: 'Rafting is fully open! Always insist on checking the guide license from Uttarakhand Tourism Development Board. Minimum age is 14 for Grade 3 rapids. Lifejackets must be strapped snug before entering the raft.',
+      category: 'RECOMMENDATION',
+      likesCount: 19,
+      imageUrl: 'https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      userId: moderator.id,
+      destinationName: 'Haridwar',
+      title: 'Har Ki Pauri Evening Aarti Guide: Avoid Donation & Priest Scams',
+      content: 'The evening Ganga Aarti at Har Ki Pauri begins at 6:30 PM. Stand on the Malviya Dweep clock tower side for clear unobstructed view. Politely decline individuals pushing silver plates or demanding ₹500 for fake blessings.',
+      category: 'SAFETY_TIP',
+      likesCount: 42,
+      imageUrl: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      userId: traveler.id,
+      destinationName: 'Leh',
+      title: '48-Hour Acclimatization Checklist: What Every High Altitude Traveler Must Know',
+      content: 'Do NOT book any tour on your first day landing at Leh Kushok Bakula Airport (3,500m). Even fit athletes suffer altitude sickness if they rush. Rest in your hotel, sip hot garlic soup, and check blood oxygen at Main Bazaar pharmacies.',
+      category: 'SAFETY_TIP',
+      likesCount: 56,
+      imageUrl: 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      userId: moderator.id,
+      destinationName: 'Jaipur',
+      title: 'Amber Fort Light & Sound Show: Night Safe Transport Tips',
+      content: 'The sound and light show at Amber Fort ends around 8:30 PM when buses stop running. Pre-book an authorized RTDC cab or use the prepaid counter inside rather than negotiating with touts on the highway.',
+      category: 'RECOMMENDATION',
+      likesCount: 31,
+      imageUrl: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      userId: traveler.id,
+      destinationName: 'Goa',
+      title: 'Scooter Rental Verification: Checking Legal Yellow Plates',
+      content: 'When renting two-wheelers in North Goa, ensure the vehicle has a black plate with yellow lettering (commercial self-drive permit). Renting private white plate bikes is illegal and leads to hefty traffic police fines at beach checkposts.',
+      category: 'SAFETY_TIP',
+      likesCount: 29,
+      imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+    },
+    {
+      userId: moderator.id,
+      destinationName: 'Dehradun',
+      title: 'Scenic Rajpur Road Heritage Trail & Forest Walking Corridors',
+      content: 'Dehradun is the perfect peaceful Himalayan base. If heading to Mussoorie on weekends, take the old Rajpur road early morning to bypass traffic jams. Paltan Bazaar has delicious local bakery treats and friendly locals.',
+      category: 'STORY',
+      likesCount: 22,
+      imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
+    },
+  ];
+
+  for (const postData of communityPostsData) {
+    const post = await prisma.communityPost.create({ data: postData });
+
+    // Seed 1-2 comments on each post
+    await prisma.postComment.create({
+      data: {
+        postId: post.id,
+        userId: post.userId === traveler.id ? moderator.id : traveler.id,
+        content: `Great insights on ${post.destinationName}! Verified this with local authorities during our last audit.`,
+      },
+    });
+  }
+  console.log(`✅ Seeded ${communityPostsData.length} Travel Community Stories & Comments`);
+
+  // 16. Seed Travel Buddy Requests
+  const buddyRequestsData = [
+    {
+      senderId: traveler.id,
+      destinationCity: 'Manali & Leh',
+      startDate: '2026-09-10',
+      endDate: '2026-09-18',
+      travelStyle: 'ADVENTURE',
+      notes: 'Planning high-altitude trekking and road trip via Rohtang and Atal Tunnel. Looking for 1-2 co-travelers to share union SUV cab costs safely.',
+      status: 'OPEN',
+    },
+    {
+      senderId: moderator.id,
+      destinationCity: 'Rishikesh',
+      startDate: '2026-09-15',
+      endDate: '2026-09-20',
+      travelStyle: 'SOLO_FEMALE',
+      notes: 'Yoga retreat and Ganga evening aarti exploration. Looking for fellow female travelers for evening cafe hopping in Tapovan and Ram Jhula.',
+      status: 'OPEN',
+    },
+    {
+      senderId: traveler.id,
+      destinationCity: 'Jaipur',
+      startDate: '2026-10-02',
+      endDate: '2026-10-06',
+      travelStyle: 'HERITAGE',
+      notes: 'Architecture photography and heritage walk across Nahargarh, Amer, and City Palace. Budget backpacking style.',
+      status: 'OPEN',
+    },
+    {
+      senderId: moderator.id,
+      destinationCity: 'Goa',
+      startDate: '2026-10-12',
+      endDate: '2026-10-18',
+      travelStyle: 'BALANCED',
+      notes: 'Exploring South Goa heritage Portuguese houses, Fontainhas, and clean beaches. Chill itinerary with safety focus.',
+      status: 'OPEN',
+    },
+  ];
+
+  for (const br of buddyRequestsData) {
+    await prisma.travelBuddyRequest.create({ data: br });
+  }
+  console.log(`✅ Seeded ${buddyRequestsData.length} Travel Buddy Match Requests`);
+
+  // 17. Seed Saved Destinations for Traveler
+  const savedDests = [
+    {
+      userId: traveler.id,
+      cityName: 'Manali',
+      state: 'Himachal Pradesh',
+      imageUrl: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=800&q=80',
+      notes: 'Must visit Solang Valley and Atal Tunnel. Verified base fare is ₹150 for local auto.',
+    },
+    {
+      userId: traveler.id,
+      cityName: 'Leh',
+      state: 'Ladakh',
+      imageUrl: 'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?auto=format&fit=crop&w=800&q=80',
+      notes: 'Acclimatization mandatory for 48 hours. Shanti Stupa sunset viewpoint.',
+    },
+    {
+      userId: traveler.id,
+      cityName: 'Rishikesh',
+      state: 'Uttarakhand',
+      imageUrl: 'https://images.unsplash.com/photo-1588416936097-41850ab3d86d?auto=format&fit=crop&w=800&q=80',
+      notes: 'Ram Jhula walking promenade and Ganga Aarti at Triveni Ghat.',
+    },
+    {
+      userId: traveler.id,
+      cityName: 'Goa',
+      state: 'Goa',
+      imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+      notes: 'South Goa beaches and verified GoaMiles prepaid taxi routes.',
+    },
+  ];
+
+  for (const sd of savedDests) {
+    await prisma.savedDestination.create({ data: sd });
+  }
+  console.log(`✅ Seeded ${savedDests.length} Saved Destinations for Traveler`);
+
+  // 18. Seed Notifications
+  const notificationsData = [
+    {
+      userId: traveler.id,
+      title: 'Welcome to YatraGuard!',
+      message: 'Your 24/7 AI-Powered Context-Aware Travel Safety Guardian is active and protecting your journeys across India.',
+      type: 'INFO',
+      isRead: false,
+      linkUrl: '/dashboard',
+    },
+    {
+      userId: traveler.id,
+      title: 'Mountain Road Weather Advisory',
+      message: 'Himachal Pradesh traffic police reported clear passage through Atal Tunnel South Portal today. Drive cautiously.',
+      type: 'ALERT',
+      isRead: false,
+      linkUrl: '/map',
+    },
+    {
+      userId: traveler.id,
+      title: 'Community Fare Report Verified',
+      message: 'Your Haridwar to Rishikesh auto overcharge report was verified by Community Lead Priya Nair. Reputation +15.',
+      type: 'FARE',
+      isRead: true,
+      linkUrl: '/fare',
+    },
+    {
+      userId: admin.id,
+      title: 'New Incident Requires Review',
+      message: 'A traveler reported an unauthorized taxi tout near New Delhi Railway Station Paharganj exit.',
+      type: 'ALERT',
+      isRead: false,
+      linkUrl: '/admin',
+    },
+  ];
+
+  for (const notif of notificationsData) {
+    await prisma.notification.create({ data: notif });
+  }
+  console.log(`✅ Seeded ${notificationsData.length} Live Notifications`);
+
+  // 19. Seed Admin Audit Logs
+  const auditLogsData = [
+    {
+      adminId: admin.id,
+      action: 'SYSTEM_INITIALIZATION',
+      targetEntity: 'SYSTEM',
+      targetId: 'SEED_ROUTINE',
+      details: 'Initialized comprehensive safety index, RTO transit rules, and verified POIs for 15+ Indian cities.',
+    },
+    {
+      adminId: admin.id,
+      action: 'VERIFY_INCIDENT',
+      targetEntity: 'INCIDENT',
+      targetId: 'INC-AGRA-001',
+      details: 'Verified unauthorized tour guide solicitation near Taj Mahal East Gate with Tajganj Tourist Police.',
+    },
+    {
+      adminId: moderator.id,
+      action: 'VERIFY_FARE',
+      targetEntity: 'FARE',
+      targetId: 'FARE-HAR-001',
+      details: 'Validated Haridwar to Rishikesh taxi fare complaint against official UTC Roadways and Traffic Police rates.',
+    },
+    {
+      adminId: moderator.id,
+      action: 'APPROVE_POST',
+      targetEntity: 'COMMUNITY_POST',
+      targetId: 'POST-MANALI-001',
+      details: 'Approved Solang Valley paragliding safety guide after cross-checking HP Tourism guidelines.',
+    },
+  ];
+
+  for (const al of auditLogsData) {
+    await prisma.adminAuditLog.create({ data: al });
+  }
+  console.log(`✅ Seeded ${auditLogsData.length} Admin Audit Logs`);
+
   console.log('🎉 Database seeding completed successfully!');
 }
 

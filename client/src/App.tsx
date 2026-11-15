@@ -16,6 +16,8 @@ import { CostsPage } from './pages/CostsPage';
 import { FareIntelligencePage } from './pages/FareIntelligencePage';
 import { TranslatorPage } from './pages/TranslatorPage';
 import { AdminPage } from './pages/AdminPage';
+import { CommunityPage } from './pages/CommunityPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { EmergencyModal } from './components/EmergencyModal';
 import { IncidentModal } from './components/IncidentModal';
 import { AuthModal } from './components/AuthModal';
@@ -32,6 +34,8 @@ import {
   ShieldCheck,
   ArrowRight,
   Sparkles,
+  Users,
+  User as UserIcon,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -43,16 +47,24 @@ export const App: React.FC = () => {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [shareToken, setShareToken] = useState<string | null>(null);
 
-  // Check URL query parameters for direct shared trip links
+  // Check URL query parameters or pathname for direct navigation
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const tab = params.get('tab');
+    const path = window.location.pathname;
+
     if (token) {
       setShareToken(token);
       setCurrentTab('shared_trip');
     } else if (tab) {
       setCurrentTab(tab);
+    } else if (path === '/admin' || path === '/admin/login' || path === '/admin/dashboard') {
+      setCurrentTab('admin');
+    } else if (path === '/profile') {
+      setCurrentTab('profile');
+    } else if (path === '/community') {
+      setCurrentTab('community');
     }
   }, []);
 
@@ -68,7 +80,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-red-500 selection:text-white pb-16 md:pb-0">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 pb-16 md:pb-0">
       {/* Top Navbar */}
       <Navbar
         currentTab={currentTab}
@@ -85,6 +97,7 @@ export const App: React.FC = () => {
             setCurrentTab={setCurrentTab}
             openEmergencyModal={openEmergency}
             openAuthModal={openAuth}
+            openIncidentModal={openIncident}
           />
         )}
 
@@ -127,6 +140,19 @@ export const App: React.FC = () => {
 
         {currentTab === 'translator' && <TranslatorPage />}
 
+        {/* Travel Community & Travel Buddy Finder */}
+        {currentTab === 'community' && <CommunityPage />}
+
+        {/* Dedicated User Profile & Personal Dashboard */}
+        {currentTab === 'profile' && (
+          <ProfilePage
+            setCurrentTab={setCurrentTab}
+            openEmergencyModal={openEmergency}
+            openAuthModal={openAuth}
+          />
+        )}
+
+        {/* Dedicated Admin Portal & Dashboard */}
         {currentTab === 'admin' && <AdminPage />}
 
         {currentTab === 'shared_trip' && shareToken && (
@@ -163,14 +189,17 @@ export const App: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
               {[
+                { id: 'landing', label: 'Home Page', icon: Compass },
+                { id: 'community', label: 'Community & Buddies', icon: Users },
+                { id: 'profile', label: 'My Profile & Vault', icon: UserIcon },
                 { id: 'routes', label: 'Safe Routes', icon: Navigation },
                 { id: 'scams', label: 'Scam Alerts', icon: AlertTriangle },
                 { id: 'services', label: 'Nearby Services', icon: Building2 },
                 { id: 'trips', label: 'Trip Sharing', icon: Compass },
                 { id: 'vault', label: 'Emergency Vault', icon: Lock },
-                { id: 'costs', label: 'Travel Costs', icon: IndianRupee },
+                { id: 'fare', label: 'Fare Intelligence', icon: IndianRupee },
                 { id: 'translator', label: 'Hindi Translator', icon: Languages },
-                { id: 'admin', label: 'Admin Console', icon: ShieldAlert },
+                { id: 'admin', label: 'Admin Portal', icon: ShieldAlert },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
@@ -182,7 +211,7 @@ export const App: React.FC = () => {
                     }}
                     className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-2 text-slate-200 text-left"
                   >
-                    <Icon className="w-4 h-4 text-red-400" />
+                    <Icon className="w-4 h-4 text-amber-400" />
                     <span>{item.label}</span>
                   </button>
                 );

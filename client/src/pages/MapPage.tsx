@@ -16,7 +16,7 @@ export const MapPage: React.FC<MapPageProps> = ({
   openIncidentModal,
   setCurrentTab,
 }) => {
-  const { currentCity, setCity, userCoords, setUserCoords, gpsStatus, requestUserLocation } = useCity();
+  const { cities, currentCity, setCity, userCoords, setUserCoords, gpsStatus, requestUserLocation } = useCity();
   const [mapData, setMapData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -118,22 +118,38 @@ export const MapPage: React.FC<MapPageProps> = ({
       </div>
 
       {/* Quick Destination Corridor Pills (Floating under Search on desktop) */}
-      <div className="absolute top-20 left-4 z-[998] hidden sm:flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl max-w-xl overflow-x-auto no-scrollbar">
-        <span className="text-[10px] font-black uppercase text-amber-400 px-2 flex items-center gap-1">
+      <div className="absolute top-20 left-4 z-[998] hidden sm:flex items-center gap-1.5 bg-slate-950/85 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-xl max-w-2xl overflow-x-auto no-scrollbar">
+        <span className="text-[10px] font-black uppercase text-amber-400 px-2 flex items-center gap-1 flex-shrink-0">
           <Sparkles className="w-3 h-3" /> Quick Switch:
         </span>
-        {['Manali', 'Haridwar', 'Rishikesh', 'Delhi', 'Mumbai', 'Agra', 'Jaipur', 'Goa', 'Varanasi'].map((cityName) => (
+        {[
+          'Manali',
+          'Shimla',
+          'Rishikesh',
+          'Haridwar',
+          'Jaipur',
+          'Goa',
+          'Leh',
+          'Dehradun',
+          'Delhi',
+          'Mumbai',
+          'Agra',
+          'Varanasi',
+        ].map((cityName) => (
           <button
             key={cityName}
             onClick={() => {
-              const matchedCity = mapData?.city?.name === cityName ? mapData.city : null;
-              if (matchedCity) {
-                setCity(matchedCity);
+              const targetCity = cities.find(
+                (c) => c.name.toLowerCase() === cityName.toLowerCase()
+              );
+              if (targetCity) {
+                setCity(targetCity);
+                setUserCoords({ lat: targetCity.lat, lng: targetCity.lng });
               }
             }}
             className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all flex-shrink-0 ${
-              currentCity?.name === cityName
-                ? 'bg-amber-500 text-slate-950 shadow'
+              currentCity?.name.toLowerCase() === cityName.toLowerCase()
+                ? 'bg-amber-500 text-slate-950 shadow-md font-black'
                 : 'text-slate-300 hover:text-white hover:bg-slate-800'
             }`}
           >

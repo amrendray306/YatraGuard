@@ -110,12 +110,6 @@ export const fetchVault = async () => (await api.get('/vault')).data;
 export const createVaultItem = async (payload: any) => (await api.post('/vault', payload)).data;
 export const deleteVaultItem = async (id: string) => (await api.delete(`/vault/${id}`)).data;
 
-export const fetchAdminOverview = async () => (await api.get('/admin/overview')).data;
-export const reviewIncident = async (id: string, action: 'APPROVE' | 'REJECT') =>
-  (await api.post(`/admin/incidents/${id}/review`, { action })).data;
-export const reviewFareReport = async (id: string, action: 'APPROVE' | 'REJECT') =>
-  (await api.post(`/admin/fare-reports/${id}/review`, { action })).data;
-
 // --- LOCAL TRANSPORTATION FARE INTELLIGENCE API ---
 export const estimateFare = async (payload: {
   cityId?: string;
@@ -160,7 +154,7 @@ export const fetchTransportModes = async () =>
 export const fetchCommunityFareReports = async (cityId?: string) =>
   (await api.get('/fare/reports', { params: { cityId } })).data;
 
-// Authentication APIs
+// --- AUTHENTICATION APIS ---
 export const apiLogin = async (payload: { email: string; password: string }) =>
   (await api.post('/auth/login', payload)).data;
 
@@ -192,3 +186,75 @@ export const apiGetAuthConfig = async (): Promise<{ googleClientId: string }> =>
     return { googleClientId: '' };
   }
 };
+
+// --- USER PROFILE & PERSONAL DASHBOARD APIS ---
+export const fetchUserProfile = async () => (await api.get('/user/profile')).data;
+export const updateUserProfile = async (payload: any) => (await api.put('/user/profile', payload)).data;
+export const changeUserPassword = async (payload: { currentPassword: string; newPassword: string }) =>
+  (await api.put('/user/change-password', payload)).data;
+export const fetchUserDashboardData = async () => (await api.get('/user/dashboard-data')).data;
+export const fetchSavedDestinations = async () => (await api.get('/user/saved-destinations')).data;
+export const saveDestination = async (payload: { cityName: string; state?: string; imageUrl?: string; notes?: string }) =>
+  (await api.post('/user/saved-destinations', payload)).data;
+export const removeSavedDestination = async (id: string) => (await api.delete(`/user/saved-destinations/${id}`)).data;
+export const fetchNotifications = async () => (await api.get('/user/notifications')).data;
+export const markNotificationAsRead = async (id: string) => (await api.put(`/user/notifications/${id}/read`)).data;
+export const requestAccountDeletion = async () => (await api.delete('/user/account')).data;
+
+// --- COMMUNITY & TRAVEL BUDDY APIS ---
+export const fetchCommunityPosts = async (params?: { city?: string; category?: string; limit?: number }) =>
+  (await api.get('/community/posts', { params })).data;
+export const submitCommunityPost = async (payload: {
+  title: string;
+  content: string;
+  destinationName: string;
+  category?: string;
+  imageUrl?: string;
+}) => (await api.post('/community/posts', payload)).data;
+export const likeCommunityPost = async (id: string) => (await api.post(`/community/posts/${id}/like`)).data;
+export const submitPostComment = async (postId: string, content: string) =>
+  (await api.post(`/community/posts/${postId}/comment`, { content })).data;
+export const fetchTravelBuddies = async (params?: { city?: string; style?: string }) =>
+  (await api.get('/community/buddies', { params })).data;
+export const submitTravelBuddy = async (payload: {
+  destinationCity: string;
+  startDate: string;
+  endDate: string;
+  travelStyle: string;
+  notes?: string;
+}) => (await api.post('/community/buddies', payload)).data;
+
+// --- ADMIN DASHBOARD APIS ---
+export const fetchAdminOverview = async () => (await api.get('/admin/overview')).data;
+export const fetchAdminUsers = async (params?: { search?: string; role?: string; status?: string }) =>
+  (await api.get('/admin/users', { params })).data;
+export const updateAdminUserStatus = async (id: string, isActive: boolean) =>
+  (await api.put(`/admin/users/${id}/status`, { isActive })).data;
+export const updateAdminUserRole = async (id: string, role: string) =>
+  (await api.put(`/admin/users/${id}/role`, { role })).data;
+export const fetchAdminIncidents = async (params?: { status?: string; cityId?: string }) =>
+  (await api.get('/admin/incidents', { params })).data;
+export const reviewIncident = async (id: string, action: 'APPROVE' | 'REJECT', notes?: string) =>
+  (await api.post(`/admin/incidents/${id}/review`, { action, notes })).data;
+export const reviewFareReport = async (id: string, action: 'APPROVE' | 'REJECT') =>
+  (await api.post(`/admin/fare-reports/${id}/review`, { action })).data;
+export const fetchAdminPrices = async (params?: { cityId?: string }) =>
+  (await api.get('/admin/prices', { params })).data;
+export const createAdminPriceRule = async (payload: any) =>
+  (await api.post('/admin/prices', payload)).data;
+export const updateAdminPriceRule = async (id: string, payload: any) =>
+  (await api.put(`/admin/prices/${id}`, payload)).data;
+export const deleteAdminPriceRule = async (id: string) =>
+  (await api.delete(`/admin/prices/${id}`)).data;
+export const fetchAdminDestinations = async () =>
+  (await api.get('/admin/destinations')).data;
+export const updateAdminDestination = async (id: string, payload: { defaultSafetyScore?: number; description?: string }) =>
+  (await api.put(`/admin/destinations/${id}`, payload)).data;
+export const fetchAdminCommunityPosts = async () =>
+  (await api.get('/admin/community/posts')).data;
+export const deleteAdminCommunityPost = async (id: string) =>
+  (await api.delete(`/admin/community/posts/${id}`)).data;
+export const fetchAdminAnalytics = async () =>
+  (await api.get('/admin/analytics')).data;
+export const fetchAdminAuditLogs = async () =>
+  (await api.get('/admin/audit-logs')).data;

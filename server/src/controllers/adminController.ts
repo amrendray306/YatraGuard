@@ -4,6 +4,23 @@ import { AuthenticatedRequest } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
 
+// Helper to log admin actions
+async function recordAuditLog(adminId: string, action: string, targetEntity: string, targetId?: string, details?: string) {
+  try {
+    await prisma.adminAuditLog.create({
+      data: {
+        adminId,
+        action,
+        targetEntity,
+        targetId: targetId || null,
+        details: details || null,
+      },
+    });
+  } catch (err) {
+    console.error('Failed to write audit log:', err);
+  }
+}
+
 export async function getAdminOverview(req: AuthenticatedRequest, res: Response) {
   try {
     const today = new Date();
@@ -12,10 +29,13 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
     const [
       totalUsers,
       travelersCount,
-      reportsToday,
+      totalDestinations,
+      totalIncidents,
       pendingCount,
       verifiedCount,
       rejectedCount,
+      totalCommunityPosts,
+      totalScamReports,
       pendingFareCount,
       verifiedFareCount,
       highRiskZones,
@@ -24,11 +44,14 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
       pendingFareReports,
     ] = await Promise.all([
       prisma.user.count(),
-      prisma.user.count({ where: { role: 'TRAVELER' } }),
-      prisma.incidentReport.count({ where: { reportedAt: { gte: today } } }),
+      prisma.user.count({ where: { role: 'TRAVELER', isActive: true } }),
+      prisma.city.count(),
+      prisma.incidentReport.count(),
       prisma.incidentReport.count({ where: { status: 'PENDING' } }),
       prisma.incidentReport.count({ where: { status: 'ADMIN_VERIFIED' } }),
       prisma.incidentReport.count({ where: { status: 'REJECTED' } }),
+      prisma.communityPost.count(),
+      prisma.scamReport.count(),
       prisma.fareReport.count({ where: { verificationStatus: { in: ['PENDING', 'COMMUNITY_VERIFIED'] } } }),
       prisma.fareReport.count({ where: { verificationStatus: 'ADMIN_VERIFIED' } }),
       prisma.safetyZone.findMany({
@@ -55,11 +78,14 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
     return res.json({
       stats: {
         totalUsers,
-        activeTravelers: travelersCount,
-        reportsToday,
+        activeUsers: travelersCount,
+        totalDestinations,
+        totalIncidents,
         pendingReports: pendingCount,
         verifiedReports: verifiedCount,
         rejectedReports: rejectedCount,
+        communityPosts: totalCommunityPosts,
+        reportedContent: pendingCount + totalScamReports,
         pendingFareReports: pendingFareCount,
         verifiedFareReports: verifiedFareCount,
       },
@@ -74,10 +100,156 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
   }
 }
 
+export async function getAdminUsers(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { search, role, status } = req.query;
+
+    const where: any = {};
+    if (search && typeof search === 'string') {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (role && typeof role === 'string' && role !== 'ALL') {
+      where.role = role;
+    }
+    if (status && typeof status === 'string' && status !== 'ALL') {
+      where.isActive = status === 'ACTIVE';
+    }
+
+    const users = await prisma.user.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        location: true,
+        role: true,
+        authProvider: true,
+        reputationScore: true,
+        isActive: true,
+        createdAt: true,
+        _count: {
+          select: {
+            trips: true,
+            incidents: true,
+            communityPosts: true,
+          },
+        },
+      },
+    });
+
+    return res.json({ users });
+  } catch (error) {
+    console.error('getAdminUsers error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve users' });
+  }
+}
+
+export async function updateUserStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    const adminId = req.user?.id;
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { isActive },
+    });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        isActive ? 'REACTIVATE_USER' : 'SUSPEND_USER',
+        'USER',
+        id,
+        `User ${updated.email} account status set to ${isActive ? 'Active' : 'Suspended'}`
+      );
+    }
+
+    return res.json({
+      message: `User ${isActive ? 'reactivated' : 'suspended'} successfully`,
+      user: updated,
+    });
+  } catch (error) {
+    console.error('updateUserStatus error:', error);
+    return res.status(500).json({ error: 'Failed to update user status' });
+  }
+}
+
+export async function updateUserRole(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const adminId = req.user?.id;
+
+    if (!['TRAVELER', 'MODERATOR', 'ADMIN'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { role },
+    });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        'UPDATE_USER_ROLE',
+        'USER',
+        id,
+        `User ${updated.email} role updated to ${role}`
+      );
+    }
+
+    return res.json({
+      message: `User role changed to ${role}`,
+      user: updated,
+    });
+  } catch (error) {
+    console.error('updateUserRole error:', error);
+    return res.status(500).json({ error: 'Failed to update user role' });
+  }
+}
+
+export async function getAdminIncidents(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { status, cityId } = req.query;
+
+    const where: any = {};
+    if (status && typeof status === 'string' && status !== 'ALL') {
+      where.status = status;
+    }
+    if (cityId && typeof cityId === 'string' && cityId !== 'ALL') {
+      where.cityId = cityId;
+    }
+
+    const incidents = await prisma.incidentReport.findMany({
+      where,
+      orderBy: { reportedAt: 'desc' },
+      include: {
+        city: true,
+        reporter: {
+          select: { id: true, name: true, email: true, reputationScore: true },
+        },
+      },
+    });
+
+    return res.json({ incidents });
+  } catch (error) {
+    console.error('getAdminIncidents error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve incidents' });
+  }
+}
+
 export async function reviewIncident(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
-    const { action } = req.body; // 'APPROVE' | 'REJECT'
+    const { action, notes } = req.body; // 'APPROVE' | 'REJECT'
+    const adminId = req.user?.id;
 
     if (!['APPROVE', 'REJECT'].includes(action)) {
       return res.status(400).json({ error: 'Action must be APPROVE or REJECT' });
@@ -99,6 +271,16 @@ export async function reviewIncident(req: AuthenticatedRequest, res: Response) {
       },
     });
 
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        action === 'APPROVE' ? 'VERIFY_INCIDENT' : 'REJECT_INCIDENT',
+        'INCIDENT',
+        id,
+        notes || `Incident "${incident.title}" marked as ${newStatus}`
+      );
+    }
+
     return res.json({
       message: `Incident marked as ${newStatus}`,
       incident: updated,
@@ -109,10 +291,294 @@ export async function reviewIncident(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function getAdminPrices(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { cityId } = req.query;
+
+    const where: any = {};
+    if (cityId && typeof cityId === 'string' && cityId !== 'ALL') {
+      where.cityId = cityId;
+    }
+
+    const [rules, reports] = await Promise.all([
+      prisma.cityFareRule.findMany({
+        where,
+        orderBy: { cityId: 'asc' },
+        include: { city: true, transportMode: true },
+      }),
+      prisma.fareReport.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+        include: { city: true, transportMode: true },
+      }),
+    ]);
+
+    return res.json({ rules, reports });
+  } catch (error) {
+    console.error('getAdminPrices error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve prices' });
+  }
+}
+
+export async function createCityPrice(req: AuthenticatedRequest, res: Response) {
+  try {
+    const {
+      cityId,
+      transportModeId,
+      baseFare,
+      baseDistanceKm,
+      perKmRate,
+      waitingChargePerHour,
+      nightSurchargePct,
+      hillTerrainSurchargePct,
+      sourceType,
+      officialCircularRef,
+      notes,
+    } = req.body;
+    const adminId = req.user?.id;
+
+    if (!cityId || !transportModeId || baseFare === undefined || perKmRate === undefined) {
+      return res.status(400).json({ error: 'City, Mode, Base Fare and Per-KM rate are required' });
+    }
+
+    const rule = await prisma.cityFareRule.create({
+      data: {
+        cityId,
+        transportModeId,
+        baseFare: parseFloat(baseFare),
+        baseDistanceKm: parseFloat(baseDistanceKm || 1.5),
+        perKmRate: parseFloat(perKmRate),
+        waitingChargePerHour: parseFloat(waitingChargePerHour || 0),
+        nightSurchargePct: parseFloat(nightSurchargePct || 25),
+        hillTerrainSurchargePct: parseFloat(hillTerrainSurchargePct || 0),
+        sourceType: sourceType || 'OFFICIAL_GOVT',
+        officialCircularRef: officialCircularRef || 'RTO Notification',
+        notes: notes || null,
+      },
+      include: { city: true, transportMode: true },
+    });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        'CREATE_FARE_RULE',
+        'FARE_RULE',
+        rule.id,
+        `Created ${transportModeId} fare rule for city ${rule.city.name}`
+      );
+    }
+
+    return res.status(201).json({ message: 'Fare rule created', rule });
+  } catch (error) {
+    console.error('createCityPrice error:', error);
+    return res.status(500).json({ error: 'Failed to create fare rule' });
+  }
+}
+
+export async function updateCityPrice(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const adminId = req.user?.id;
+
+    const updated = await prisma.cityFareRule.update({
+      where: { id },
+      data: {
+        ...(data.baseFare !== undefined && { baseFare: parseFloat(data.baseFare) }),
+        ...(data.baseDistanceKm !== undefined && { baseDistanceKm: parseFloat(data.baseDistanceKm) }),
+        ...(data.perKmRate !== undefined && { perKmRate: parseFloat(data.perKmRate) }),
+        ...(data.nightSurchargePct !== undefined && { nightSurchargePct: parseFloat(data.nightSurchargePct) }),
+        ...(data.hillTerrainSurchargePct !== undefined && { hillTerrainSurchargePct: parseFloat(data.hillTerrainSurchargePct) }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+      },
+      include: { city: true, transportMode: true },
+    });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        'UPDATE_FARE_RULE',
+        'FARE_RULE',
+        id,
+        `Updated fare rule for ${updated.city.name} - ${updated.transportMode.displayName}`
+      );
+    }
+
+    return res.json({ message: 'Fare rule updated', rule: updated });
+  } catch (error) {
+    console.error('updateCityPrice error:', error);
+    return res.status(500).json({ error: 'Failed to update fare rule' });
+  }
+}
+
+export async function deleteCityPrice(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const adminId = req.user?.id;
+
+    await prisma.cityFareRule.delete({ where: { id } });
+
+    if (adminId) {
+      await recordAuditLog(adminId, 'DELETE_FARE_RULE', 'FARE_RULE', id, 'Deleted fare rule record');
+    }
+
+    return res.json({ message: 'Fare rule deleted' });
+  } catch (error) {
+    console.error('deleteCityPrice error:', error);
+    return res.status(500).json({ error: 'Failed to delete fare rule' });
+  }
+}
+
+export async function getAdminDestinations(req: AuthenticatedRequest, res: Response) {
+  try {
+    const cities = await prisma.city.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: {
+            services: true,
+            incidents: true,
+            safetyZones: true,
+            fareRules: true,
+          },
+        },
+      },
+    });
+
+    return res.json({ cities });
+  } catch (error) {
+    console.error('getAdminDestinations error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve destinations' });
+  }
+}
+
+export async function updateDestination(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const { defaultSafetyScore, description } = req.body;
+    const adminId = req.user?.id;
+
+    const updated = await prisma.city.update({
+      where: { id },
+      data: {
+        ...(defaultSafetyScore !== undefined && { defaultSafetyScore: parseInt(defaultSafetyScore, 10) }),
+        ...(description !== undefined && { description }),
+      },
+    });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        'UPDATE_DESTINATION',
+        'CITY',
+        id,
+        `Updated safety score/description for city ${updated.name}`
+      );
+    }
+
+    return res.json({ message: 'Destination updated', city: updated });
+  } catch (error) {
+    console.error('updateDestination error:', error);
+    return res.status(500).json({ error: 'Failed to update destination' });
+  }
+}
+
+export async function getAdminCommunityPosts(req: AuthenticatedRequest, res: Response) {
+  try {
+    const posts = await prisma.communityPost.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+        comments: {
+          include: {
+            user: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    return res.json({ posts });
+  } catch (error) {
+    console.error('getAdminCommunityPosts error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve community posts' });
+  }
+}
+
+export async function deleteCommunityPost(req: AuthenticatedRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const adminId = req.user?.id;
+
+    await prisma.communityPost.delete({ where: { id } });
+
+    if (adminId) {
+      await recordAuditLog(adminId, 'DELETE_COMMUNITY_POST', 'COMMUNITY_POST', id, 'Deleted post due to moderation violation');
+    }
+
+    return res.json({ message: 'Community post removed' });
+  } catch (error) {
+    console.error('deleteCommunityPost error:', error);
+    return res.status(500).json({ error: 'Failed to delete community post' });
+  }
+}
+
+export async function getAdminAnalytics(req: AuthenticatedRequest, res: Response) {
+  try {
+    const [incidentsByCity, usersByRole, postsByCategory] = await Promise.all([
+      prisma.city.findMany({
+        select: {
+          name: true,
+          defaultSafetyScore: true,
+          _count: {
+            select: { incidents: true, services: true },
+          },
+        },
+      }),
+      prisma.user.groupBy({
+        by: ['role'],
+        _count: { id: true },
+      }),
+      prisma.communityPost.groupBy({
+        by: ['category'],
+        _count: { id: true },
+      }),
+    ]);
+
+    return res.json({
+      incidentsByCity,
+      usersByRole,
+      postsByCategory,
+    });
+  } catch (error) {
+    console.error('getAdminAnalytics error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve analytics' });
+  }
+}
+
+export async function getAdminAuditLogs(req: AuthenticatedRequest, res: Response) {
+  try {
+    const logs = await prisma.adminAuditLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        admin: {
+          select: { name: true, email: true, role: true },
+        },
+      },
+    });
+
+    return res.json({ logs });
+  } catch (error) {
+    console.error('getAdminAuditLogs error:', error);
+    return res.status(500).json({ error: 'Failed to retrieve audit logs' });
+  }
+}
+
 export async function reviewFareReport(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
-    const { action } = req.body; // 'APPROVE' | 'REJECT'
+    const { action } = req.body;
+    const adminId = req.user?.id;
 
     if (!['APPROVE', 'REJECT'].includes(action)) {
       return res.status(400).json({ error: 'Action must be APPROVE or REJECT' });
@@ -133,6 +599,16 @@ export async function reviewFareReport(req: AuthenticatedRequest, res: Response)
         reliabilityWeight: newWeight,
       },
     });
+
+    if (adminId) {
+      await recordAuditLog(
+        adminId,
+        action === 'APPROVE' ? 'VERIFY_FARE' : 'REJECT_FARE',
+        'FARE_REPORT',
+        id,
+        `Fare report ${id} marked as ${newStatus}`
+      );
+    }
 
     return res.json({
       message: `Fare report marked as ${newStatus}`,

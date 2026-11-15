@@ -9,27 +9,39 @@ generator client {
 }
 
 model User {
-  id               String           @id @default(uuid())
-  email            String           @unique
-  passwordHash     String?
-  googleId         String?          @unique
-  avatarUrl        String?
-  name             String
-  phone            String?
-  role             String           @default("TRAVELER") // TRAVELER, MODERATOR, ADMIN
-  authProvider     String           @default("LOCAL")    // LOCAL, GOOGLE
-  isEmailVerified  Boolean          @default(false)
-  resetToken       String?
-  resetTokenExpiry DateTime?
-  reputationScore  Int              @default(100)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  trips            Trip[]
-  incidents        IncidentReport[]
-  aiConversations  AIConversation[]
-  vaultItems       VaultItem[]
-  emergencyLogs    EmergencyLog[]
-  fareReports      FareReport[]
+  id                    String               @id @default(uuid())
+  email                 String               @unique
+  passwordHash          String?
+  googleId              String?              @unique
+  avatarUrl             String?
+  name                  String
+  phone                 String?
+  location              String?
+  aboutMe               String?
+  travelPreferences     String?              // e.g. "Mountains, Heritage, Budget, Solo"
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  isActive              Boolean              @default(true)
+  role                  String               @default("TRAVELER") // TRAVELER, MODERATOR, ADMIN
+  authProvider          String               @default("LOCAL")    // LOCAL, GOOGLE
+  isEmailVerified       Boolean              @default(false)
+  resetToken            String?
+  resetTokenExpiry      DateTime?
+  reputationScore       Int                  @default(100)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  trips                 Trip[]
+  incidents             IncidentReport[]
+  aiConversations       AIConversation[]
+  vaultItems            VaultItem[]
+  emergencyLogs         EmergencyLog[]
+  fareReports           FareReport[]
+  communityPosts        CommunityPost[]
+  comments              PostComment[]
+  buddyRequestsSent     TravelBuddyRequest[] @relation("SentBuddyRequests")
+  notifications         Notification[]
+  savedDestinations     SavedDestination[]
+  adminAuditLogs        AdminAuditLog[]
 }
 
 model City {
@@ -267,4 +279,77 @@ model EmergencyLog {
   address       String?
   status        String   @default("LOGGED")
   createdAt     DateTime @default(now())
+}
+
+model CommunityPost {
+  id              String        @id @default(uuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cityId          String?
+  title           String
+  content         String
+  destinationName String        // e.g. "Manali", "Rishikesh", "Goa"
+  category        String        @default("STORY") // STORY, RECOMMENDATION, SAFETY_TIP, BUDGET, HIDDEN_GEM
+  likesCount      Int           @default(0)
+  imageUrl        String?
+  comments        PostComment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model PostComment {
+  id        String        @id @default(uuid())
+  postId    String
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime      @default(now())
+}
+
+model TravelBuddyRequest {
+  id              String   @id @default(uuid())
+  senderId        String
+  sender          User     @relation("SentBuddyRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  destinationCity String
+  startDate       String
+  endDate         String
+  travelStyle     String   @default("BALANCED") // BUDGET, LUXURY, BACKPACKER, SOLO_FEMALE, ADVENTURE
+  notes           String?
+  status          String   @default("OPEN") // OPEN, MATCHED, CANCELLED
+  createdAt       DateTime @default(now())
+}
+
+model SavedDestination {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cityName  String
+  state     String
+  imageUrl  String?
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, ALERT, BUDDY, FARE, SOS
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+}
+
+model AdminAuditLog {
+  id           String   @id @default(uuid())
+  adminId      String
+  admin        User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action       String   // VERIFY_INCIDENT, UPDATE_FARE, SUSPEND_USER, DELETE_POST, VERIFY_FARE
+  targetEntity String   // INCIDENT, FARE, USER, POST
+  targetId     String?
+  details      String?
+  createdAt    DateTime @default(now())
 }

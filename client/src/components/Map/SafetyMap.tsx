@@ -16,6 +16,12 @@ import {
   Landmark,
   Crosshair,
   Compass,
+  List,
+  X,
+  Search,
+  Star,
+  Phone,
+  ChevronRight,
 } from 'lucide-react';
 import { MapCard } from './MapCard';
 
@@ -23,8 +29,19 @@ import { MapCard } from './MapCard';
 function ChangeMapView({ coords, zoom }: { coords: [number, number]; zoom?: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(coords, zoom || map.getZoom(), { animate: true });
-  }, [coords, zoom, map]);
+    map.setView(coords, zoom || 13, { animate: true });
+  }, [coords[0], coords[1], zoom, map]);
+  return null;
+}
+
+// Controller for programmatic flyTo when user clicks a POI from the drawer
+function FlyToController({ target }: { target: [number, number] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (target) {
+      map.flyTo(target, 16, { duration: 1.2 });
+    }
+  }, [target, map]);
   return null;
 }
 
@@ -107,6 +124,11 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   onCheckFare,
 }) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
+  const [isPoiDrawerOpen, setIsPoiDrawerOpen] = useState(false);
+  const [poiSearch, setPoiSearch] = useState('');
+  const [poiCategoryFilter, setPoiCategoryFilter] = useState<string>('ALL');
+  const [showLayers, setShowLayers] = useState(true);
 
   // Active layers state (Multi-layer toggle)
   const [activeLayers, setActiveLayers] = useState<{
@@ -167,16 +189,32 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     return true;
   });
 
+  // Drawer filtered POIs
+  const drawerPois = visibleServices.filter((s) => {
+    const matchesSearch =
+      s.name.toLowerCase().includes(poiSearch.toLowerCase()) ||
+      s.address.toLowerCase().includes(poiSearch.toLowerCase());
+    const matchesCat =
+      poiCategoryFilter === 'ALL' || s.category === poiCategoryFilter;
+    return matchesSearch && matchesCat;
+  });
+
+  const handleSelectPoi = (poi: any) => {
+    setFlyTarget([poi.lat, poi.lng]);
+    setSelectedItem(poi);
+    setIsPoiDrawerOpen(false);
+  };
+
   return (
     <div className="relative w-full overflow-hidden" style={{ height }}>
-      {/* Dynamic Layer Toggle Bar */}
-      <div className="absolute top-4 left-4 z-[999] flex flex-wrap items-center gap-1.5 max-w-[92%] sm:max-w-3xl bg-slate-950/85 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
+      {/* Dynamic Layer Toggle Bar - Elevated to avoid search bar collision */}
+      <div className="absolute top-28 sm:top-28 left-4 z-[997] flex items-center gap-1.5 max-w-[95%] sm:max-w-4xl bg-slate-950/90 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
         <button
           onClick={() => setAllLayers(true)}
-          className="px-2.5 py-1.5 rounded-xl text-[11px] font-extrabold bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1 flex-shrink-0"
+          className="px-2.5 py-1.5 rounded-xl text-[11px] font-black bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1 flex-shrink-0"
         >
           <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>All Layers</span>
+          <span>All ({visibleServices.length})</span>
         </button>
 
         {[
@@ -198,7 +236,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
               onClick={() => toggleLayer(layer.key)}
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all flex-shrink-0 ${
                 isActive
-                  ? `${layer.color} text-white shadow-md`
+                  ? `${layer.color} text-white shadow-md font-black`
                   : 'bg-slate-900/90 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
@@ -209,11 +247,20 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         })}
       </div>
 
+      {/* Floating Bottom Left POI Directory Drawer Trigger */}
+      <button
+        onClick={() => setIsPoiDrawerOpen(true)}
+        className="absolute bottom-6 left-6 z-[998] px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800 text-white font-extrabold text-xs shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-2 transition-transform active:scale-95"
+      >
+        <List className="w-4 h-4 text-amber-400" />
+        <span>Browse City Directory ({visibleServices.length} POIs)</span>
+      </button>
+
       {/* Floating GPS Locate Button */}
       {onLocateMe && (
         <button
           onClick={onLocateMe}
-          className="absolute bottom-6 right-6 z-[999] p-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-2xl border border-blue-400/40 transition-transform active:scale-90 flex items-center gap-2 text-xs font-bold"
+          className="absolute bottom-6 right-6 z-[998] p-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-2xl border border-blue-400/40 transition-transform active:scale-90 flex items-center gap-2 text-xs font-bold"
           title="Locate my GPS position"
         >
           <Crosshair className="w-5 h-5 animate-pulse" />
@@ -229,8 +276,9 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         style={{ width: '100%', height: '100%' }}
       >
         <ChangeMapView coords={center} />
+        <FlyToController target={flyTarget} />
 
-        {/* Dark Mode Voyager Tile Layer */}
+        {/* Voyager Tile Layer */}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -306,9 +354,15 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
               }}
             >
               <Popup>
-                <div className="text-xs p-0.5 font-bold text-slate-800">
-                  {service.name}
-                  <div className="text-[10px] font-normal text-slate-500">{service.category}</div>
+                <div className="text-xs p-1 font-bold text-slate-900">
+                  <div className="text-sm font-black">{service.name}</div>
+                  <div className="text-[11px] text-slate-600 font-semibold">{service.category}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{service.address}</div>
+                  {service.openStatus && (
+                    <div className="text-[10px] text-emerald-700 font-bold mt-1">
+                      {service.openStatus}
+                    </div>
+                  )}
                 </div>
               </Popup>
             </Marker>
@@ -351,6 +405,112 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
             />
           ))}
       </MapContainer>
+
+      {/* POI Directory Slide-Over Drawer */}
+      {isPoiDrawerOpen && (
+        <div className="fixed inset-y-0 left-0 z-[1001] w-full max-w-md bg-slate-950/95 backdrop-blur-xl border-r border-slate-800 shadow-2xl flex flex-col animate-slide-right">
+          {/* Drawer Header */}
+          <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
+                <Compass className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">Verified Location Directory</h3>
+                <p className="text-[11px] text-slate-400">
+                  {visibleServices.length} safety & service points in current city
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsPoiDrawerOpen(false)}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Search & Category Filter */}
+          <div className="p-4 border-b border-slate-800 space-y-3">
+            <div className="relative flex items-center bg-slate-900 border border-slate-700 rounded-xl px-3 py-2">
+              <Search className="w-4 h-4 text-slate-400 mr-2 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Search hospital, police, transit, hotel..."
+                value={poiSearch}
+                onChange={(e) => setPoiSearch(e.target.value)}
+                className="w-full bg-transparent text-white text-xs placeholder-slate-500 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+              {[
+                { id: 'ALL', label: 'All' },
+                { id: 'HOSPITAL', label: '🏥 Hospitals' },
+                { id: 'POLICE', label: '👮 Police' },
+                { id: 'PHARMACY', label: '💊 Pharmacy' },
+                { id: 'TRANSPORT', label: '🚇 Transit' },
+                { id: 'TOURIST_INFO', label: '🏛️ Attractions' },
+                { id: 'HOTEL', label: '🏨 Hotels' },
+                { id: 'RESTAURANT', label: '🍽️ Dining' },
+              ].map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setPoiCategoryFilter(c.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold flex-shrink-0 transition-colors ${
+                    poiCategoryFilter === c.id
+                      ? 'bg-amber-500 text-slate-950 font-black'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* List of POIs */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2.5">
+            {drawerPois.length === 0 ? (
+              <div className="py-12 text-center text-slate-500 text-xs">
+                No location services found matching your criteria.
+              </div>
+            ) : (
+              drawerPois.map((poi) => (
+                <div
+                  key={poi.id}
+                  onClick={() => handleSelectPoi(poi)}
+                  className="p-3.5 bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-amber-500/50 rounded-2xl transition-all cursor-pointer group flex items-start justify-between gap-3"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                        {poi.category}
+                      </span>
+                      {poi.rating && (
+                        <span className="text-[10px] font-bold text-slate-300 flex items-center gap-0.5">
+                          <Star className="w-2.5 h-2.5 text-amber-400 fill-current" />
+                          <span>{poi.rating}</span>
+                        </span>
+                      )}
+                    </div>
+                    <h5 className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors truncate">
+                      {poi.name}
+                    </h5>
+                    <p className="text-[11px] text-slate-400 line-clamp-1">{poi.address}</p>
+                    {poi.openStatus && (
+                      <span className="text-[10px] text-emerald-400 font-semibold block">
+                        {poi.openStatus}
+                      </span>
+                    )}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all flex-shrink-0 mt-2" />
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Selected Marker Detail Card */}
       {selectedItem && (
