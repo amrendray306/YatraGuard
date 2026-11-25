@@ -106,47 +106,23 @@ export function RegisterPage() {
 
   const handleGoogleSignInFallback = async () => {
     setError(null);
-    setLoading(true);
-
-    try {
-      const google = (window as any).google;
-      if (googleClientId && google?.accounts?.id) {
-        google.accounts.id.prompt(async (notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            try {
-              await loginWithGoogle({
-                email: email.trim() || 'traveler.google@gmail.com',
-                name: name.trim() || 'Google Traveler',
-                photoUrl:
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-                googleId: 'g_' + Math.random().toString(36).substring(2, 12),
-              });
-              navigate('/dashboard', { replace: true });
-            } catch (err: any) {
-              setError(err.response?.data?.error || 'Google authentication failed.');
-            } finally {
-              setLoading(false);
-            }
-          }
-        });
-        return;
-      }
-
-      await loginWithGoogle({
-        email: email.trim() || 'traveler.google@gmail.com',
-        name: name.trim() || 'Google Traveler',
-        photoUrl:
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-        googleId: 'g_' + Math.random().toString(36).substring(2, 12),
+    const google = (window as any).google;
+    if (googleClientId && google?.accounts?.id) {
+      setLoading(true);
+      google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          setLoading(false);
+          setError(
+            'Google One-Tap prompt was suppressed by your browser. Please use the official "Sign up with Google" button above or register with email.'
+          );
+        }
       });
-      navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      setError(
-        err.response?.data?.error || err.message || 'Google registration encountered an error.'
-      );
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    setError(
+      'Google OAuth Client ID is not configured for this deployment yet. Please complete the email registration form below.'
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

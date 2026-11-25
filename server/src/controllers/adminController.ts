@@ -48,12 +48,12 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
       prisma.city.count(),
       prisma.incidentReport.count(),
       prisma.incidentReport.count({ where: { status: 'PENDING' } }),
-      prisma.incidentReport.count({ where: { status: 'ADMIN_VERIFIED' } }),
+      prisma.incidentReport.count({ where: { status: { in: ['VERIFIED', 'ADMIN_VERIFIED'] } } }),
       prisma.incidentReport.count({ where: { status: 'REJECTED' } }),
       prisma.communityPost.count(),
       prisma.scamReport.count(),
       prisma.fareReport.count({ where: { verificationStatus: { in: ['PENDING', 'COMMUNITY_VERIFIED'] } } }),
-      prisma.fareReport.count({ where: { verificationStatus: 'ADMIN_VERIFIED' } }),
+      prisma.fareReport.count({ where: { verificationStatus: { in: ['VERIFIED', 'ADMIN_VERIFIED'] } } }),
       prisma.safetyZone.findMany({
         where: { riskTier: { in: ['HIGH_RISK', 'MODERATE'] } },
         include: { city: true },
@@ -155,6 +155,14 @@ export async function updateUserStatus(req: AuthenticatedRequest, res: Response)
     const { isActive } = req.body;
     const adminId = req.user?.id;
 
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ error: 'Boolean isActive flag is required' });
+    }
+
+    if (adminId && id === adminId && isActive === false) {
+      return res.status(400).json({ error: 'Administrators cannot suspend their own account' });
+    }
+
     const updated = await prisma.user.update({
       where: { id },
       data: { isActive },
@@ -221,7 +229,11 @@ export async function getAdminIncidents(req: AuthenticatedRequest, res: Response
 
     const where: any = {};
     if (status && typeof status === 'string' && status !== 'ALL') {
-      where.status = status;
+      if (status === 'VERIFIED' || status === 'ADMIN_VERIFIED') {
+        where.status = { in: ['VERIFIED', 'ADMIN_VERIFIED'] };
+      } else {
+        where.status = status;
+      }
     }
     if (cityId && typeof cityId === 'string' && cityId !== 'ALL') {
       where.cityId = cityId;
@@ -260,7 +272,7 @@ export async function reviewIncident(req: AuthenticatedRequest, res: Response) {
       return res.status(404).json({ error: 'Incident report not found' });
     }
 
-    const newStatus = action === 'APPROVE' ? 'ADMIN_VERIFIED' : 'REJECTED';
+    const newStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
     const newConfidence = action === 'APPROVE' ? Math.max(incident.confidenceScore, 96) : 0;
 
     const updated = await prisma.incidentReport.update({
@@ -300,7 +312,13 @@ export async function getAdminPrices(req: AuthenticatedRequest, res: Response) {
       where.cityId = cityId;
     }
 
-    const [rules, reports] = await Promise.all([
+    const [prices, rules, reports] = await Promise.all([
+      prisma.priceRecord.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        include: { city: true },
+      }),
       prisma.cityFareRule.findMany({
         where,
         orderBy: { cityId: 'asc' },
@@ -313,7 +331,7 @@ export async function getAdminPrices(req: AuthenticatedRequest, res: Response) {
       }),
     ]);
 
-    return res.json({ rules, reports });
+    return res.json({ prices, rules, reports });
   } catch (error) {
     console.error('getAdminPrices error:', error);
     return res.status(500).json({ error: 'Failed to retrieve prices' });
@@ -445,7 +463,7 @@ export async function getAdminDestinations(req: AuthenticatedRequest, res: Respo
       },
     });
 
-    return res.json({ cities });
+    return res.json({ cities, destinations: cities });
   } catch (error) {
     console.error('getAdminDestinations error:', error);
     return res.status(500).json({ error: 'Failed to retrieve destinations' });
@@ -524,15 +542,22 @@ export async function deleteCommunityPost(req: AuthenticatedRequest, res: Respon
 
 export async function getAdminAnalytics(req: AuthenticatedRequest, res: Response) {
   try {
-    const [incidentsByCity, usersByRole, postsByCategory] = await Promise.all([
+    const [rawCities, incidentsByCategory, usersByRole, postsByCategory] = await Promise.all([
       prisma.city.findMany({
         select: {
+          id: true,
           name: true,
           defaultSafetyScore: true,
           _count: {
             select: { incidents: true, services: true },
           },
         },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.incidentReport.groupBy({
+        by: ['category'],
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
       }),
       prisma.user.groupBy({
         by: ['role'],
@@ -544,8 +569,23 @@ export async function getAdminAnalytics(req: AuthenticatedRequest, res: Response
       }),
     ]);
 
+    const incidentsByCity = rawCities
+      .map((c) => ({
+        cityId: c.id,
+        name: c.name,
+        defaultSafetyScore: c.defaultSafetyScore,
+        city: { name: c.name },
+        _count: {
+          id: c._count.incidents,
+          incidents: c._count.incidents,
+          services: c._count.services,
+        },
+      }))
+      .sort((a, b) => b._count.id - a._count.id);
+
     return res.json({
       incidentsByCity,
+      incidentsByCategory,
       usersByRole,
       postsByCategory,
     });
@@ -589,7 +629,7 @@ export async function reviewFareReport(req: AuthenticatedRequest, res: Response)
       return res.status(404).json({ error: 'Fare report not found' });
     }
 
-    const newStatus = action === 'APPROVE' ? 'ADMIN_VERIFIED' : 'REJECTED';
+    const newStatus = action === 'APPROVE' ? 'VERIFIED' : 'REJECTED';
     const newWeight = action === 'APPROVE' ? 95 : 20;
 
     const updated = await prisma.fareReport.update({

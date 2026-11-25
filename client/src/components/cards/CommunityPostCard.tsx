@@ -1,5 +1,6 @@
 import React from 'react';
 import { Heart, MessageSquare, MapPin, Share2, ShieldCheck, Tag, Eye } from 'lucide-react';
+import { resolveMediaUrl } from '../../services/api';
 
 export interface CommunityPostCardProps {
   id: string;
@@ -55,9 +56,9 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
     color: 'bg-slate-800 text-slate-300 border-slate-700',
   };
 
-  const images = (media && media.length > 0)
-    ? media.map((m) => m.url)
-    : (imageUrl ? [imageUrl] : []);
+  const images = ((media && media.length > 0)
+    ? media.map((m) => resolveMediaUrl(m.url) || m.url)
+    : (imageUrl ? [resolveMediaUrl(imageUrl) || imageUrl] : []));
 
   return (
     <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl overflow-hidden transition-all duration-300 shadow-xl flex flex-col justify-between">
@@ -121,7 +122,7 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
             <div className="flex items-center gap-2.5">
               {authorAvatar ? (
                 <img
-                  src={authorAvatar}
+                  src={resolveMediaUrl(authorAvatar)}
                   alt={authorName}
                   className="w-8 h-8 rounded-full object-cover border border-slate-700"
                 />

@@ -142,51 +142,23 @@ export function LoginPage() {
 
   const handleGoogleSignInFallback = async () => {
     setError(null);
-    setLoading(true);
-
-    try {
-      const google = (window as any).google;
-      if (googleClientId && google?.accounts?.id) {
-        google.accounts.id.prompt(async (notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            try {
-              const res = await loginWithGoogle({
-                email: email.trim() || 'traveler.google@gmail.com',
-                name: 'Google Traveler',
-                photoUrl:
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-                googleId: 'g_' + Math.random().toString(36).substring(2, 12),
-              });
-              const userRole = res?.user?.role || 'TRAVELER';
-              const fromPath = (location.state as any)?.from?.pathname;
-              redirectByRole(userRole, fromPath);
-            } catch (err: any) {
-              setError(err.response?.data?.error || 'Google authentication failed.');
-            } finally {
-              setLoading(false);
-            }
-          }
-        });
-        return;
-      }
-
-      const res = await loginWithGoogle({
-        email: email.trim() || 'traveler.google@gmail.com',
-        name: 'Google Traveler',
-        photoUrl:
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-        googleId: 'g_' + Math.random().toString(36).substring(2, 12),
+    const google = (window as any).google;
+    if (googleClientId && google?.accounts?.id) {
+      setLoading(true);
+      google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          setLoading(false);
+          setError(
+            'Google One-Tap prompt was suppressed by your browser. Please use the official "Sign in with Google" button above or sign in with your email and password.'
+          );
+        }
       });
-      const userRole = res?.user?.role || 'TRAVELER';
-      const fromPath = (location.state as any)?.from?.pathname;
-      redirectByRole(userRole, fromPath);
-    } catch (err: any) {
-      setError(
-        err.response?.data?.error || err.message || 'Google authentication encountered an error.'
-      );
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    setError(
+      'Google OAuth Client ID is not configured for this deployment yet. Please sign in with your email and password.'
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

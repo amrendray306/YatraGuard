@@ -206,6 +206,7 @@ const touristAttractionIcon = createCustomPin('#2563EB', '🏛️'); // Blue: To
 const transportIcon = createCustomPin('#06B6D4', '🚇');
 const hotelIcon = createCustomPin('#8B5CF6', '🏨');
 const restaurantIcon = createCustomPin('#F43F5E', '🍽️');
+const shoppingIcon = createCustomPin('#D97706', '🛍️');
 
 interface SafetyMapProps {
   center: [number, number];
@@ -294,6 +295,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     attractions: boolean;
     hotels: boolean;
     restaurants: boolean;
+    shopping: boolean;
     scams: boolean;
     incidents: boolean;
     safetyZones: boolean;
@@ -305,6 +307,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     attractions: true,
     hotels: true,
     restaurants: true,
+    shopping: true,
     scams: true,
     incidents: true,
     safetyZones: true,
@@ -330,6 +333,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       attractions: enabled,
       hotels: enabled,
       restaurants: enabled,
+      shopping: enabled,
       scams: enabled,
       incidents: enabled,
       safetyZones: enabled,
@@ -375,6 +379,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       if (s.category === 'TOURIST_INFO') return activeLayers.attractions;
       if (s.category === 'HOTEL') return activeLayers.hotels;
       if (s.category === 'RESTAURANT') return activeLayers.restaurants;
+      if (s.category === 'SHOPPING') return activeLayers.shopping;
       return true;
     });
   }, [services, activeLayers]);
@@ -608,8 +613,10 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         {[
           { key: 'police' as const, label: 'Police', color: 'bg-emerald-600', icon: '👮' },
           { key: 'hospitals' as const, label: 'Hospitals', color: 'bg-emerald-600', icon: '🏥' },
+          { key: 'pharmacies' as const, label: 'Pharmacies', color: 'bg-emerald-600', icon: '💊' },
           { key: 'attractions' as const, label: 'Attractions', color: 'bg-blue-600', icon: '🏛️' },
           { key: 'transport' as const, label: 'Transit', color: 'bg-cyan-600', icon: '🚇' },
+          { key: 'shopping' as const, label: 'Shopping', color: 'bg-amber-600', icon: '🛍️' },
         ].map((layer) => {
           const isActive = activeLayers[layer.key];
           return (
@@ -1298,6 +1305,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
           if (service.category === 'TOURIST_INFO') icon = touristAttractionIcon;
           if (service.category === 'HOTEL') icon = hotelIcon;
           if (service.category === 'RESTAURANT') icon = restaurantIcon;
+          if (service.category === 'SHOPPING') icon = shoppingIcon;
 
           const dist = userLocation
             ? locationService.computeDistanceKm(userLocation[0], userLocation[1], service.lat, service.lng)
@@ -1391,7 +1399,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
         {mapDisplayMode === 'SAFETY' &&
           activeLayers.incidents &&
           filteredIncidents.map((incident) => {
-            const isVerified = incident.status === 'VERIFIED';
+            const isVerified = incident.status === 'VERIFIED' || incident.status === 'ADMIN_VERIFIED';
             const isUnderReview = incident.status === 'UNDER_REVIEW';
             const icon = isVerified ? verifiedIncidentIcon : pendingIncidentIcon;
             const dist = userLocation

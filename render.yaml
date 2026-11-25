@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: yatraguard-api
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npx prisma db push --skip-generate && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5001
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ALLOW_VERCEL_PREVIEWS
+        value: "true"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: DEMO_MODE
+        value: "false"

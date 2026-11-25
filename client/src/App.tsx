@@ -42,6 +42,7 @@ import { MapPage } from './pages/MapPage';
 import { SafetyPage } from './pages/SafetyPage';
 import { ScamsPage } from './pages/ScamsPage';
 import { ServicesPage } from './pages/ServicesPage';
+import { NearbyPlacesPage } from './pages/NearbyPlacesPage';
 import { RouteSafetyModal } from './components/RouteSafetyModal';
 import { GuardianPage } from './pages/GuardianPage';
 import { TripsPage } from './pages/TripsPage';
@@ -119,7 +120,13 @@ export const App: React.FC = () => {
       setCurrentTab('community');
     } else if (path === '/buddy' || path === '/travel-buddy') {
       setCurrentTab('buddy');
-    } else if (path === '/services' || path === '/nearby-services') {
+    } else if (
+      path === '/services' ||
+      path === '/nearby-services' ||
+      path === '/nearby' ||
+      path === '/places' ||
+      path === '/nearby-places'
+    ) {
       setCurrentTab('services');
     } else if (path === '/assistant' || path === '/guardian') {
       setCurrentTab('guardian');
@@ -272,7 +279,9 @@ export const App: React.FC = () => {
 
               {currentTab === 'scams' && <ScamsPage />}
 
-              {currentTab === 'services' && <ServicesPage />}
+              {(currentTab === 'services' || currentTab === 'nearby' || currentTab === 'places') && (
+                <NearbyPlacesPage openEmergencyModal={openEmergency} />
+              )}
 
               {currentTab === 'guardian' && <GuardianPage />}
 
@@ -339,7 +348,7 @@ export const App: React.FC = () => {
                       { id: 'profile', label: 'My Profile & Vault', icon: UserIcon },
                       { id: 'routes', label: 'Safe Routes', icon: Navigation },
                       { id: 'scams', label: 'Scam Alerts', icon: AlertTriangle },
-                      { id: 'services', label: 'Nearby Services', icon: Building2 },
+                      { id: 'services', label: 'Nearby Places & Medical', icon: Building2 },
                       { id: 'trips', label: 'Trip Sharing', icon: Compass },
                       { id: 'vault', label: 'Emergency Vault', icon: Lock },
                       { id: 'fare', label: 'Fare Intelligence', icon: IndianRupee },

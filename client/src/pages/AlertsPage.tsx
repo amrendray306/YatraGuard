@@ -125,6 +125,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'VERIFIED':
+      case 'ADMIN_VERIFIED':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950/80 text-emerald-300 border border-emerald-700/60">
             <ShieldCheck className="w-3 h-3 text-emerald-400" />

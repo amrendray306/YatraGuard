@@ -133,6 +133,61 @@ html.light .bg-slate-800 {
   background-color: #f1f5f9 !important;
 }
 
+/* Soft light-mode equivalents for tinted alert/status surfaces */
+html.light .bg-emerald-950,
+html.light .bg-emerald-950\/40,
+html.light .bg-emerald-950\/60,
+html.light .bg-emerald-950\/70 {
+  background-color: #ecfdf5 !important;
+  color: #065f46 !important;
+}
+
+html.light .bg-blue-950,
+html.light .bg-blue-950\/40,
+html.light .bg-blue-950\/60,
+html.light .bg-blue-950\/70 {
+  background-color: #eff6ff !important;
+  color: #1e40af !important;
+}
+
+html.light .bg-amber-950,
+html.light .bg-amber-950\/30,
+html.light .bg-amber-950\/40,
+html.light .bg-amber-950\/60,
+html.light .bg-amber-950\/70 {
+  background-color: #fffbeb !important;
+  color: #92400e !important;
+}
+
+html.light .bg-red-950,
+html.light .bg-red-950\/30,
+html.light .bg-red-950\/40,
+html.light .bg-red-950\/60,
+html.light .bg-red-950\/80 {
+  background-color: #fef2f2 !important;
+  color: #991b1b !important;
+}
+
+html.light .text-emerald-300,
+html.light .text-emerald-400 {
+  color: #047857 !important;
+}
+
+html.light .text-blue-200,
+html.light .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+
+html.light .text-amber-200,
+html.light .text-amber-200\/90,
+html.light .text-amber-300 {
+  color: #b45309 !important;
+}
+
+html.light .text-red-300 {
+  color: #b91c1c !important;
+}
+
 /* Borders in Light Mode */
 html.light .border-slate-800,
 html.light .border-slate-800\/80,

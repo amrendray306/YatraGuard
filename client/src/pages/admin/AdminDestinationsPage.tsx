@@ -17,7 +17,7 @@ export function AdminDestinationsPage() {
       const res = await api.get('/admin/destinations', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDestinations(res.data.destinations || []);
+      setDestinations(res.data.destinations || res.data.cities || []);
     } catch (err) {
       console.error('Failed to load destinations:', err);
     } finally {

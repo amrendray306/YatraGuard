@@ -4,7 +4,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const JWT_SECRET = process.env.JWT_SECRET || 'travel-guardian-secure-jwt-secret-key-2025';
+const DEFAULT_DEV_JWT = 'travel-guardian-secure-jwt-secret-key-2025';
+if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_DEV_JWT)) {
+  console.warn('⚠️ SECURITY WARNING: Configure a strong custom JWT_SECRET in production environment variables.');
+}
+export const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_DEV_JWT;
 
 export function generateToken(payload: { id: string; email: string; role: string; name?: string }) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });

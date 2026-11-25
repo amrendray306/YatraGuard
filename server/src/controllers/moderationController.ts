@@ -17,7 +17,7 @@ export async function getModeratorDashboard(req: AuthenticatedRequest, res: Resp
       myActionsCount,
     ] = await Promise.all([
       prisma.incidentReport.count({ where: { status: 'PENDING' } }),
-      prisma.incidentReport.count({ where: { status: 'VERIFIED' } }),
+      prisma.incidentReport.count({ where: { status: { in: ['VERIFIED', 'ADMIN_VERIFIED'] } } }),
       prisma.incidentReport.count({ where: { status: 'REJECTED' } }),
       prisma.incidentReport.count({ where: { status: 'ESCALATED' } }),
       prisma.communityPost.count(),
@@ -59,7 +59,11 @@ export async function getModeratorReports(req: AuthenticatedRequest, res: Respon
 
     const where: any = {};
     if (status && status !== 'ALL') {
-      where.status = status;
+      if (status === 'VERIFIED' || status === 'ADMIN_VERIFIED') {
+        where.status = { in: ['VERIFIED', 'ADMIN_VERIFIED'] };
+      } else {
+        where.status = status;
+      }
     }
     if (search) {
       where.OR = [

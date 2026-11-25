@@ -39,7 +39,33 @@ export const reverseGeocodingService = {
       // Ignore sessionStorage issues
     }
 
-    // 3. Fetch from OpenStreetMap Nominatim with a 4-second timeout
+    // 3. Try YatraGuard backend reverse-geocoding (uses Google Geocoding v4 when key configured, else Nominatim)
+    try {
+      const apiRes = await fetch(`/api/places/reverse-geocode?lat=${lat}&lng=${lng}`);
+      if (apiRes.ok) {
+        const d = await apiRes.json();
+        if (d.formattedAddress && d.source !== 'COORDINATES_ONLY') {
+          const result: ReverseGeocodeResult = {
+            displayName: d.formattedAddress,
+            city: d.city,
+            state: d.state,
+            country: d.country,
+            lat,
+            lng,
+            isFallback: false,
+          };
+          memoryCache.set(key, result);
+          try {
+            sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify(result));
+          } catch {}
+          return result;
+        }
+      }
+    } catch {
+      // Fall through to direct browser Nominatim attempt
+    }
+
+    // 4. Fetch directly from OpenStreetMap Nominatim with a 4-second timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 

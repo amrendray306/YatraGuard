@@ -52,9 +52,13 @@ export async function getIncidents(req: Request, res: Response) {
 
     // Status filter
     if (status && status !== 'ALL') {
-      where.status = status as string;
+      if (status === 'VERIFIED' || status === 'ADMIN_VERIFIED') {
+        where.status = { in: ['VERIFIED', 'ADMIN_VERIFIED'] };
+      } else {
+        where.status = status as string;
+      }
     } else if (filterType === 'verified') {
-      where.status = 'VERIFIED';
+      where.status = { in: ['VERIFIED', 'ADMIN_VERIFIED'] };
     } else if (filterType === 'pending') {
       where.status = { in: ['PENDING', 'UNDER_REVIEW'] };
     } else {
@@ -432,8 +436,9 @@ export async function verifyIncidentCommunity(req: AuthenticatedRequest, res: Re
 export async function updateIncidentStatus(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
-    const { status, notes } = req.body; // PENDING, UNDER_REVIEW, VERIFIED, REJECTED, RESOLVED, EXPIRED
+    const { status: rawStatus, notes } = req.body; // PENDING, UNDER_REVIEW, VERIFIED, REJECTED, RESOLVED, EXPIRED
 
+    const status = rawStatus === 'ADMIN_VERIFIED' ? 'VERIFIED' : rawStatus;
     const validStatuses = ['PENDING', 'UNDER_REVIEW', 'VERIFIED', 'REJECTED', 'RESOLVED', 'EXPIRED'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: `Status must be one of: ${validStatuses.join(', ')}` });

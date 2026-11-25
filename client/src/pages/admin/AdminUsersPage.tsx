@@ -11,7 +11,7 @@ import {
   CheckCircle2,
   Filter,
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, resolveMediaUrl } from '../../services/api';
 
 export function AdminUsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -74,9 +74,13 @@ export function AdminUsersPage() {
     setActionLoading(user.id);
     try {
       const token = localStorage.getItem('travel_guardian_token');
-      await api.patch(`/admin/users/${user.id}/status`, { isActive: !user.isActive }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.put(
+        `/admin/users/${user.id}/status`,
+        { isActive: !user.isActive },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       setNotification({
         type: 'success',
         message: `User ${user.name} has been ${user.isActive ? 'suspended' : 'reactivated'}.`,
@@ -197,7 +201,7 @@ export function AdminUsersPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           {u.avatarUrl ? (
-                            <img src={u.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-700" />
+                            <img src={resolveMediaUrl(u.avatarUrl)} alt="" className="w-8 h-8 rounded-full object-cover border border-slate-700" />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-slate-800 text-amber-400 font-bold flex items-center justify-center text-xs">
                               {u.name?.[0]?.toUpperCase() || 'U'}

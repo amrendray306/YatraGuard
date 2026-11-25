@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { resolveMediaUrl } from '../services/api';
 import {
   LayoutDashboard,
   Users,
@@ -124,7 +125,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <div className={`p-4 border-t ${isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-slate-50'}`}>
           <div className="flex items-center gap-3 mb-3">
             {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover border border-amber-500" />
+              <img src={resolveMediaUrl(user.avatarUrl)} alt="" className="w-9 h-9 rounded-full object-cover border border-amber-500" />
             ) : (
               <div className="w-9 h-9 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs">
                 {user?.name?.[0]?.toUpperCase() || 'A'}

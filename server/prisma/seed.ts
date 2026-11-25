@@ -73,6 +73,44 @@ async function main() {
 
   console.log('✅ Created Demo Users (Admin, Moderator, Traveler)');
 
+  // Also ensure configured quick-login / env seed accounts exist for out-of-the-box demos
+  const envAdminEmail = (process.env.ADMIN_SEED_EMAIL || 'admin@yatraguard.in').toLowerCase().trim();
+  const envAdminPass = process.env.ADMIN_SEED_PASSWORD || 'YatraAdmin@2025';
+  const envModEmail = (process.env.MODERATOR_SEED_EMAIL || 'moderator@yatraguard.in').toLowerCase().trim();
+  const envModPass = process.env.MODERATOR_SEED_PASSWORD || 'YatraMod@2025';
+
+  if (envAdminEmail !== admin.email) {
+    await prisma.user.upsert({
+      where: { email: envAdminEmail },
+      update: { role: 'ADMIN', isActive: true },
+      create: {
+        email: envAdminEmail,
+        passwordHash: await bcrypt.hash(envAdminPass, 10),
+        name: 'YatraGuard Platform Administrator',
+        phone: '+919800000001',
+        role: 'ADMIN',
+        isActive: true,
+        isEmailVerified: true,
+      },
+    });
+  }
+
+  if (envModEmail !== moderator.email) {
+    await prisma.user.upsert({
+      where: { email: envModEmail },
+      update: { role: 'MODERATOR', isActive: true },
+      create: {
+        email: envModEmail,
+        passwordHash: await bcrypt.hash(envModPass, 10),
+        name: 'YatraGuard Lead Moderator',
+        phone: '+919800000002',
+        role: 'MODERATOR',
+        isActive: true,
+        isEmailVerified: true,
+      },
+    });
+  }
+
   // 3. Define the 9 MVP Cities with coordinates and safety baseline
   const citiesData = [
     {

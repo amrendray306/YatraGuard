@@ -164,7 +164,7 @@ export function ModeratorReportsPage() {
                       </span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          report.status === 'VERIFIED'
+                          report.status === 'VERIFIED' || report.status === 'ADMIN_VERIFIED'
                             ? 'bg-emerald-500/20 text-emerald-400'
                             : report.status === 'REJECTED'
                             ? 'bg-red-500/20 text-red-400'

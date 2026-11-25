@@ -4,14 +4,18 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import fs from 'fs';
 import path from 'path';
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
-  api_key: process.env.CLOUDINARY_API_KEY || '',
-  api_secret: process.env.CLOUDINARY_API_SECRET || '',
-});
+function ensureCloudinaryConfig() {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || '',
+    api_key: process.env.CLOUDINARY_API_KEY || '',
+    api_secret: process.env.CLOUDINARY_API_SECRET || '',
+  });
+}
+
+ensureCloudinaryConfig();
 
 export const isCloudinaryConfigured = (): boolean => {
+  ensureCloudinaryConfig();
   const { cloud_name, api_key, api_secret } = cloudinary.config();
   return !!(
     cloud_name &&

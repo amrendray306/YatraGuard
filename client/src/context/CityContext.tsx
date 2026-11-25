@@ -175,28 +175,33 @@ export const CityProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { location, tierUsed } = fallbackResult;
       const { lat, lng, accuracy } = location.coords;
 
-      setUserCoords({ lat, lng });
-      setLocationAccuracy(accuracy);
-      setLocationSource(location.source);
-      setLastLocationUpdate(new Date(location.timestamp));
-      setGpsStatus(tierUsed === 1 || tierUsed === 2 ? 'granted' : 'denied');
+      // If GPS succeeded (tier 1) or no error occurred, accept coordinates
+      if (!fallbackResult.error && (tierUsed === 1 || tierUsed === 2)) {
+        setUserCoords({ lat, lng });
+        setLocationAccuracy(accuracy);
+        setLocationSource(location.source);
+        setLastLocationUpdate(new Date(location.timestamp));
+        setGpsStatus('granted');
+        setLocationError(null);
 
-      if (location.address?.displayName) {
-        setUserAddress(location.address.displayName);
-        setDetectedCityName(location.address.city || null);
+        if (location.address?.displayName) {
+          setUserAddress(location.address.displayName);
+          setDetectedCityName(location.address.city || null);
+        }
+
+        const matched = matchNearestCity(lat, lng, cities);
+        if (matched) {
+          setCurrentCity(matched);
+        }
+        return true;
       }
 
-      // Match closest city
-      const matched = matchNearestCity(lat, lng, cities);
-      if (matched) {
-        setCurrentCity(matched);
-      }
-
-      if (fallbackResult.error) {
-        setLocationError(fallbackResult.error.message);
-      }
-
-      return tierUsed === 1 || tierUsed === 2;
+      // GPS explicitly failed (permission denied, timeout, unavailable)
+      setGpsStatus('denied');
+      setLocationError(
+        fallbackResult.error?.message || 'Unable to detect your GPS location. Please choose a location manually.'
+      );
+      return false;
     } catch (err: any) {
       setGpsStatus('denied');
       setLocationError(err?.message || 'Unable to detect geolocation.');
@@ -227,16 +232,17 @@ export const CityProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   /**
-   * Set user coordinates to a pinned or selected location
+   * Set user coordinates to a pinned or selected location (without fabricating GPS sensor status)
    */
   const setUserSelectedPin = async (coords: { lat: number; lng: number }, address?: string) => {
     setUserCoords(coords);
     setLocationSource('map_pin');
-    setLocationAccuracy(5);
+    setLocationAccuracy(null);
     setLastLocationUpdate(new Date());
 
     if (address) {
       setUserAddress(address);
+      setDetectedCityName(address.split(',')[0]?.trim() || null);
     } else {
       const rev = await reverseGeocodingService.reverseGeocode(coords.lat, coords.lng);
       setUserAddress(rev.displayName);
@@ -245,7 +251,10 @@ export const CityProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const matched = matchNearestCity(coords.lat, coords.lng, cities);
     if (matched) {
-      setCurrentCity(matched);
+      const distKm = locationService.computeDistanceKm(coords.lat, coords.lng, matched.lat, matched.lng);
+      if (distKm <= 80) {
+        setCurrentCity(matched);
+      }
     }
   };
 

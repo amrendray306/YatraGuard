@@ -12,12 +12,18 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5001
-      - DATABASE_URL=file:/app/server/prisma/dev.db
-      - JWT_SECRET=yatraguard-production-secure-jwt-secret-key-2026
+      - DATABASE_URL=${DATABASE_URL:?Set PostgreSQL DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET:?Set JWT_SECRET}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - ALLOWED_ORIGINS=http://localhost:5001,http://localhost:5173
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5001,http://localhost:5173,http://localhost:3000}
     volumes:
-      - yatraguard_data:/app/server/prisma
+      - yatraguard_uploads:/app/server/public/uploads
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/api/health"]
       interval: 30s
@@ -26,6 +32,5 @@ services:
       start_period: 10s
 
 volumes:
-  yatraguard_data:
+  yatraguard_uploads:
     driver: local
-

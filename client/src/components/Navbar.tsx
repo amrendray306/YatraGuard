@@ -18,6 +18,7 @@ import {
   IndianRupee,
   Sun,
   Moon,
+  Monitor,
   Users,
   Info,
   CheckCircle2,
@@ -26,6 +27,7 @@ import {
 import { useCity } from '../context/CityContext';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { resolveMediaUrl } from '../services/api';
 
 interface NavbarProps {
   currentTab: string;
@@ -46,8 +48,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { cities, currentCity, setCity, safetyScoreData } = useCity();
   const { user, logout, quickLogin } = useAuth();
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [showCityMenu, setShowCityMenu] = useState(false);
+
+  const cycleTheme = () => {
+    const next = theme === 'dark' ? 'light' : theme === 'light' ? 'system' : 'dark';
+    setTheme(next);
+  };
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
@@ -58,6 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: 'landing', label: 'Home', icon: Compass },
     { id: 'dashboard', label: 'Explore', icon: MapPin },
     { id: 'map', label: 'Safety Map', icon: Navigation },
+    { id: 'services', label: 'Nearby Places', icon: Building2 },
     { id: 'fare', label: 'Local Prices', icon: IndianRupee },
     { id: 'community', label: 'Community', icon: Users },
     { id: 'buddy', label: 'Travel Buddy', icon: Users },
@@ -152,7 +160,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             {/* Desktop Navigation Links */}
-            <nav className="hidden xl:flex items-center space-x-1">
+            <nav className="hidden xl:flex items-center space-x-0.5 overflow-x-auto no-scrollbar">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentTab === item.id;
@@ -160,7 +168,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     key={item.id}
                     onClick={() => setCurrentTab(item.id)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    className={`flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
                       isActive
                         ? 'bg-amber-500/20 text-amber-300 shadow-sm border border-amber-500/40'
                         : 'text-slate-300 hover:text-white hover:bg-slate-900'
@@ -196,18 +204,21 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Right Action Buttons */}
             <div className="flex items-center gap-2">
-              {/* Theme Toggle */}
+              {/* Theme Toggle (Dark / Light / System) */}
               <button
-                onClick={toggleTheme}
-                className="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 transition-colors touch-min flex items-center justify-center"
-                title={`Switch to ${resolvedTheme === 'dark' ? 'Light' : 'Dark'} mode`}
-                aria-label="Toggle theme"
+                onClick={cycleTheme}
+                className="p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 transition-colors touch-min flex items-center gap-1 justify-center"
+                title={`Theme: ${theme.toUpperCase()} (resolved ${resolvedTheme}). Click to cycle Light / Dark / System.`}
+                aria-label="Cycle theme (Light, Dark, System)"
               >
-                {resolvedTheme === 'dark' ? (
+                {theme === 'system' ? (
+                  <Monitor className="w-4 h-4 text-blue-400" />
+                ) : resolvedTheme === 'dark' ? (
                   <Sun className="w-4 h-4 text-amber-400" />
                 ) : (
                   <Moon className="w-4 h-4 text-indigo-500" />
                 )}
+                <span className="hidden 2xl:inline text-[10px] font-bold uppercase">{theme}</span>
               </button>
 
               {/* Report Scam / Safety Incident Button */}
@@ -241,7 +252,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     {user.avatarUrl ? (
                       <img
-                        src={user.avatarUrl}
+                        src={resolveMediaUrl(user.avatarUrl)}
                         alt={user.name}
                         className="w-6 h-6 rounded-full object-cover border border-slate-600"
                       />
@@ -407,7 +418,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 { id: 'community', label: 'Travel Community', icon: Users },
                 { id: 'buddy', label: 'Travel Buddy', icon: Users },
                 { id: 'safety', label: 'Safety Scores', icon: ShieldCheck },
-                { id: 'services', label: 'Hospitals & Police', icon: Building2 },
+                { id: 'services', label: 'Nearby Places & Medical', icon: Building2 },
                 { id: 'guardian', label: 'AI Guardian', icon: Bot },
                 { id: 'profile', label: 'My Profile', icon: UserIcon },
                 { id: 'trips', label: 'My Trips', icon: Compass },

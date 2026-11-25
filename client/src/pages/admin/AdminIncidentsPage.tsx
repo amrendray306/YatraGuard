@@ -47,9 +47,13 @@ export function AdminIncidentsPage() {
     setActionLoading(id + status);
     try {
       const token = localStorage.getItem('travel_guardian_token');
-      await api.patch(`/admin/incidents/${id}`, { status }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.put(
+        `/admin/incidents/${id}/status`,
+        { status },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchIncidents();
     } catch (err) {
       console.error('Failed to update incident status:', err);
@@ -180,10 +184,10 @@ export function AdminIncidentsPage() {
                       </a>
                     )}
 
-                    {inc.status !== 'ADMIN_VERIFIED' && (
+                    {inc.status !== 'VERIFIED' && inc.status !== 'ADMIN_VERIFIED' && (
                       <button
-                        onClick={() => handleUpdateStatus(inc.id, 'ADMIN_VERIFIED')}
-                        disabled={actionLoading === inc.id + 'ADMIN_VERIFIED'}
+                        onClick={() => handleUpdateStatus(inc.id, 'VERIFIED')}
+                        disabled={actionLoading === inc.id + 'VERIFIED'}
                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-500/20 flex items-center gap-1"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Verify

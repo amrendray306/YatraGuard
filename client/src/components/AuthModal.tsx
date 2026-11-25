@@ -213,64 +213,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleGoogleSignInFallback = async () => {
-    setIsLoading(true);
     setErrorMessage(null);
+    const google = (window as any).google;
 
-    // Timeout safety valve so button never gets stuck spinning
-    const safetyTimeout = setTimeout(() => {
-      setIsLoading(false);
-    }, 6000);
+    if (googleClientId && google?.accounts?.id) {
+      setIsLoading(true);
+      const safetyTimeout = setTimeout(() => {
+        setIsLoading(false);
+      }, 6000);
 
-    try {
-      const google = (window as any).google;
-      if (googleClientId && google?.accounts?.id) {
-        // Try Google One Tap prompt
-        google.accounts.id.prompt((notification: any) => {
-          clearTimeout(safetyTimeout);
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            // If One Tap is blocked or suppressed by browser privacy / missing origins,
-            // authenticate with verified Google identity pipeline
-            loginWithGoogle({
-              email: email.trim() || 'traveler.google@gmail.com',
-              name: name.trim() || 'Google Traveler',
-              photoUrl:
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-              googleId: 'g_' + Math.random().toString(36).substring(2, 12),
-            })
-              .then(() => {
-                showToast('Signed in securely with Google Account', 'success');
-                onClose();
-              })
-              .catch((err: any) => {
-                setErrorMessage(err.response?.data?.error || 'Google authentication failed.');
-              })
-              .finally(() => {
-                setIsLoading(false);
-              });
-          }
-        });
-        return;
-      }
-
-      // If GIS client is not yet loaded or client ID pending, execute verified Google login
-      clearTimeout(safetyTimeout);
-      await loginWithGoogle({
-        email: email.trim() || 'traveler.google@gmail.com',
-        name: name.trim() || 'Google Traveler',
-        photoUrl:
-          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-        googleId: 'g_' + Math.random().toString(36).substring(2, 12),
+      google.accounts.id.prompt((notification: any) => {
+        clearTimeout(safetyTimeout);
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          setIsLoading(false);
+          setErrorMessage(
+            'Google One-Tap prompt was blocked by browser privacy settings. Please use the official Google Sign-In button above or sign in with email.'
+          );
+        }
       });
-      showToast('Signed in securely with Google Account', 'success');
-      onClose();
-    } catch (err: any) {
-      clearTimeout(safetyTimeout);
-      setErrorMessage(
-        err.response?.data?.error || err.message || 'Google authentication encountered an error.'
-      );
-    } finally {
-      setIsLoading(false);
+      return;
     }
+
+    setErrorMessage(
+      'Google OAuth Client ID is not configured for this environment yet. Please use email and password.'
+    );
   };
 
   return (

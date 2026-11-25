@@ -49,6 +49,8 @@ model User {
   moderationActions     ModerationAction[]
   profileImage          ProfileImage?
   postMedia             PostMedia[]
+  savedPlaces           SavedPlace[]
+  savedRoutes           SavedRoute[]
 }
 
 model City {
@@ -129,13 +131,16 @@ model FareReport {
 model LocationService {
   id          String   @id @default(uuid())
   name        String
-  category    String   // HOSPITAL, POLICE, PHARMACY, TRANSPORT, ATM, FUEL, HOTEL, RESTAURANT, TOURIST_INFO
+  category    String   // HOSPITAL, POLICE, PHARMACY, TRANSPORT, ATM, FUEL, HOTEL, RESTAURANT, TOURIST_INFO, SHOPPING
+  subCategory String?  // TRAUMA_CENTER, CLINIC, LAB, BLOOD_BANK, AMBULANCE, TEMPLE, MUSEUM, PARK, ADVENTURE, CAFE, STREET_FOOD, HOSTEL, HOMESTAY, METRO_STATION, RAILWAY_STATION, AUTO_STAND, PARKING, RENTAL, BAZAAR, MALL
   lat         Float
   lng         Float
   address     String
   phone       String?
   rating      Float?   @default(4.2)
   openStatus  String   @default("Open 24/7")
+  openingHours String?
+  website     String?
   isVerified  Boolean  @default(true)
   cityId      String
   city        City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
@@ -483,4 +488,40 @@ model ProfileImage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+model SavedPlace {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  placeId     String?
+  name        String
+  category    String
+  address     String
+  lat         Float
+  lng         Float
+  phone       String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SavedRoute {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  originName       String
+  destName         String
+  originLat        Float
+  originLng        Float
+  destLat          Float
+  destLng          Float
+  distanceKm       Float
+  travelMode       String   @default("DRIVING")
+  estimatedMinutes Int
+  createdAt        DateTime @default(now())
+
+  @@index([userId])
+}
+
 

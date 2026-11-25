@@ -144,39 +144,53 @@ export async function login(req: Request, res: Response) {
  */
 export async function googleAuth(req: Request, res: Response) {
   try {
-    const { idToken, email: clientEmail, name: clientName, photoUrl: clientPhoto, googleId: clientGoogleId } = req.body;
+    const { idToken } = req.body;
 
-    if (!idToken && !clientGoogleId && !clientEmail) {
-      return res.status(400).json({ error: 'Google credential token or payload is required' });
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({
+        error: 'A verified Google ID token is required. Use the official Google Sign-In button.',
+      });
     }
 
-    let verifiedEmail = clientEmail ? clientEmail.toLowerCase().trim() : null;
-    let verifiedName = clientName || 'Google Traveler';
-    let verifiedPicture = clientPhoto || null;
-    let verifiedGoogleId = clientGoogleId || null;
-
-    // Verify token with Google's public tokeninfo endpoint if token provided
-    if (idToken && typeof idToken === 'string') {
-      try {
-        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`);
-        if (verifyRes.ok) {
-          const payload: any = await verifyRes.json();
-          if (payload && payload.email) {
-            verifiedEmail = payload.email.toLowerCase().trim();
-            verifiedName = payload.name || verifiedName;
-            verifiedPicture = payload.picture || verifiedPicture;
-            verifiedGoogleId = payload.sub || verifiedGoogleId;
-          }
-        }
-      } catch (netErr) {
-        // Fallback for sandboxed / offline testing environments
-        console.warn('Google network token verification skipped, using client verified payload');
-      }
+    let verifyRes: globalThis.Response;
+    try {
+      verifyRes = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
+      );
+    } catch (netErr) {
+      console.error('Google tokeninfo network error:', netErr);
+      return res.status(503).json({
+        error: 'Unable to reach Google authentication servers. Please try again.',
+      });
     }
 
-    if (!verifiedEmail) {
-      return res.status(400).json({ error: 'Unable to extract valid verified email from Google identity' });
+    if (!verifyRes.ok) {
+      return res.status(401).json({
+        error: 'Invalid or expired Google credential token.',
+      });
     }
+
+    const payload: any = await verifyRes.json();
+    const validIssuer = ['accounts.google.com', 'https://accounts.google.com'].includes(payload?.iss);
+    const emailVerified = payload?.email_verified === true || payload?.email_verified === 'true';
+    const configuredClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+
+    if (!payload?.email || !emailVerified || !validIssuer) {
+      return res.status(401).json({
+        error: 'Google account email verification failed.',
+      });
+    }
+
+    if (configuredClientId && payload.aud !== configuredClientId) {
+      return res.status(401).json({
+        error: 'Google OAuth client audience mismatch.',
+      });
+    }
+
+    const verifiedEmail = payload.email.toLowerCase().trim();
+    const verifiedName = payload.name || verifiedEmail.split('@')[0] || 'Google Traveler';
+    const verifiedPicture = payload.picture || null;
+    const verifiedGoogleId = payload.sub || null;
 
     // Lookup existing user by email or Google ID
     let user = await prisma.user.findFirst({

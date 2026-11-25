@@ -53,7 +53,7 @@ export interface IncidentReport {
   lng: number;
   address: string;
   cityId: string;
-  status: 'PENDING' | 'COMMUNITY_CONFIRMED' | 'ADMIN_VERIFIED' | 'REJECTED';
+  status: 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'COMMUNITY_CONFIRMED' | 'ADMIN_VERIFIED' | 'REJECTED' | 'RESOLVED' | 'EXPIRED' | 'ESCALATED';
   confidenceScore: number;
   confirmations: number;
   evidenceUrl?: string;
@@ -298,3 +298,139 @@ export interface CommunityFareReport {
   tripTime: string;
   createdAt: string;
 }
+
+export interface EnrichedNearbyPlace {
+  id: string;
+  placeId?: string;
+  name: string;
+  category: string;
+  subCategory?: string | null;
+  lat: number;
+  lng: number;
+  address: string;
+  phone?: string | null;
+  rating?: number | null;
+  openStatus: string;
+  openingHours?: string | null;
+  isOpenNow: boolean | null;
+  is24Hours: boolean;
+  isVerified: boolean;
+  cityId?: string;
+  cityName?: string;
+  straightLineDistanceKm: number;
+  straightLineLabel: string;
+  roadDistanceKm: number;
+  roadDistanceLabel: string;
+  distanceSource: 'GOOGLE_ROUTES' | 'OSRM_ROAD' | 'ESTIMATED_TERRAIN';
+  estimatedDrivingTimeMin: number;
+  estimatedWalkingTimeMin: number;
+  estimatedCyclingTimeMin: number;
+  source: 'OFFICIAL_REGISTRY' | 'GOOGLE_PLACES' | 'COMMUNITY_VERIFIED';
+  website?: string | null;
+  googleMapsUri?: string | null;
+  priceLevel?: string | null;
+}
+
+export interface MultimodalFareBreakdown {
+  baseFare: number;
+  distanceCharge: number;
+  waitingCharge: number;
+  nightCharge: number;
+  hillSurcharge: number;
+  tollCharge: number;
+  luggageCharge: number;
+}
+
+export interface MultimodalFareOption {
+  modeId: string;
+  name: string;
+  vehicleType: string;
+  durationMin: number;
+  distanceKm: number;
+  fareMin: number;
+  fareAvg: number;
+  fareMax: number;
+  fareLabel: string;
+  priceType:
+    | 'OFFICIAL_GOVT'
+    | 'LIVE_PROVIDER'
+    | 'ESTIMATED'
+    | 'COMMUNITY_VERIFIED'
+    | 'COMMUNITY_REPORTED'
+    | 'UNAVAILABLE';
+  priceTypeLabel: string;
+  description: string;
+  conditions: string[];
+  breakdown?: MultimodalFareBreakdown;
+  isAvailable: boolean;
+  circularRef?: string | null;
+}
+
+export interface DetailedRouteStep {
+  instruction: string;
+  maneuver: string;
+  distanceMeters: number;
+  distanceLabel: string;
+  durationSeconds: number;
+  durationLabel: string;
+}
+
+export interface ComputedRouteGeometry {
+  id: string;
+  summary: string;
+  distanceKm: number;
+  distanceLabel: string;
+  durationMinutes: number;
+  durationLabel: string;
+  coordinates: [number, number][];
+  steps: DetailedRouteStep[];
+  tollInfo?: {
+    hasTolls: boolean;
+    estimatedAmount?: number;
+    currency?: string;
+    note?: string;
+  };
+  routingProvider: 'GOOGLE_ROUTES' | 'OSRM_ROAD' | 'ESTIMATED_TERRAIN';
+  isEstimated: boolean;
+  labels?: string[];
+}
+
+export interface PlaceAutocompleteSuggestion {
+  id: string;
+  placeId?: string;
+  name: string;
+  secondaryText: string;
+  fullText: string;
+  lat?: number;
+  lng?: number;
+  category?: string;
+  source: 'LOCAL_REGISTRY' | 'GOOGLE_PLACES' | 'NOMINATIM';
+}
+
+export interface SavedPlaceItem {
+  id: string;
+  placeId?: string | null;
+  name: string;
+  category: string;
+  address: string;
+  lat: number;
+  lng: number;
+  phone?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface SavedRouteItem {
+  id: string;
+  originName: string;
+  destName: string;
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
+  distanceKm: number;
+  travelMode: string;
+  estimatedMinutes: number;
+  createdAt: string;
+}
+

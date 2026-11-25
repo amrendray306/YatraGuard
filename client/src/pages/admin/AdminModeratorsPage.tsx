@@ -9,7 +9,7 @@ import {
   Activity,
   Calendar,
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, resolveMediaUrl } from '../../services/api';
 import { Link } from 'react-router-dom';
 
 export function AdminModeratorsPage() {
@@ -140,7 +140,7 @@ export function AdminModeratorsPage() {
                   <div className="flex items-center gap-3">
                     {mod.avatarUrl ? (
                       <img
-                        src={mod.avatarUrl}
+                        src={resolveMediaUrl(mod.avatarUrl)}
                         alt=""
                         className="w-12 h-12 rounded-2xl object-cover border border-blue-500/40"
                       />

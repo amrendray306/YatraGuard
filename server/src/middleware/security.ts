@@ -22,6 +22,10 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
   // Protect referrer info across origins
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 
+  // Allow Google Sign-In Identity popups & cross-origin asset loading (Render -> Vercel)
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+
   // Restrict browser permissions/features
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 
@@ -31,7 +35,7 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
     "script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://accounts.google.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://unpkg.com https://images.unsplash.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://res.cloudinary.com",
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://unpkg.com https://images.unsplash.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://res.cloudinary.com https://*.onrender.com",
     "connect-src 'self' https://* http://localhost:* http://127.0.0.1:* ws://* wss://*",
     "frame-src 'self' https://accounts.google.com",
     "frame-ancestors 'none'",

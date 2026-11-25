@@ -11,7 +11,7 @@ import {
   UserCheck,
   CheckCircle2,
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, resolveMediaUrl } from '../../services/api';
 import { ProfileImageModal } from '../../components/shared/ProfileImageModal';
 
 export function ModeratorProfilePage() {
@@ -60,7 +60,7 @@ export function ModeratorProfilePage() {
               <div className="relative inline-block">
                 {modUser?.avatarUrl ? (
                   <img
-                    src={modUser.avatarUrl}
+                    src={resolveMediaUrl(modUser.avatarUrl)}
                     alt=""
                     className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl object-cover border-4 border-slate-900 shadow-2xl"
                   />

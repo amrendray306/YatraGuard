@@ -3,6 +3,22 @@ import axios from 'axios';
 // Base API instance
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+export function resolveMediaUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  if (url.startsWith('/uploads/') && API_BASE_URL.startsWith('http')) {
+    try {
+      const origin = new URL(API_BASE_URL).origin;
+      return `${origin}${url}`;
+    } catch {
+      return url;
+    }
+  }
+  return url;
+}
+
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -60,6 +76,97 @@ export const fetchNearbyServices = async (params: {
   cityId?: string;
   sortBy?: 'distance' | 'rating';
 }) => (await api.get('/services/nearby', { params })).data;
+
+export const fetchNearbyPlaces = async (params: {
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  category?: string;
+  subCategory?: string;
+  cityId?: string;
+  strictCityFilter?: boolean;
+  openNow?: boolean;
+  is24Hours?: boolean;
+  query?: string;
+  sortBy?: 'distance' | 'roadDistance' | 'fastest' | 'category' | 'rating';
+  limit?: number;
+}) => (await api.get('/places/nearby', { params })).data;
+
+export const fetchEmergencyShortcuts = async (lat?: number, lng?: number) =>
+  (await api.get('/places/emergency-shortcuts', { params: { lat, lng } })).data;
+
+export const autocompletePlacesGlobal = async (params: {
+  q: string;
+  lat?: number;
+  lng?: number;
+  sessionToken?: string;
+}) => (await api.get('/places/autocomplete', { params })).data;
+
+export const geocodePlaceOrAddress = async (params: {
+  placeId?: string;
+  address?: string;
+  sessionToken?: string;
+}) => (await api.get('/places/geocode', { params })).data;
+
+export const reverseGeocodeCoords = async (lat: number, lng: number) =>
+  (await api.get('/places/reverse-geocode', { params: { lat, lng } })).data;
+
+export const planCompleteRoute = async (payload: {
+  origin: { lat: number; lng: number; name?: string };
+  destination: { lat: number; lng: number; name?: string };
+  travelMode?: 'DRIVE' | 'WALK' | 'BICYCLE' | 'TRANSIT';
+  avoidTolls?: boolean;
+  avoidHighways?: boolean;
+  travelHour?: number;
+  waitingMins?: number;
+  hasLuggage?: boolean;
+}) => (await api.post('/routes/plan', payload)).data;
+
+export const calculateMultimodalFares = async (payload: {
+  origin: { lat: number; lng: number; name?: string };
+  destination: { lat: number; lng: number; name?: string };
+  cityName?: string;
+  travelHour?: number;
+  explicitRoadDistanceKm?: number;
+  waitingMins?: number;
+  hasLuggage?: boolean;
+  tollAmount?: number;
+}) => (await api.post('/routes/multimodal-fares', payload)).data;
+
+export const savePlaceBookmark = async (payload: {
+  placeId?: string;
+  name: string;
+  category: string;
+  address: string;
+  lat: number;
+  lng: number;
+  phone?: string;
+  notes?: string;
+}) => (await api.post('/user/saved-places', payload)).data;
+
+export const fetchSavedPlaceBookmarks = async () =>
+  (await api.get('/user/saved-places')).data;
+
+export const deleteSavedPlaceBookmark = async (id: string) =>
+  (await api.delete(`/user/saved-places/${id}`)).data;
+
+export const saveRouteBookmark = async (payload: {
+  originName: string;
+  destName: string;
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
+  distanceKm: number;
+  travelMode?: string;
+  estimatedMinutes: number;
+}) => (await api.post('/user/saved-routes', payload)).data;
+
+export const fetchSavedRouteBookmarks = async () =>
+  (await api.get('/user/saved-routes')).data;
+
+export const deleteSavedRouteBookmark = async (id: string) =>
+  (await api.delete(`/user/saved-routes/${id}`)).data;
 
 export const fetchMapData = async (params: { cityId?: string; lat?: number; lng?: number }) =>
   (await api.get('/map/data', { params })).data;

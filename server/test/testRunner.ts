@@ -3,6 +3,8 @@ import { FareEstimationService } from '../src/services/FareEstimationService.js'
 import { calculateSafetyScore } from '../src/services/safetyScoreService.js';
 import { validateCoordinates } from '../src/middleware/validation.js';
 import { generateToken, verifyToken } from '../src/middleware/auth.js';
+import { placesService, evaluateOpeningHoursStatus } from '../src/services/PlacesService.js';
+import { googleMapsService } from '../src/services/googleMapsService.js';
 import bcrypt from 'bcryptjs';
 
 let passed = 0;
@@ -459,6 +461,112 @@ async function main() {
 
     assert.strictEqual(severity, 'SEVERE');
     assert.strictEqual(pct, 125);
+  });
+
+  // -------------------------------------------------------------------------
+  // SUITE 9: Unified Nearby Places, Medical Assistance & Multi-Modal Routing
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 9: Unified Nearby Places, Medical Assistance & Multi-Modal Routing]\x1b[0m');
+
+  await runTest('Opening Hours Parser - Evaluates 24/7 vs daytime ranges accurately in IST', () => {
+    const always = evaluateOpeningHoursStatus('Open 24/7', '24 Hours Daily');
+    assert.strictEqual(always.is24Hours, true);
+    assert.strictEqual(always.isOpenNow, true);
+
+    // 14:00 IST (08:30 UTC) vs 02:00 IST (20:30 UTC previous day)
+    const afternoonUtcMs = Date.UTC(2026, 10, 25, 8, 30, 0); // 14:00 IST (Wednesday)
+    const lateNightUtcMs = Date.UTC(2026, 10, 25, 20, 30, 0); // 02:00 IST next day (Thursday)
+    const museumOpen = evaluateOpeningHoursStatus('Open 10:00 AM – 06:00 PM', '10:00 AM – 06:00 PM', afternoonUtcMs);
+    const museumClosed = evaluateOpeningHoursStatus('Open 10:00 AM – 06:00 PM', '10:00 AM – 06:00 PM', lateNightUtcMs);
+    assert.strictEqual(museumOpen.isOpenNow, true);
+    assert.strictEqual(museumClosed.isOpenNow, false);
+
+    // Closed Mondays check: Nov 23, 2026 is a Monday (08:30 UTC = 14:00 IST Monday)
+    const mondayUtcMs = Date.UTC(2026, 10, 23, 8, 30, 0);
+    const closedMon = evaluateOpeningHoursStatus('Open 10:00 AM – 06:00 PM (Closed Mon)', '10:00 AM – 06:00 PM', mondayUtcMs);
+    assert.strictEqual(closedMon.isOpenNow, false);
+  });
+
+  await runTest('Nearby Places - Radius filtering 1km vs 10km and Category sorting', async () => {
+    const res1km = await placesService.searchNearbyPlaces({
+      lat: 28.6328,
+      lng: 77.2195, // Connaught Place Delhi
+      radiusKm: 1,
+      category: 'ALL',
+      sortBy: 'distance',
+    });
+    const res10km = await placesService.searchNearbyPlaces({
+      lat: 28.6328,
+      lng: 77.2195,
+      radiusKm: 10,
+      category: 'ALL',
+      sortBy: 'category',
+    });
+
+    assert.ok(res10km.places.length >= res1km.places.length);
+    for (const p of res1km.places) {
+      assert.ok(p.straightLineDistanceKm <= 1.0, `Expected <= 1km, got ${p.straightLineDistanceKm}`);
+      assert.ok(p.roadDistanceKm >= p.straightLineDistanceKm, 'Road distance cannot be shorter than straight-line distance');
+    }
+  });
+
+  await runTest('Nearby Pharmacy & Medical Discovery - 24-Hour filtering & Emergency shortcuts', async () => {
+    const pharm24 = await placesService.searchNearbyPlaces({
+      lat: 28.6328,
+      lng: 77.2195,
+      radiusKm: 10,
+      category: 'PHARMACY',
+      is24Hours: true,
+    });
+    assert.ok(pharm24.places.length >= 1, 'Should discover at least one 24-hour pharmacy near CP Delhi');
+    for (const p of pharm24.places) {
+      assert.strictEqual(p.category, 'PHARMACY');
+      assert.strictEqual(p.is24Hours, true);
+    }
+
+    const shortcuts = await placesService.getEmergencyShortcuts(28.6328, 77.2195);
+    assert.ok(shortcuts.nearestHospital, 'Must resolve nearest hospital');
+    assert.ok(shortcuts.nearestPharmacy, 'Must resolve nearest pharmacy');
+    assert.ok(shortcuts.nearestPolice, 'Must resolve nearest police station');
+    assert.ok(shortcuts.helplines.some((h) => h.number === '112'), 'Must include 112 helpline');
+  });
+
+  await runTest('Multi-Modal Fares - Truthful labeling & no fabricated international fares', async () => {
+    const delhiFares = await placesService.calculateMultimodalFares({
+      origin: { lat: 28.6139, lng: 77.2090, name: 'India Gate' },
+      destination: { lat: 28.6328, lng: 77.2195, name: 'Connaught Place' },
+      explicitRoadDistanceKm: 3.1,
+      travelHour: 14,
+      waitingMins: 30,
+    });
+    assert.strictEqual(delhiFares.options.length, 8, 'Must return all 8 transport modes');
+    assert.strictEqual(delhiFares.coveredCityName, 'Delhi');
+    const auto = delhiFares.options.find((o) => o.modeId === 'AUTO_RICKSHAW');
+    assert.ok(auto && auto.isAvailable);
+    assert.strictEqual(auto.priceTypeLabel, 'Official Price');
+    assert.ok((auto.breakdown?.waitingCharge || 0) > 0, 'Must factor waiting charges');
+
+    // International / unmapped coordinate check (London, UK): must NOT fabricate Indian RTO prices
+    const londonFares = await placesService.calculateMultimodalFares({
+      origin: { lat: 51.5074, lng: -0.1278, name: 'Trafalgar Square' },
+      destination: { lat: 51.5007, lng: -0.1246, name: 'Big Ben' },
+      explicitRoadDistanceKm: 1.2,
+    });
+    assert.strictEqual(londonFares.isCityTariffCovered, false);
+    const londonAuto = londonFares.options.find((o) => o.modeId === 'AUTO_RICKSHAW');
+    assert.ok(londonAuto);
+    assert.strictEqual(londonAuto.isAvailable, false);
+    assert.strictEqual(londonAuto.fareLabel, 'Fare information unavailable');
+  });
+
+  await runTest('Google Maps Helpers - Encoded polyline decoder & missing-key configuration notice', async () => {
+    const decoded = googleMapsService.decodeEncodedPolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@');
+    assert.strictEqual(decoded.length, 3);
+    assert.ok(Math.abs(decoded[0][0] - 38.5) < 0.01);
+    assert.ok(Math.abs(decoded[0][1] - -120.2) < 0.01);
+
+    const searchRes = await placesService.searchNearbyPlaces({ lat: 28.6139, lng: 77.2090, radiusKm: 5 });
+    assert.ok(searchRes.apiNotice.length > 10, 'Must always supply clear API status/configuration message');
   });
 
   console.log('\n======================================================');

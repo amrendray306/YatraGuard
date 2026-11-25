@@ -62,6 +62,19 @@ import {
   getCities,
   getCity,
   getNearbyServices,
+  getNearbyPlacesHandler,
+  getEmergencyShortcutsHandler,
+  getMultimodalFaresHandler,
+  planCompleteRouteHandler,
+  autocompletePlacesHandler,
+  geocodeLocationHandler,
+  reverseGeocodeHandler,
+  savePlaceHandler,
+  getSavedPlacesHandler,
+  deleteSavedPlaceHandler,
+  saveRouteHandler,
+  getSavedRoutesHandler,
+  deleteSavedRouteHandler,
   getMapData,
   searchDestinationsHandler,
 } from '../controllers/servicesController.js';
@@ -190,6 +203,19 @@ router.get('/destinations/search', searchDestinationsHandler);
 router.get('/map/data', getMapData);
 router.get('/map/nearby', validateCoordinatesMiddleware, getNearbyServices);
 router.get('/services/nearby', validateCoordinatesMiddleware, getNearbyServices);
+router.get('/places/nearby', validateCoordinatesMiddleware, getNearbyPlacesHandler);
+router.get('/places/emergency-shortcuts', validateCoordinatesMiddleware, getEmergencyShortcutsHandler);
+router.get('/places/autocomplete', autocompletePlacesHandler);
+router.get('/places/geocode', geocodeLocationHandler);
+router.get('/places/reverse-geocode', validateCoordinatesMiddleware, reverseGeocodeHandler);
+router.post('/routes/plan', planCompleteRouteHandler);
+router.post('/routes/multimodal-fares', getMultimodalFaresHandler);
+router.post('/user/saved-places', authenticateToken, savePlaceHandler);
+router.get('/user/saved-places', authenticateToken, getSavedPlacesHandler);
+router.delete('/user/saved-places/:id', authenticateToken, deleteSavedPlaceHandler);
+router.post('/user/saved-routes', authenticateToken, saveRouteHandler);
+router.get('/user/saved-routes', authenticateToken, getSavedRoutesHandler);
+router.delete('/user/saved-routes/:id', authenticateToken, deleteSavedRouteHandler);
 
 // --- SAFETY SCORING & ROUTE RISK ---
 router.get('/safety-score', validateCoordinatesMiddleware, getSafetyScore);
@@ -212,6 +238,7 @@ router.post('/incidents', optionalAuth, createIncident);
 router.post('/incidents/:id/confirm', optionalAuth, verifyIncidentCommunity);
 router.post('/incidents/:id/verify', optionalAuth, verifyIncidentCommunity);
 router.put('/admin/incidents/:id/status', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), updateIncidentStatus);
+router.patch('/admin/incidents/:id', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), updateIncidentStatus);
 
 // --- CITY-WISE LOCAL PRICE DATABASE (Food, Hotels, Activities, etc.) ---
 router.get('/prices', getPriceRecords);
@@ -264,6 +291,12 @@ router.get(
   getAdminUsers
 );
 router.put(
+  '/admin/users/:id/status',
+  authenticateToken,
+  requireRole(['ADMIN']),
+  updateUserStatus
+);
+router.patch(
   '/admin/users/:id/status',
   authenticateToken,
   requireRole(['ADMIN']),

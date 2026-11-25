@@ -11,7 +11,7 @@ import {
   ExternalLink,
   MapPin,
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, resolveMediaUrl } from '../../services/api';
 
 export function AdminCommunityPage() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -107,7 +107,7 @@ export function AdminCommunityPage() {
                     <div className="flex items-center gap-2.5">
                       {post.user?.avatarUrl ? (
                         <img
-                          src={post.user.avatarUrl}
+                          src={resolveMediaUrl(post.user.avatarUrl)}
                           alt=""
                           className="w-8 h-8 rounded-full object-cover border border-slate-700"
                         />
@@ -130,10 +130,10 @@ export function AdminCommunityPage() {
                   {(post.imageUrl || (post.media && post.media.length > 0)) && (
                     <div
                       className="relative h-36 rounded-2xl overflow-hidden bg-slate-950 cursor-pointer group"
-                      onClick={() => setSelectedImage(post.imageUrl || post.media[0]?.url)}
+                      onClick={() => setSelectedImage(resolveMediaUrl(post.imageUrl || post.media[0]?.url) || null)}
                     >
                       <img
-                        src={post.imageUrl || post.media[0]?.url}
+                        src={resolveMediaUrl(post.imageUrl || post.media[0]?.url)}
                         alt=""
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />

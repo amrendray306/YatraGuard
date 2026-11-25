@@ -10,7 +10,7 @@ import {
   CheckCircle2,
   Trash2,
 } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, resolveMediaUrl } from '../../services/api';
 
 export function ModeratorCommunityPage() {
   const [posts, setPosts] = useState<any[]>([]);
@@ -136,7 +136,7 @@ export function ModeratorCommunityPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {post.user?.avatarUrl ? (
-                        <img src={post.user.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover" />
+                        <img src={resolveMediaUrl(post.user.avatarUrl)} alt="" className="w-7 h-7 rounded-full object-cover" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-slate-800 text-blue-400 font-bold flex items-center justify-center text-xs">
                           {post.user?.name?.[0]?.toUpperCase() || 'U'}
@@ -156,10 +156,10 @@ export function ModeratorCommunityPage() {
                   {(post.imageUrl || (post.media && post.media.length > 0)) && (
                     <div
                       className="relative h-36 rounded-2xl overflow-hidden bg-slate-950 cursor-pointer group"
-                      onClick={() => setSelectedImage(post.imageUrl || post.media[0]?.url)}
+                      onClick={() => setSelectedImage(resolveMediaUrl(post.imageUrl || post.media[0]?.url) || null)}
                     >
                       <img
-                        src={post.imageUrl || post.media[0]?.url}
+                        src={resolveMediaUrl(post.imageUrl || post.media[0]?.url)}
                         alt=""
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                       />

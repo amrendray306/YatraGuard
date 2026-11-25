@@ -27,7 +27,7 @@ export async function getNearbySafetyAlerts(req: AuthenticatedRequest, res: Resp
     const maxRadius = parseFloat(radiusKm as string);
 
     const where: any = {
-      status: { in: ['VERIFIED', 'UNDER_REVIEW', 'PENDING'] },
+      status: { in: ['VERIFIED', 'ADMIN_VERIFIED', 'UNDER_REVIEW', 'PENDING'] },
     };
 
     if (cityId) {
@@ -57,7 +57,11 @@ export async function getNearbySafetyAlerts(req: AuthenticatedRequest, res: Resp
             cityName: inc.city?.name,
             status: inc.status,
             reportedAt: inc.reportedAt,
-            isHighPriority: inc.status === 'VERIFIED' || inc.category.includes('theft') || inc.category.includes('harassment'),
+            isHighPriority:
+              inc.status === 'VERIFIED' ||
+              inc.status === 'ADMIN_VERIFIED' ||
+              inc.category.includes('theft') ||
+              inc.category.includes('harassment'),
           };
         })
         .filter((inc) => inc.distanceKm <= maxRadius)
@@ -74,7 +78,7 @@ export async function getNearbySafetyAlerts(req: AuthenticatedRequest, res: Resp
         cityName: inc.city?.name,
         status: inc.status,
         reportedAt: inc.reportedAt,
-        isHighPriority: inc.status === 'VERIFIED',
+        isHighPriority: inc.status === 'VERIFIED' || inc.status === 'ADMIN_VERIFIED',
       }));
     }
 

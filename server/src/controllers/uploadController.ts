@@ -5,6 +5,13 @@ import { isCloudinaryConfigured, deleteStoredImage } from '../services/uploadSer
 
 const prisma = new PrismaClient();
 
+function buildLocalUploadUrl(filename: string): string {
+  const publicBase = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '')
+    .trim()
+    .replace(/\/+$/, '');
+  return publicBase ? `${publicBase}/uploads/${filename}` : `/uploads/${filename}`;
+}
+
 export async function uploadProfileImage(req: AuthenticatedRequest, res: Response) {
   try {
     if (!req.user) {
@@ -16,13 +23,12 @@ export async function uploadProfileImage(req: AuthenticatedRequest, res: Respons
     }
 
     const file = req.file as any;
-    // If Cloudinary is used, path contains secure URL. Otherwise construct local URL
+    // If Cloudinary is used, path contains secure URL. Otherwise construct environment-safe URL
     let url: string = file.path || file.secure_url || '';
     let publicId: string | undefined = file.filename || file.public_id;
 
     if (!isCloudinaryConfigured()) {
-      const port = process.env.PORT || 5001;
-      url = `http://localhost:${port}/uploads/${file.filename}`;
+      url = buildLocalUploadUrl(file.filename);
       publicId = file.filename;
     }
 
@@ -122,14 +128,13 @@ export async function uploadCommunityImages(req: AuthenticatedRequest, res: Resp
       return res.status(400).json({ error: 'At least one image file is required' });
     }
 
-    const port = process.env.PORT || 5001;
     const isCloud = isCloudinaryConfigured();
 
     const mediaItems = files.map((f, index) => {
       let url = f.path || f.secure_url || '';
       let publicId = f.filename || f.public_id;
       if (!isCloud) {
-        url = `http://localhost:${port}/uploads/${f.filename}`;
+        url = buildLocalUploadUrl(f.filename);
         publicId = f.filename;
       }
       return {

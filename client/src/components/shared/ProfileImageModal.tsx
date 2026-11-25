@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { X, Upload, ZoomIn, ZoomOut, Trash2, Check, AlertCircle, Camera } from 'lucide-react';
-import { api } from '../../services/api';
+import { api, resolveMediaUrl } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 interface ProfileImageModalProps {
@@ -105,7 +105,7 @@ export function ProfileImageModal({
     }
   };
 
-  const displayImage = previewUrl || currentAvatarUrl;
+  const displayImage = previewUrl || resolveMediaUrl(currentAvatarUrl);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">

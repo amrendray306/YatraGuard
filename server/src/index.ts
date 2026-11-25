@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -9,6 +10,7 @@ import { securityHeaders, globalApiLimiter } from './middleware/security.js';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
@@ -16,17 +18,32 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 app.use(securityHeaders);
 
 // 2. Strict / Configurable CORS
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+const normalizeOrigin = (url: string) => url.trim().replace(/\/+$/, '');
+const envOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(normalizeOrigin).filter(Boolean)
   : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+
+if (process.env.RENDER_EXTERNAL_URL) {
+  envOrigins.push(normalizeOrigin(process.env.RENDER_EXTERNAL_URL));
+}
+if (process.env.FRONTEND_URL) {
+  envOrigins.push(normalizeOrigin(process.env.FRONTEND_URL));
+}
+
+const allowedOrigins = Array.from(new Set(envOrigins));
+const allowVercelPreviews = process.env.ALLOW_VERCEL_PREVIEWS === 'true';
 
 app.use(
   cors({
     origin: (origin, callback) => {
+      const cleanOrigin = origin ? normalizeOrigin(origin) : '';
+      const isVercelPreview =
+        allowVercelPreviews && /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(cleanOrigin);
       // Allow requests with no origin (mobile apps, curl, server-to-server) or matching allowed list
-      if (!origin || allowedOrigins.includes(origin) || NODE_ENV !== 'production') {
+      if (!cleanOrigin || allowedOrigins.includes(cleanOrigin) || isVercelPreview || NODE_ENV !== 'production') {
         callback(null, true);
       } else {
+        console.warn(`⚠️ Blocked CORS origin: ${origin}`);
         callback(new Error('Blocked by CORS policy: Origin not allowed'));
       }
     },
@@ -63,9 +80,8 @@ app.use('/api', apiRouter);
 
 // 6b. Serve uploaded static media if using local disk fallback
 const localUploadsDir = path.resolve(process.cwd(), 'public/uploads');
-if (fs.existsSync(localUploadsDir)) {
-  app.use('/uploads', express.static(localUploadsDir));
-}
+fs.mkdirSync(localUploadsDir, { recursive: true });
+app.use('/uploads', express.static(localUploadsDir));
 
 // 7. Unified Production Serving: Serve client SPA static files if built
 const possibleDistPaths = [
