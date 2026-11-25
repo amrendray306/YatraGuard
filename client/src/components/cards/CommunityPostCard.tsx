@@ -64,7 +64,7 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
     <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl overflow-hidden transition-all duration-300 shadow-xl flex flex-col justify-between">
       {/* Multi-Image Gallery or Single Header Image */}
       {images.length > 0 && (
-        <div className="relative w-full bg-slate-950">
+        <div className="photo-overlay relative w-full bg-slate-950">
           {images.length === 1 ? (
             <div
               className="relative h-48 sm:h-56 w-full overflow-hidden cursor-pointer group"

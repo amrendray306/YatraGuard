@@ -36,9 +36,9 @@ export const DestinationCard: React.FC<DestinationCardProps> = ({
       : 'bg-red-950/80 text-red-300 border-red-700/60';
 
   return (
-    <div className="group relative bg-slate-900/95 border border-slate-800 rounded-2xl overflow-hidden hover:border-amber-500/60 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between">
+    <div className="group relative bg-slate-900/95 border border-slate-800 rounded-2xl overflow-hidden hover:border-amber-500/60 transition-colors duration-200 shadow-lg flex flex-col justify-between">
       {/* Top Image & Overlays */}
-      <div className="relative h-48 sm:h-52 w-full overflow-hidden">
+      <div className="photo-overlay relative h-48 sm:h-52 w-full overflow-hidden">
         <img
           src={imageUrl}
           alt={`${name}, ${state}`}

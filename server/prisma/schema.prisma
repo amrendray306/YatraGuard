@@ -43,6 +43,9 @@ model User {
   communityPosts        CommunityPost[]
   comments              PostComment[]
   buddyRequestsSent     TravelBuddyRequest[] @relation("SentBuddyRequests")
+  connectionsSent       BuddyConnection[]    @relation("ConnectionsSent")
+  connectionsReceived   BuddyConnection[]    @relation("ConnectionsReceived")
+  buddyMessages         BuddyMessage[]       @relation("MessagesSent")
   notifications         Notification[]
   savedDestinations     SavedDestination[]
   adminAuditLogs        AdminAuditLog[]
@@ -402,16 +405,47 @@ model PostComment {
 }
 
 model TravelBuddyRequest {
-  id              String   @id @default(uuid())
+  id                  String              @id @default(uuid())
+  senderId            String
+  sender              User                @relation("SentBuddyRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  destinationCity     String
+  fromLocation        String?             // Starting location
+  startDate           String
+  endDate             String
+  travelStyle         String              @default("ADVENTURE") // BACKPACKER, ADVENTURE, CULTURAL, LUXURY, ROAD_TRIP
+  budgetTier          String              @default("MODERATE") // BUDGET, MODERATE, LUXURY
+  companionsNeeded    Int                 @default(1)
+  preferredLanguage   String?
+  notes               String?
+  status              String              @default("OPEN") // OPEN, MATCHED, CANCELLED
+  createdAt           DateTime            @default(now())
+  connections         BuddyConnection[]  @relation("RequestConnections")
+}
+
+model BuddyConnection {
+  id              String                @id @default(uuid())
+  requestId       String
+  request         TravelBuddyRequest    @relation("RequestConnections", fields: [requestId], references: [id], onDelete: Cascade)
   senderId        String
-  sender          User     @relation("SentBuddyRequests", fields: [senderId], references: [id], onDelete: Cascade)
-  destinationCity String
-  startDate       String
-  endDate         String
-  travelStyle     String   @default("BALANCED") // BUDGET, LUXURY, BACKPACKER, SOLO_FEMALE, ADVENTURE
-  notes           String?
-  status          String   @default("OPEN") // OPEN, MATCHED, CANCELLED
-  createdAt       DateTime @default(now())
+  senderUser      User                  @relation("ConnectionsSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId      String
+  receiverUser    User                  @relation("ConnectionsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  message         String?
+  status          String                @default("PENDING") // PENDING, ACCEPTED, REJECTED, CANCELLED
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  messages        BuddyMessage[]
+}
+
+model BuddyMessage {
+  id            String          @id @default(uuid())
+  connectionId  String
+  connection    BuddyConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  senderId      String
+  senderUser    User            @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  content       String
+  isRead        Boolean         @default(false)
+  createdAt     DateTime        @default(now())
 }
 
 model SavedDestination {

@@ -289,8 +289,10 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   // Active layers state (Multi-layer toggle)
   const [activeLayers, setActiveLayers] = useState<{
     hospitals: boolean;
-    police: boolean;
     pharmacies: boolean;
+    clinics: boolean;
+    police: boolean;
+    emergency: boolean;
     transport: boolean;
     attractions: boolean;
     hotels: boolean;
@@ -301,8 +303,10 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
     safetyZones: boolean;
   }>({
     hospitals: true,
-    police: true,
     pharmacies: true,
+    clinics: true,
+    police: true,
+    emergency: true,
     transport: true,
     attractions: true,
     hotels: true,
@@ -327,8 +331,10 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   const setAllLayers = (enabled: boolean) => {
     setActiveLayers({
       hospitals: enabled,
-      police: enabled,
       pharmacies: enabled,
+      clinics: enabled,
+      police: enabled,
+      emergency: enabled,
       transport: enabled,
       attractions: enabled,
       hotels: enabled,
@@ -372,14 +378,24 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   // Filter services by category according to active layers
   const visibleServices = useMemo(() => {
     return services.filter((s) => {
-      if (s.category === 'HOSPITAL') return activeLayers.hospitals;
-      if (s.category === 'POLICE') return activeLayers.police;
-      if (s.category === 'PHARMACY') return activeLayers.pharmacies;
-      if (s.category === 'TRANSPORT') return activeLayers.transport;
-      if (s.category === 'TOURIST_INFO') return activeLayers.attractions;
-      if (s.category === 'HOTEL') return activeLayers.hotels;
-      if (s.category === 'RESTAURANT') return activeLayers.restaurants;
-      if (s.category === 'SHOPPING') return activeLayers.shopping;
+      const cat = String(s.category || '').toUpperCase();
+      const nameLower = String(s.name || '').toLowerCase();
+      if (cat === 'CLINIC' || (cat === 'HOSPITAL' && nameLower.includes('clinic'))) {
+        return activeLayers.clinics;
+      }
+      if (cat === 'EMERGENCY' || cat === 'AMBULANCE' || cat === 'FIRE_STATION') {
+        return activeLayers.emergency;
+      }
+      if (cat === 'HOSPITAL') {
+        return activeLayers.hospitals || (activeLayers.emergency && nameLower.includes('emergency'));
+      }
+      if (cat === 'POLICE') return activeLayers.police;
+      if (cat === 'PHARMACY') return activeLayers.pharmacies;
+      if (cat === 'TRANSPORT') return activeLayers.transport;
+      if (cat === 'TOURIST_INFO') return activeLayers.attractions;
+      if (cat === 'HOTEL') return activeLayers.hotels;
+      if (cat === 'RESTAURANT') return activeLayers.restaurants;
+      if (cat === 'SHOPPING') return activeLayers.shopping;
       return true;
     });
   }, [services, activeLayers]);
@@ -520,7 +536,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       style={{ height }}
     >
       {/* Top Map Layer & Radius Controls */}
-      <div className="absolute top-28 sm:top-28 left-4 z-20 flex flex-wrap items-center gap-1.5 max-w-[95%] sm:max-w-4xl bg-slate-950/90 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl overflow-x-auto no-scrollbar">
+      <div className="absolute top-20 sm:top-24 left-3 right-3 sm:left-4 sm:right-auto z-[450] flex flex-wrap items-center gap-1.5 max-w-full sm:max-w-4xl bg-slate-950/95 p-2.5 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl">
         {/* Map Display Mode Switcher (Safety Map vs Normal Map) */}
         <div className="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-700/80 mr-1 flex-shrink-0">
           <button
@@ -573,14 +589,24 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
           <span>{routeOptions.length > 0 ? '3 Routes Active' : 'Route Planner'}</span>
         </button>
 
-        {/* Layer Toggle: All */}
-        <button
-          onClick={() => setAllLayers(true)}
-          className="px-2.5 py-1.5 rounded-xl text-[11px] font-black bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1 flex-shrink-0"
-        >
-          <Layers className="w-3.5 h-3.5 text-amber-400" />
-          <span>All ({visibleServices.length + filteredIncidents.length + filteredScams.length})</span>
-        </button>
+        {/* Layer Toggles: Show All / Clear All */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setAllLayers(true)}
+            className="px-2.5 py-1.5 rounded-xl text-[11px] font-black bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1 flex-shrink-0"
+          >
+            <Layers className="w-3.5 h-3.5 text-amber-400" />
+            <span>Show All ({visibleServices.length + filteredIncidents.length + filteredScams.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAllLayers(false)}
+            className="px-2.5 py-1.5 rounded-xl text-[11px] font-bold bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 flex-shrink-0"
+          >
+            Clear All
+          </button>
+        </div>
 
         {/* Layer Toggles (Visible in Safety Map Mode) */}
         {mapDisplayMode === 'SAFETY' && (
@@ -611,10 +637,12 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
         {/* POI Service Layer Toggles */}
         {[
-          { key: 'police' as const, label: 'Police', color: 'bg-emerald-600', icon: '👮' },
           { key: 'hospitals' as const, label: 'Hospitals', color: 'bg-emerald-600', icon: '🏥' },
-          { key: 'pharmacies' as const, label: 'Pharmacies', color: 'bg-emerald-600', icon: '💊' },
-          { key: 'attractions' as const, label: 'Attractions', color: 'bg-blue-600', icon: '🏛️' },
+          { key: 'pharmacies' as const, label: 'Pharmacies', color: 'bg-purple-600', icon: '💊' },
+          { key: 'clinics' as const, label: 'Clinics', color: 'bg-teal-600', icon: '🩺' },
+          { key: 'police' as const, label: 'Police Stations', color: 'bg-blue-600', icon: '👮' },
+          { key: 'emergency' as const, label: 'Emergency Services', color: 'bg-red-600', icon: '🚑' },
+          { key: 'attractions' as const, label: 'Attractions', color: 'bg-indigo-600', icon: '🏛️' },
           { key: 'transport' as const, label: 'Transit', color: 'bg-cyan-600', icon: '🚇' },
           { key: 'shopping' as const, label: 'Shopping', color: 'bg-amber-600', icon: '🛍️' },
         ].map((layer) => {
@@ -622,6 +650,8 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
           return (
             <button
               key={layer.key}
+              type="button"
+              aria-pressed={isActive}
               onClick={() => toggleLayer(layer.key)}
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all flex-shrink-0 ${
                 isActive

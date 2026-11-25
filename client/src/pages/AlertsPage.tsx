@@ -172,10 +172,10 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
             <span>Real-Time Travel Vigilance</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Community Scam & Safety Alert Feed
+            Scam &amp; Safety Alerts
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-            Live crowdsourced reports of touts, overcharging, fake operators, and unsafe locations. Every report is audited and distinguished by verification tier.
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
+            Verified traveler reports on overcharging, touts, and local safety hazards.
           </p>
         </div>
 

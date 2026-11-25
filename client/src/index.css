@@ -2,18 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --yg-bg: #020617;
+  --yg-surface: #0f172a;
+  --yg-surface-elevated: #1e293b;
+  --yg-surface-muted: #0b1220;
+  --yg-border: #1e293b;
+  --yg-border-strong: #334155;
+  --yg-text: #f8fafc;
+  --yg-text-secondary: #cbd5e1;
+  --yg-text-muted: #94a3b8;
+  --yg-accent: #0284c7;
+  --yg-scrollbar-track: #0f172a;
+  --yg-scrollbar-thumb: #475569;
+
+  color-scheme: light dark;
+  accent-color: var(--yg-accent);
+  scrollbar-color: var(--yg-scrollbar-thumb) var(--yg-scrollbar-track);
+}
+
+:root:has(> head > meta[name="color-scheme"][content="dark"]),
+html.dark {
+  color-scheme: dark;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="light"]),
+html.light {
+  color-scheme: light;
+  --yg-bg: #f8fafc;
+  --yg-surface: #ffffff;
+  --yg-surface-elevated: #ffffff;
+  --yg-surface-muted: #f1f5f9;
+  --yg-border: #e2e8f0;
+  --yg-border-strong: #cbd5e1;
+  --yg-text: #0f172a;
+  --yg-text-secondary: #334155;
+  --yg-text-muted: #64748b;
+  --yg-accent: #0284c7;
+  --yg-scrollbar-track: #f1f5f9;
+  --yg-scrollbar-thumb: #94a3b8;
+}
+
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--yg-scrollbar-track);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--yg-scrollbar-thumb);
+    border-radius: 9999px;
+  }
+}
+
 @layer base {
+  html,
   body {
-    @apply bg-slate-950 text-slate-100 selection:bg-red-500 selection:text-white;
-    /* Respect iPhone notch and safe areas */
+    background-color: var(--yg-bg);
+    color: var(--yg-text);
+  }
+
+  body {
+    @apply selection:bg-sky-600 selection:text-white;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
+    overflow-x: hidden;
   }
 }
 
-/* Safe area utilities for iPhone Notch, Dynamic Island, and home indicator bar */
+/* Prevent scroll chaining beneath native modal dialogs */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Safe area utilities */
 .pb-safe {
   padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
 }
@@ -27,7 +97,6 @@
   min-width: 44px;
 }
 
-/* Dynamic viewport height helper */
 .h-dvh {
   height: 100dvh;
 }
@@ -35,16 +104,16 @@
   min-height: 100dvh;
 }
 
-/* Custom Tactical Glassmorphism */
+/* Glass Surfaces */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
+  background: rgba(15, 23, 42, 0.82);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-panel-elevated {
-  background: rgba(30, 41, 59, 0.85);
+  background: rgba(30, 41, 59, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -56,12 +125,16 @@
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
-/* Leaflet Map Styling Override */
+/* Leaflet Map Styling */
 .leaflet-container {
   width: 100%;
   height: 100%;
   background-color: #0b0f19 !important;
   font-family: inherit;
+}
+
+html.light .leaflet-container {
+  background-color: #e2e8f0 !important;
 }
 
 .leaflet-popup-content-wrapper {
@@ -76,7 +149,28 @@
   background: #0f172a !important;
 }
 
-/* Hide scrollbar for clean tab browsing */
+html.dark .leaflet-popup-content-wrapper .text-slate-900,
+html.dark .leaflet-popup-content-wrapper .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+html.dark .leaflet-popup-content-wrapper .text-slate-600,
+html.dark .leaflet-popup-content-wrapper .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .leaflet-popup-content-wrapper .text-amber-700 {
+  color: #fbbf24 !important;
+}
+
+html.dark .leaflet-popup-content-wrapper .text-red-700 {
+  color: #f87171 !important;
+}
+
+html.dark .leaflet-popup-content-wrapper .text-emerald-700 {
+  color: #34d399 !important;
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -85,123 +179,326 @@
   scrollbar-width: none;
 }
 
-/* Light Mode Theme System Tokens & Overrides (WCAG AAA Compliant) */
-html.light body {
-  background-color: #f8fafc;
-  color: #0f172a;
-}
+/* ==========================================================================
+   LIGHT MODE THEME SYSTEM OVERRIDES (WCAG AA/AAA High-Contrast)
+   ========================================================================== */
 
-html.light header {
+html.light header,
+html.light nav[aria-label="Mobile Navigation"] {
   background-color: rgba(255, 255, 255, 0.96) !important;
   border-color: #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
 html.light .glass-panel {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 1px 3px 0 rgba(15, 23, 42, 0.04);
 }
 
 html.light .glass-panel-elevated {
-  background: #ffffff;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 20px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
 }
 
-/* Background surfaces in Light Mode */
-html.light .bg-slate-950 {
+/* Core Background Surfaces */
+html.light .bg-slate-950,
+html.light .bg-slate-950\/40,
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/70,
+html.light .bg-slate-950\/75,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/85,
+html.light .bg-slate-950\/90,
+html.light .bg-slate-950\/95 {
   background-color: #f8fafc !important;
 }
 
-html.light .bg-slate-900 {
+html.light .bg-slate-900,
+html.light .bg-slate-900\/40,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-900\/60,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/95,
+html.light .bg-slate-900\/98 {
   background-color: #ffffff !important;
 }
 
-html.light .bg-slate-900\/50,
-html.light .bg-slate-900\/60,
-html.light .bg-slate-900\/80,
-html.light .bg-slate-900\/95 {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-}
-
 html.light .bg-slate-850,
-html.light .bg-slate-800 {
+html.light .bg-slate-850\/50,
+html.light .bg-slate-800,
+html.light .bg-slate-800\/30,
+html.light .bg-slate-800\/40,
+html.light .bg-slate-800\/50,
+html.light .bg-slate-800\/60,
+html.light .bg-slate-800\/80,
+html.light .bg-slate-800\/90,
+html.light .bg-slate-750,
+html.light .bg-slate-700,
+html.light .bg-slate-700\/40 {
   background-color: #f1f5f9 !important;
 }
 
-/* Soft light-mode equivalents for tinted alert/status surfaces */
+/* Hover Backgrounds in Light Mode */
+html.light .hover\:bg-slate-900:hover,
+html.light .hover\:bg-slate-850:hover,
+html.light .hover\:bg-slate-800:hover,
+html.light .hover\:bg-slate-800\/80:hover,
+html.light .hover\:bg-slate-700:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Dark Gradient Surfaces -> Clean Light Gradient Surfaces */
+html.light [class*="from-slate-9"],
+html.light [class*="via-slate-9"],
+html.light [class*="to-slate-9"],
+html.light [class*="via-slate-850"],
+html.light .from-indigo-950\/50,
+html.light .from-amber-950\/40,
+html.light .from-red-950\/40,
+html.light .from-red-950\/70,
+html.light .from-purple-900\/40,
+html.light .from-emerald-950\/30 {
+  --tw-gradient-from: #ffffff var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: #f8fafc var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: #f1f5f9 var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to) !important;
+}
+
+html.light .from-red-950\/70,
+html.light .from-red-950\/40 {
+  --tw-gradient-from: #fef2f2 var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: #ffffff var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: #fef2f2 var(--tw-gradient-to-position) !important;
+}
+
+html.light .from-indigo-950\/50 {
+  --tw-gradient-from: #eff6ff var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: #ffffff var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: #f8fafc var(--tw-gradient-to-position) !important;
+}
+
+html.light .from-amber-950\/40 {
+  --tw-gradient-from: #fffbeb var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: #ffffff var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: #f8fafc var(--tw-gradient-to-position) !important;
+}
+
+html.light .from-purple-900\/40 {
+  --tw-gradient-from: #faf5ff var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: #f5f3ff var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: #ffffff var(--tw-gradient-to-position) !important;
+}
+
+/* Soft Tinted Alert & Badge Backgrounds */
 html.light .bg-emerald-950,
+html.light .bg-emerald-950\/25,
 html.light .bg-emerald-950\/40,
 html.light .bg-emerald-950\/60,
-html.light .bg-emerald-950\/70 {
+html.light .bg-emerald-950\/70,
+html.light .bg-emerald-950\/80,
+html.light .bg-emerald-950\/90,
+html.light .bg-emerald-950\/95,
+html.light .bg-emerald-900\/50,
+html.light .bg-emerald-900\/60 {
   background-color: #ecfdf5 !important;
   color: #065f46 !important;
 }
 
 html.light .bg-blue-950,
+html.light .bg-blue-950\/30,
 html.light .bg-blue-950\/40,
 html.light .bg-blue-950\/60,
-html.light .bg-blue-950\/70 {
+html.light .bg-blue-950\/70,
+html.light .bg-blue-950\/80,
+html.light .bg-blue-950\/90,
+html.light .bg-blue-900\/60,
+html.light .bg-blue-900\/90 {
   background-color: #eff6ff !important;
   color: #1e40af !important;
 }
 
+html.light .bg-indigo-950,
+html.light .bg-indigo-950\/30,
+html.light .bg-indigo-950\/80,
+html.light .bg-indigo-600\/30 {
+  background-color: #eef2ff !important;
+  color: #3730a3 !important;
+}
+
+html.light .bg-purple-950,
+html.light .bg-purple-950\/80,
+html.light .bg-purple-950\/90 {
+  background-color: #faf5ff !important;
+  color: #6b21a8 !important;
+}
+
+html.light .bg-cyan-950,
+html.light .bg-cyan-950\/60 {
+  background-color: #ecfeff !important;
+  color: #155e75 !important;
+}
+
 html.light .bg-amber-950,
+html.light .bg-amber-950\/20,
+html.light .bg-amber-950\/25,
 html.light .bg-amber-950\/30,
 html.light .bg-amber-950\/40,
 html.light .bg-amber-950\/60,
-html.light .bg-amber-950\/70 {
+html.light .bg-amber-950\/70,
+html.light .bg-amber-950\/80,
+html.light .bg-orange-950\/60,
+html.light .bg-orange-950\/80 {
   background-color: #fffbeb !important;
   color: #92400e !important;
 }
 
 html.light .bg-red-950,
+html.light .bg-red-950\/25,
 html.light .bg-red-950\/30,
 html.light .bg-red-950\/40,
+html.light .bg-red-950\/50,
 html.light .bg-red-950\/60,
-html.light .bg-red-950\/80 {
+html.light .bg-red-950\/80,
+html.light .bg-red-950\/85,
+html.light .bg-red-950\/90,
+html.light .bg-red-950\/95,
+html.light .bg-red-900,
+html.light .bg-red-900\/60,
+html.light .bg-rose-950\/80 {
   background-color: #fef2f2 !important;
   color: #991b1b !important;
 }
 
+/* High-Contrast Light-Mode Semantic Text Colors (WCAG >= 4.5:1) */
+html.light .text-emerald-100,
+html.light .text-emerald-200,
 html.light .text-emerald-300,
 html.light .text-emerald-400 {
   color: #047857 !important;
 }
 
 html.light .text-blue-200,
-html.light .text-blue-300 {
+html.light .text-blue-300,
+html.light .text-blue-400,
+html.light .text-sky-400 {
   color: #1d4ed8 !important;
+}
+
+html.light .text-indigo-300,
+html.light .text-indigo-400 {
+  color: #4338ca !important;
+}
+
+html.light .text-purple-300,
+html.light .text-purple-400 {
+  color: #7e22ce !important;
+}
+
+html.light .text-cyan-300,
+html.light .text-cyan-400,
+html.light .text-teal-400 {
+  color: #0f766e !important;
 }
 
 html.light .text-amber-200,
 html.light .text-amber-200\/90,
-html.light .text-amber-300 {
+html.light .text-amber-300,
+html.light .text-amber-400,
+html.light .text-amber-400\/90,
+html.light .text-yellow-400 {
   color: #b45309 !important;
 }
 
-html.light .text-red-300 {
+html.light .text-orange-300,
+html.light .text-orange-400 {
+  color: #c2410c !important;
+}
+
+html.light .text-red-100,
+html.light .text-red-200,
+html.light .text-red-300,
+html.light .text-red-400,
+html.light .text-rose-300,
+html.light .text-rose-400 {
   color: #b91c1c !important;
 }
 
-/* Borders in Light Mode */
+/* Borders & Dividers in Light Mode */
+html.light .border-slate-850,
 html.light .border-slate-800,
-html.light .border-slate-800\/80,
+html.light .border-slate-800\/50,
 html.light .border-slate-800\/60,
-html.light .border-slate-800\/70 {
+html.light .border-slate-800\/70,
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/90,
+html.light .border-slate-900,
+html.light .border-slate-950,
+html.light .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+html.light .divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]),
+html.light .divide-slate-800\/80 > :not([hidden]) ~ :not([hidden]) {
   border-color: #e2e8f0 !important;
 }
 
 html.light .border-slate-700,
-html.light .border-slate-700\/80 {
+html.light .border-slate-700\/40,
+html.light .border-slate-700\/80,
+html.light .border-slate-600 {
   border-color: #cbd5e1 !important;
 }
 
-/* Typography on white/light surfaces in Light Mode */
+html.light .border-emerald-800,
+html.light .border-emerald-800\/60,
+html.light .border-emerald-900\/40,
+html.light .border-emerald-900\/50 {
+  border-color: #a7f3d0 !important;
+}
+
+html.light .border-blue-800,
+html.light .border-blue-800\/30,
+html.light .border-blue-800\/40,
+html.light .border-blue-800\/60,
+html.light .border-blue-900\/40,
+html.light .border-blue-900\/50,
+html.light .border-indigo-800,
+html.light .border-indigo-900\/40 {
+  border-color: #bfdbfe !important;
+}
+
+html.light .border-amber-800,
+html.light .border-amber-800\/40,
+html.light .border-amber-800\/60,
+html.light .border-amber-900\/30,
+html.light .border-amber-900\/40,
+html.light .border-amber-900\/50,
+html.light .border-amber-900\/60 {
+  border-color: #fde68a !important;
+}
+
+html.light .border-red-800,
+html.light .border-red-800\/40,
+html.light .border-red-800\/60,
+html.light .border-red-800\/80,
+html.light .border-red-900,
+html.light .border-red-900\/40,
+html.light .border-red-900\/50,
+html.light .border-red-900\/60,
+html.light .border-rose-800 {
+  border-color: #fecaca !important;
+}
+
+html.light .border-purple-800,
+html.light .border-cyan-800,
+html.light .border-cyan-800\/40,
+html.light .border-cyan-900\/40,
+html.light .border-teal-800 {
+  border-color: #cbd5e1 !important;
+}
+
+/* Primary Typography on Light Surfaces */
 html.light h1,
 html.light h2,
 html.light h3,
@@ -211,9 +508,8 @@ html.light h6 {
   color: #0f172a !important;
 }
 
-html.light p.text-white,
-html.light span.text-white:not([class*="bg-"]):not([class*="from-"]):not(.keep-white),
-html.light div.text-white:not([class*="bg-"]):not([class*="from-"]):not(.keep-white) {
+html.light .text-white:not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-blue-"]):not([class*="bg-indigo-"]):not([class*="bg-emerald-"]):not([class*="bg-purple-"]):not([class*="bg-cyan-"]):not([class*="bg-teal-"]):not([class*="bg-amber-600"]):not([class*="bg-gradient-"]):not(.keep-white),
+html.light .text-slate-100 {
   color: #0f172a !important;
 }
 
@@ -221,19 +517,21 @@ html.light .text-slate-200 {
   color: #1e293b !important;
 }
 
-html.light .text-slate-300 {
+html.light .text-slate-300,
+html.light .text-slate-300\/90 {
   color: #334155 !important;
 }
 
-html.light .text-slate-400 {
-  color: #64748b !important;
-}
-
+html.light .text-slate-400,
 html.light .text-slate-500 {
-  color: #64748b !important;
+  color: #475569 !important;
 }
 
-/* Form Inputs, Selects & Textareas in Light Mode */
+html.light .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+
+/* Form Controls & Placeholders in Light Mode */
 html.light input:not([type="checkbox"]):not([type="radio"]),
 html.light select,
 html.light textarea {
@@ -242,39 +540,106 @@ html.light textarea {
   border-color: #cbd5e1 !important;
 }
 
-html.light input::placeholder,
-html.light textarea::placeholder {
-  color: #94a3b8 !important;
+html.light .bg-transparent input,
+html.light input.bg-transparent,
+html.light select.bg-transparent {
+  background-color: transparent !important;
 }
 
-/* PRESERVE WHITE TEXT ON COLORED / GRADIENT BUTTONS & PILLS IN LIGHT MODE */
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* PRESERVE SOLID COLORED BUTTONS & DARK PHOTO OVERLAYS IN LIGHT MODE */
+html.light .bg-red-600,
 html.light .bg-red-600 *,
+html.light .bg-red-500,
 html.light .bg-red-500 *,
+html.light .bg-rose-600,
+html.light .bg-rose-600 *,
+html.light .bg-rose-700,
+html.light .bg-rose-700 *,
+html.light .bg-blue-600,
 html.light .bg-blue-600 *,
-html.light .bg-amber-500 *,
+html.light .bg-blue-500,
+html.light .bg-blue-500 *,
+html.light .bg-indigo-600,
+html.light .bg-indigo-600 *,
+html.light .bg-emerald-600,
 html.light .bg-emerald-600 *,
+html.light .bg-purple-600,
 html.light .bg-purple-600 *,
-html.light [class*="bg-gradient-"] *,
-html.light button[class*="from-"] *,
-html.light .keep-white {
+html.light .bg-cyan-600,
+html.light .bg-cyan-600 *,
+html.light .bg-teal-600,
+html.light .bg-teal-600 *,
+html.light .bg-amber-600,
+html.light .bg-amber-600 *,
+html.light button[class*="from-red-"],
+html.light button[class*="from-red-"] *,
+html.light button[class*="from-blue-"],
+html.light button[class*="from-blue-"] *,
+html.light button[class*="from-purple-"],
+html.light button[class*="from-purple-"] *,
+html.light button[class*="from-indigo-"],
+html.light button[class*="from-indigo-"] *,
+html.light .keep-white,
+html.light .keep-white * {
   color: #ffffff !important;
 }
 
-/* Navbar links hover state */
-html.light nav button.text-slate-300:hover,
-html.light nav button.text-slate-400:hover {
+/* Amber-500 / Amber-400 buttons must use dark text for high contrast in both modes */
+html.light .bg-amber-500,
+html.light .bg-amber-500 *,
+html.light .bg-amber-400,
+html.light .bg-amber-400 * {
   color: #0f172a !important;
-  background-color: #f1f5f9 !important;
 }
 
-/* Leaflet map popup in Light Mode */
+/* Photo overlay regions (Hero, DestinationCard photo, Profile banner) stay crisp light-on-dark */
+html.light .photo-overlay,
+html.light .photo-overlay h1,
+html.light .photo-overlay h2,
+html.light .photo-overlay h3,
+html.light .photo-overlay p,
+html.light .photo-overlay .text-white {
+  color: #ffffff !important;
+}
+html.light .photo-overlay .bg-slate-950\/75 {
+  background-color: rgba(2, 6, 23, 0.55) !important;
+}
+html.light .photo-overlay [class*="from-slate-9"],
+html.light .photo-overlay [class*="via-slate-9"] {
+  --tw-gradient-from: rgba(2, 6, 23, 0.85) var(--tw-gradient-from-position) !important;
+  --tw-gradient-via: rgba(2, 6, 23, 0.3) var(--tw-gradient-via-position) !important;
+  --tw-gradient-to: transparent var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to) !important;
+}
+html.light .photo-overlay .text-slate-200,
+html.light .photo-overlay .text-slate-300 {
+  color: #e2e8f0 !important;
+}
+html.light .photo-overlay .bg-slate-900\/95,
+html.light .photo-overlay .bg-slate-900\/90 {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+html.light .photo-overlay input {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+html.light .photo-overlay input::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Leaflet Map Popup & Controls in Light Mode */
 html.light .leaflet-popup-content-wrapper {
   background: #ffffff !important;
   color: #0f172a !important;
   border: 1px solid #cbd5e1 !important;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15) !important;
 }
-
 html.light .leaflet-popup-tip {
   background: #ffffff !important;
 }

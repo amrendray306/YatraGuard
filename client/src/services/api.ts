@@ -419,6 +419,37 @@ export const submitTravelBuddy = async (payload: {
   notes?: string;
 }) => (await api.post('/community/buddies', payload)).data;
 
+// --- TRAVEL BUDDY (Full partner matching system) ---
+export const fetchBuddyPlans = async (params?: { destination?: string; style?: string; budget?: string }) =>
+  (await api.get('/buddy/plans', { params })).data;
+export const createBuddyPlan = async (payload: {
+  destinationCity: string;
+  fromLocation?: string;
+  startDate: string;
+  endDate: string;
+  travelStyle: string;
+  budgetTier: string;
+  companionsNeeded: number;
+  preferredLanguage?: string;
+  notes?: string;
+}) => (await api.post('/buddy/plans', payload)).data;
+export const cancelBuddyPlan = async (id: string) =>
+  (await api.put(`/buddy/plans/${id}/cancel`)).data;
+export const fetchMyBuddyPlans = async () =>
+  (await api.get('/buddy/my-plans')).data;
+export const sendBuddyConnect = async (planId: string, message?: string) =>
+  (await api.post('/buddy/connect', { planId, message })).data;
+export const acceptBuddyConn = async (id: string) =>
+  (await api.put(`/buddy/connections/${id}/accept`)).data;
+export const rejectBuddyConn = async (id: string) =>
+  (await api.put(`/buddy/connections/${id}/reject`)).data;
+export const fetchMyBuddyConnections = async () =>
+  (await api.get('/buddy/connections')).data;
+export const fetchBuddyMessages = async (connId: string) =>
+  (await api.get(`/buddy/connections/${connId}/messages`)).data;
+export const sendBuddyMessage = async (connId: string, content: string) =>
+  (await api.post(`/buddy/connections/${connId}/messages`, { content })).data;
+
 // --- ADMIN DASHBOARD APIS ---
 export const fetchAdminOverview = async () => (await api.get('/admin/overview')).data;
 export const fetchAdminUsers = async (params?: { search?: string; role?: string; status?: string }) =>

@@ -156,10 +156,10 @@ export const CostsPage: React.FC = () => {
             <span>Fair Price Transparency</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            City-Wise Local Price Intelligence
+            Local Price Benchmarks
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-            Real prices for food, street snacks, hotels, homestays, adventure sports, monument tickets, and local shopping. Prevent tourist inflation across Indian travel hubs.
+          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
+            Fair price guides for food, stays, monument tickets, and local services across cities.
           </p>
         </div>
 

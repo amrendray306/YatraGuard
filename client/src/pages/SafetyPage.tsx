@@ -16,11 +16,10 @@ export const SafetyPage: React.FC = () => {
           Transparent Safety Scoring Engine
         </div>
         <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
-          Safety Intelligence & Scoring Engine
+          Safety Index
         </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-          YatraGuard calculates a dynamic, explainable safety index for every sector based on
-          police outpost density, verified hospital trauma capabilities, recent incident clusters, and time factors.
+        <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
+          Dynamic 0–100 area safety scores based on emergency proximity, reported incidents, and time of day.
         </p>
       </div>
 
@@ -91,33 +90,33 @@ export const SafetyPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Safety Guidelines for Traveling in India */}
+      {/* Expandable Safety Guidelines */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
-          <h4 className="font-bold text-sm text-white flex items-center gap-2">
+        <details className="glass-panel p-5 rounded-3xl border border-slate-800" open>
+          <summary className="font-bold text-sm text-white flex items-center gap-2 cursor-pointer list-none">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            Core Protective Practices
-          </h4>
-          <ul className="text-xs text-slate-300 space-y-2 leading-relaxed">
-            <li>• <strong>Prepaid Traffic Counters:</strong> Always use official police prepaid booths at train terminals (e.g. Agra Cantt, New Delhi Station).</li>
-            <li>• <strong>Regulated Transit:</strong> Use GPS-tracked ride-hailing (Uber/Ola) or Delhi/Namma Metro corridors over private soliciting cabs.</li>
-            <li>• <strong>Keep Emergency Vault Active:</strong> Save references to your travel insurance policy and embassy contact in this app.</li>
-            <li>• <strong>Verify Monument Guides:</strong> Insist on seeing official green photo identification badges issued by the Ministry of Tourism.</li>
+            <span>Core Protective Practices</span>
+          </summary>
+          <ul className="text-xs text-slate-300 space-y-2 leading-relaxed mt-3 pt-3 border-t border-slate-800">
+            <li>• <strong>Prepaid Counters:</strong> Use official police prepaid booths at train terminals and airports.</li>
+            <li>• <strong>Tracked Transit:</strong> Prefer app-based rides or metro rail over soliciting cabs.</li>
+            <li>• <strong>Emergency Vault:</strong> Keep policy numbers and embassy contacts saved offline.</li>
+            <li>• <strong>Verified Guides:</strong> Check official Tourism Ministry photo ID badges.</li>
           </ul>
-        </div>
+        </details>
 
-        <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
-          <h4 className="font-bold text-sm text-white flex items-center gap-2">
+        <details className="glass-panel p-5 rounded-3xl border border-slate-800" open>
+          <summary className="font-bold text-sm text-white flex items-center gap-2 cursor-pointer list-none">
             <AlertTriangle className="w-4 h-4 text-amber-400" />
-            Red Flags & Warning Signs
-          </h4>
-          <ul className="text-xs text-slate-300 space-y-2 leading-relaxed">
-            <li>• <strong>"Your Hotel Burned Down" Claim:</strong> Never believe touts claiming your pre-booked hotel is closed, cordoned off, or burnt down.</li>
-            <li>• <strong>"Govt Tourist Office Moved":</strong> Any stranger offering to redirect you to an alternative "government" travel agency is running a commission racket.</li>
-            <li>• <strong>Ghat Wood Donation Extortion:</strong> In Varanasi, never hand cash to unofficial "cremation priests" claiming to buy banyan wood for the poor.</li>
-            <li>• <strong>Unlit Back Alleys:</strong> After 10:00 PM, stick strictly to lit commercial boulevards.</li>
+            <span>Common Red Flags</span>
+          </summary>
+          <ul className="text-xs text-slate-300 space-y-2 leading-relaxed mt-3 pt-3 border-t border-slate-800">
+            <li>• <strong>"Hotel Closed" Claim:</strong> Never follow touts claiming your pre-booked hotel is closed.</li>
+            <li>• <strong>"Moved Tourist Office":</strong> Avoid strangers redirecting you to private agencies.</li>
+            <li>• <strong>Unsolicited Donations:</strong> Decline unofficial donation requests at ghats or shrines.</li>
+            <li>• <strong>Late Night Routes:</strong> Stick to well-lit main roads after 10:00 PM.</li>
           </ul>
-        </div>
+        </details>
       </div>
     </div>
   );

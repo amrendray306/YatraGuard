@@ -225,14 +225,18 @@ export const SafetyScoreCard: React.FC<SafetyScoreCardProps> = ({
         )}
       </div>
 
-      {/* Transparent Factor Checklist */}
-      <div className="mt-6 pt-5 border-t border-slate-800">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-1.5">
-          <Info className="w-3.5 h-3.5 text-blue-400" />
-          Factor Breakdown & Explainability ({data.factors.length} Telemetry Signals)
-        </h4>
+      {/* Expandable Factor Breakdown & Disclaimer */}
+      <details className="mt-5 pt-4 border-t border-slate-800 group">
+        <summary className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center justify-between cursor-pointer list-none">
+          <span className="flex items-center gap-1.5">
+            <Info className="w-3.5 h-3.5 text-sky-400" />
+            <span>Factor Breakdown ({data.factors.length} Signals)</span>
+          </span>
+          <span className="text-[11px] font-semibold text-sky-400 group-open:hidden">Show Details</span>
+          <span className="text-[11px] font-semibold text-sky-400 hidden group-open:inline">Hide Details</span>
+        </summary>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {data.factors.map((factor, idx) => (
             <div
               key={idx}
@@ -269,25 +273,25 @@ export const SafetyScoreCard: React.FC<SafetyScoreCardProps> = ({
             </div>
           ))}
         </div>
-      </div>
+
+        {/* Mandatory Transparent Disclaimer */}
+        <div className="mt-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 leading-relaxed">
+          <strong>Note:</strong> {data.disclaimer}
+        </div>
+      </details>
 
       {/* Safety Score Tiers Reference Bar */}
-      <div className="mt-6 pt-4 border-t border-slate-800/80">
+      <div className="mt-5 pt-4 border-t border-slate-800/80">
         <div className="text-[11px] font-bold text-slate-400 mb-1.5 flex justify-between">
           <span className="text-red-400">High Risk (&lt;55)</span>
-          <span className="text-amber-400">Moderate Risk (55–79)</span>
+          <span className="text-amber-400">Moderate (55–79)</span>
           <span className="text-emerald-400">Low Risk (80–100)</span>
         </div>
-        <div className="h-2.5 w-full bg-slate-950 rounded-full overflow-hidden flex border border-slate-800">
+        <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden flex border border-slate-800">
           <div className="w-[55%] bg-gradient-to-r from-red-600 to-rose-600" title="0-54 High Risk" />
           <div className="w-[25%] bg-gradient-to-r from-amber-500 to-yellow-500" title="55-79 Moderate Risk" />
           <div className="w-[20%] bg-gradient-to-r from-emerald-500 to-emerald-400" title="80-100 Low Risk" />
         </div>
-      </div>
-
-      {/* Mandatory Transparent Disclaimer */}
-      <div className="mt-4 p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400 leading-relaxed">
-        <strong>Important Notice:</strong> {data.disclaimer}
       </div>
     </div>
   );

@@ -46,9 +46,6 @@ import {
   ChevronRight,
   Trash2,
   Route as RouteIcon,
-  Sun,
-  Moon,
-  Monitor,
   CheckCircle2,
   ExternalLink,
   Search,
@@ -56,7 +53,6 @@ import {
 import { useCity } from '../context/CityContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { useTheme } from '../context/ThemeContext';
 import {
   fetchNearbyPlaces,
   fetchEmergencyShortcuts,
@@ -206,7 +202,6 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
 
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { theme, setTheme } = useTheme();
 
   // Top location search input
   const [globalSearchText, setGlobalSearchText] = useState('');
@@ -975,39 +970,19 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
           </div>
         )}
 
-        {/* API Status + Theme Mode Selector Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[11px] text-slate-400 pt-2 border-t border-slate-800">
+        {/* Concise Data Source Status Row */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400 pt-2 border-t border-slate-800">
           <div className="flex items-center gap-1.5 min-w-0">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-            <span className={!isGoogleConfigured ? 'text-amber-300 font-medium' : 'text-emerald-300 font-medium'}>
-              {apiNotice}
+            <Sparkles className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
+            <span className={isGoogleConfigured ? 'text-emerald-300 font-medium' : 'text-slate-300 font-medium'}>
+              {isGoogleConfigured
+                ? 'Live Google Places & road routing active.'
+                : 'Showing verified YatraGuard places & OpenStreetMap road routing.'}
             </span>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[10px] font-bold uppercase text-slate-500">Theme:</span>
-            <div className="inline-flex bg-slate-950 p-0.5 rounded-xl border border-slate-800">
-              {[
-                { id: 'light' as const, label: 'Light', icon: Sun },
-                { id: 'dark' as const, label: 'Dark', icon: Moon },
-                { id: 'system' as const, label: 'System', icon: Monitor },
-              ].map((t) => {
-                const Icon = t.icon;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTheme(t.id)}
-                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 ${
-                      theme === t.id ? 'bg-amber-500 text-slate-950 font-black' : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-3 h-3" />
-                    <span>{t.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <span className="text-[10px] text-slate-400">
+            Tap any pin or card for directions &amp; fares
+          </span>
         </div>
       </div>
 
@@ -1302,20 +1277,22 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
         </div>
       </div>
 
-      {/* 5. MEDICAL & PHARMACY DISCLAIMER */}
+      {/* 5. MEDICAL & PHARMACY DISCLAIMER (Collapsible) */}
       {showMedicalDisclaimer && (
-        <div className="p-3.5 rounded-2xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200 space-y-1">
-          <div className="font-extrabold flex items-center gap-1.5 text-amber-300">
+        <details className="p-3 rounded-2xl bg-amber-950/30 border border-amber-800/40 text-xs text-amber-200">
+          <summary className="font-extrabold flex items-center gap-1.5 text-amber-300 cursor-pointer list-none">
             <Info className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <span>Medical Assistance Verification & Inventory Notice</span>
+            <span>Medical Facility Notice (Call facility or 112 to confirm live availability)</span>
+          </summary>
+          <div className="pt-2 mt-2 border-t border-amber-800/30 space-y-1 text-[11px] leading-relaxed text-slate-300">
+            <p>
+              • <strong>Medicine Stock:</strong> Always call the pharmacy before visiting to confirm stock.
+            </p>
+            <p>
+              • <strong>Beds &amp; Ambulances:</strong> Dial <strong>112</strong> or call the hospital directly for emergency capacity.
+            </p>
           </div>
-          <p className="text-[11px] leading-relaxed text-slate-300">
-            • <strong>Medicine Stock:</strong> Pharmacy listings do not confirm real-time medicine inventory. Always call the chemist first before traveling.
-          </p>
-          <p className="text-[11px] leading-relaxed text-slate-300">
-            • <strong>Beds, Doctors & Ambulances:</strong> Ambulance dispatch, hospital bed vacancy, and emergency doctors depend on live facility capacity. Dial <strong>112</strong> or call the hospital directly.
-          </p>
-        </div>
+        </details>
       )}
 
       {/* 6. COLLAPSIBLE SOURCE & DESTINATION ROUTE PLANNER (Keeps Map Visible Below!) */}
@@ -1966,11 +1943,6 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
                 <Building2 className="w-8 h-8 mx-auto text-slate-600" />
                 <div>
                   No places found within {selectedRadiusKm} km matching the active filters.
-                  {!isGoogleConfigured && (
-                    <span className="block mt-1 text-amber-300">
-                      Configure GOOGLE_MAPS_API_KEY in server/.env for worldwide live Google Places discovery outside YatraGuard’s local registry.
-                    </span>
-                  )}
                 </div>
                 <button
                   type="button"

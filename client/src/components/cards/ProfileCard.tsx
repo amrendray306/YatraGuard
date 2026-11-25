@@ -59,10 +59,10 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl relative">
       {/* Cover Banner */}
-      <div className="h-32 sm:h-44 bg-gradient-to-r from-amber-500 via-orange-600 to-slate-950 relative">
+      <div className="photo-overlay h-32 sm:h-44 bg-gradient-to-r from-sky-600 via-teal-600 to-slate-900 relative">
         <div className="absolute top-4 right-4 flex items-center gap-2">
-          <div className="px-3 py-1 bg-black/40 backdrop-blur-md rounded-full text-xs font-bold text-amber-300 border border-amber-400/30 flex items-center gap-1.5">
-            <CheckCircle className="w-3.5 h-3.5" />
+          <div className="px-3 py-1 bg-black/50 backdrop-blur-md rounded-full text-xs font-bold text-white border border-white/20 flex items-center gap-1.5 keep-white">
+            <CheckCircle className="w-3.5 h-3.5 text-amber-300" />
             <span>Profile {completionPct}% Complete</span>
           </div>
         </div>

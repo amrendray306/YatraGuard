@@ -49,7 +49,6 @@ import { TripsPage } from './pages/TripsPage';
 import { SharedTripPage } from './pages/SharedTripPage';
 import { VaultPage } from './pages/VaultPage';
 import { CostsPage } from './pages/CostsPage';
-import { FareIntelligencePage } from './pages/FareIntelligencePage';
 import { TranslatorPage } from './pages/TranslatorPage';
 import { AdminPage } from './pages/AdminPage';
 import { CommunityPage } from './pages/CommunityPage';
@@ -138,7 +137,7 @@ export const App: React.FC = () => {
       setCurrentTab('alerts');
     } else if (path === '/safety/map' || path === '/map') {
       setCurrentTab('map');
-    } else if (path === '/explore/routes' || path === '/routes') {
+    } else if (path === '/explore/routes' || path === '/routes' || path === '/tariffs' || path === '/travel-tariff') {
       setCurrentTab('routes');
     } else if (path === '/explore/prices' || path === '/prices') {
       setCurrentTab('fare');
@@ -212,7 +211,7 @@ export const App: React.FC = () => {
         path="*"
         element={
           <div
-            className={`bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 ${
+            className={`min-h-screen flex flex-col selection:bg-sky-600 selection:text-white ${
               currentTab === 'map'
                 ? 'h-[100dvh] overflow-hidden'
                 : 'min-h-screen pb-16 md:pb-0'
@@ -343,16 +342,19 @@ export const App: React.FC = () => {
 
                   <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
                     {[
-                      { id: 'landing', label: 'Home Page', icon: Compass },
-                      { id: 'community', label: 'Community & Buddies', icon: Users },
-                      { id: 'profile', label: 'My Profile & Vault', icon: UserIcon },
-                      { id: 'routes', label: 'Safe Routes', icon: Navigation },
-                      { id: 'scams', label: 'Scam Alerts', icon: AlertTriangle },
-                      { id: 'services', label: 'Nearby Places & Medical', icon: Building2 },
-                      { id: 'trips', label: 'Trip Sharing', icon: Compass },
+                      { id: 'landing', label: 'Home', icon: Compass },
+                      { id: 'routes', label: 'Travel Tariff', icon: IndianRupee },
+                      { id: 'fare', label: 'Local Prices', icon: IndianRupee },
+                      { id: 'services', label: 'Nearby Places', icon: Building2 },
+                      { id: 'alerts', label: 'Scam Alerts', icon: AlertTriangle },
+                      { id: 'safety', label: 'Safety Index', icon: ShieldCheck },
+                      { id: 'guardian', label: 'AI Assistant', icon: Bot },
+                      { id: 'community', label: 'Community', icon: Users },
+                      { id: 'buddy', label: 'Travel Buddy', icon: Users },
+                      { id: 'trips', label: 'My Trips', icon: Compass },
                       { id: 'vault', label: 'Emergency Vault', icon: Lock },
-                      { id: 'fare', label: 'Fare Intelligence', icon: IndianRupee },
-                      { id: 'translator', label: 'Hindi Translator', icon: Languages },
+                      { id: 'translator', label: 'Translator', icon: Languages },
+                      { id: 'profile', label: 'My Profile', icon: UserIcon },
                       { id: 'admin', label: 'Admin Portal', icon: ShieldAlert },
                     ].map((item) => {
                       const Icon = item.icon;

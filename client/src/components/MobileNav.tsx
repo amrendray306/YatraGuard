@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Navigation, ShieldCheck, Bot, IndianRupee, MoreHorizontal } from 'lucide-react';
+import { Compass, Navigation, Building2, IndianRupee, MoreHorizontal } from 'lucide-react';
 
 interface MobileNavProps {
   currentTab: string;
@@ -13,11 +13,10 @@ export const MobileNav: React.FC<MobileNavProps> = ({
   openMoreSheet,
 }) => {
   const tabs = [
-    { id: 'dashboard', label: 'Home', icon: Compass },
-    { id: 'fare', label: 'Fares', icon: IndianRupee },
+    { id: 'dashboard', label: 'Explore', icon: Compass },
+    { id: 'routes', label: 'Tariff', icon: IndianRupee },
     { id: 'map', label: 'Map', icon: Navigation },
-    { id: 'guardian', label: 'Guardian AI', icon: Bot },
-    { id: 'safety', label: 'Safety', icon: ShieldCheck },
+    { id: 'services', label: 'Nearby', icon: Building2 },
   ];
 
   return (
@@ -31,15 +30,16 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         return (
           <button
             key={tab.id}
+            type="button"
             onClick={() => setCurrentTab(tab.id)}
-            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl touch-min transition-all ${
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl touch-min transition-colors ${
               isActive
                 ? 'text-amber-400 font-extrabold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <div className={`p-1 rounded-lg ${isActive ? 'bg-amber-500/20' : ''}`}>
-              <Icon className={`w-5 h-5 ${isActive ? 'scale-110 text-amber-400' : ''} transition-transform`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-amber-400' : ''}`} />
             </div>
             <span className="text-[10px] mt-0.5 tracking-tight font-medium">{tab.label}</span>
           </button>
@@ -47,6 +47,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
       })}
 
       <button
+        type="button"
         onClick={openMoreSheet}
         className="flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-400 hover:text-slate-200 touch-min transition-colors"
       >

@@ -84,6 +84,18 @@ import {
 } from '../controllers/emergencyController.js';
 import { chatGuardian } from '../controllers/aiController.js';
 import {
+  getBuddyPlans,
+  createBuddyPlan,
+  cancelBuddyPlan,
+  getMyBuddyPlans,
+  sendBuddyConnection,
+  acceptBuddyConnection,
+  rejectBuddyConnection,
+  getMyConnections,
+  getConnectionMessages,
+  sendConnectionMessage,
+} from '../controllers/buddyController.js';
+import {
   getUserTrips,
   createTrip,
   getSharedTrip,
@@ -193,6 +205,18 @@ router.post('/community/posts/:id/like', likeCommunityPost);
 router.post('/community/posts/:id/comment', optionalAuth, addPostComment);
 router.get('/community/buddies', getTravelBuddies);
 router.post('/community/buddies', optionalAuth, createTravelBuddy);
+
+// --- TRAVEL BUDDY (Full partner matching system) ---
+router.get('/buddy/plans', optionalAuth, getBuddyPlans);
+router.post('/buddy/plans', authenticateToken, createBuddyPlan);
+router.put('/buddy/plans/:id/cancel', authenticateToken, cancelBuddyPlan);
+router.get('/buddy/my-plans', authenticateToken, getMyBuddyPlans);
+router.post('/buddy/connect', authenticateToken, sendBuddyConnection);
+router.put('/buddy/connections/:id/accept', authenticateToken, acceptBuddyConnection);
+router.put('/buddy/connections/:id/reject', authenticateToken, rejectBuddyConnection);
+router.get('/buddy/connections', authenticateToken, getMyConnections);
+router.get('/buddy/connections/:id/messages', authenticateToken, getConnectionMessages);
+router.post('/buddy/connections/:id/messages', authenticateToken, sendConnectionMessage);
 
 // --- GEOGRAPHY & CITIES ---
 router.get('/cities', getCities);
