@@ -3,21 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --yg-bg: #020617;
+  --yg-bg: #090e1a;
   --yg-surface: #0f172a;
-  --yg-surface-elevated: #1e293b;
-  --yg-surface-muted: #0b1220;
+  --yg-surface-elevated: #172033;
+  --yg-surface-muted: #0c1322;
   --yg-border: #1e293b;
   --yg-border-strong: #334155;
   --yg-text: #f8fafc;
   --yg-text-secondary: #cbd5e1;
   --yg-text-muted: #94a3b8;
-  --yg-accent: #0284c7;
+  --yg-primary: #0284c7;
+  --yg-primary-hover: #0369a1;
+  --yg-accent: #0d9488;
+  --yg-danger: #dc2626;
+  --yg-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --yg-shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.45);
   --yg-scrollbar-track: #0f172a;
   --yg-scrollbar-thumb: #475569;
 
   color-scheme: light dark;
-  accent-color: var(--yg-accent);
+  accent-color: var(--yg-primary);
   scrollbar-color: var(--yg-scrollbar-thumb) var(--yg-scrollbar-track);
 }
 
@@ -38,7 +43,12 @@ html.light {
   --yg-text: #0f172a;
   --yg-text-secondary: #334155;
   --yg-text-muted: #64748b;
-  --yg-accent: #0284c7;
+  --yg-primary: #1d4ed8;
+  --yg-primary-hover: #1e40af;
+  --yg-accent: #0d9488;
+  --yg-danger: #dc2626;
+  --yg-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --yg-shadow-md: 0 6px 18px -4px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04);
   --yg-scrollbar-track: #f1f5f9;
   --yg-scrollbar-thumb: #94a3b8;
 }
@@ -66,12 +76,31 @@ html.light {
 
   body {
     @apply selection:bg-sky-600 selection:text-white;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
     padding-right: env(safe-area-inset-right, 0px);
     overflow-x: hidden;
   }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--yg-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Visually hidden utility (accessible to screen readers, visible on focus for skip links) */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
 }
 
 /* Prevent scroll chaining beneath native modal dialogs */
@@ -81,6 +110,59 @@ dialog:modal {
 dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(4px);
+}
+html.light dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+/* Unified SaaS Card System */
+.yg-card {
+  background-color: var(--yg-surface);
+  border: 1px solid var(--yg-border);
+  border-radius: 1rem;
+  box-shadow: var(--yg-shadow-sm);
+  transition: border-color 180ms ease-out, box-shadow 180ms ease-out, background-color 180ms ease-out;
+}
+.yg-card-interactive:hover {
+  border-color: var(--yg-border-strong);
+  box-shadow: var(--yg-shadow-md);
+}
+
+/* Micro-interactions (compositor-friendly, respects reduced motion) */
+@media (prefers-reduced-motion: no-preference) {
+  .yg-page-enter {
+    animation: ygFadeSlideUp 180ms ease-out both;
+  }
+  .yg-press:active {
+    transform: scale(0.98);
+  }
+  dialog[open] {
+    animation: ygModalPop 180ms ease-out both;
+  }
+}
+
+@keyframes ygFadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ygModalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* Safe area utilities */
@@ -384,6 +466,8 @@ html.light .text-emerald-400 {
 html.light .text-blue-200,
 html.light .text-blue-300,
 html.light .text-blue-400,
+html.light .text-sky-200,
+html.light .text-sky-300,
 html.light .text-sky-400 {
   color: #1d4ed8 !important;
 }
@@ -400,6 +484,7 @@ html.light .text-purple-400 {
 
 html.light .text-cyan-300,
 html.light .text-cyan-400,
+html.light .text-teal-300,
 html.light .text-teal-400 {
   color: #0f766e !important;
 }
@@ -508,7 +593,7 @@ html.light h6 {
   color: #0f172a !important;
 }
 
-html.light .text-white:not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-blue-"]):not([class*="bg-indigo-"]):not([class*="bg-emerald-"]):not([class*="bg-purple-"]):not([class*="bg-cyan-"]):not([class*="bg-teal-"]):not([class*="bg-amber-600"]):not([class*="bg-gradient-"]):not(.keep-white),
+html.light .text-white:not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-indigo-"]):not([class*="bg-emerald-"]):not([class*="bg-purple-"]):not([class*="bg-cyan-"]):not([class*="bg-teal-"]):not([class*="bg-amber-600"]):not([class*="bg-gradient-"]):not(.keep-white),
 html.light .text-slate-100 {
   color: #0f172a !important;
 }
@@ -564,6 +649,10 @@ html.light .bg-blue-600,
 html.light .bg-blue-600 *,
 html.light .bg-blue-500,
 html.light .bg-blue-500 *,
+html.light .bg-sky-600,
+html.light .bg-sky-600 *,
+html.light .bg-sky-700,
+html.light .bg-sky-700 *,
 html.light .bg-indigo-600,
 html.light .bg-indigo-600 *,
 html.light .bg-emerald-600,

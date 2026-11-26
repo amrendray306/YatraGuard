@@ -5,9 +5,6 @@ import {
   Share2,
   MapPin,
   Clock,
-  Phone,
-  CheckCircle2,
-  Copy,
   Check,
   ExternalLink,
   Sparkles,
@@ -15,634 +12,891 @@ import {
   AlertTriangle,
   IndianRupee,
   Calendar,
-  ArrowRight,
-  Shield,
+  Trash2,
+  Edit2,
+  HeartPulse,
+  CloudSun,
+  Users,
+  Save,
+  Loader2,
+  X,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { fetchUserTrips, createTrip } from '../services/api';
+import {
+  fetchUserTrips,
+  createTrip,
+  updateTrip,
+  deleteTrip,
+  generateSmartItinerary,
+} from '../services/api';
 import { Trip } from '../types';
+import { PageHeader, EmptyState, LoadingSkeleton, ConfirmationModal } from '../components/ui';
 
-interface ItineraryStop {
+interface PlannerStop {
+  id: string;
   time: string;
   activity: string;
-  safetyScore: number;
-  safetyVerdict: 'HIGH_SAFETY' | 'MODERATE' | 'CAUTION';
+  location: string;
   transportMode: string;
-  estimatedTransitFare: string;
+  estimatedCost: number;
   safetyTip: string;
 }
 
-interface ItineraryDay {
+interface PlannerDay {
   dayNumber: number;
+  date: string;
   title: string;
-  theme: string;
-  stops: ItineraryStop[];
+  stops: PlannerStop[];
 }
 
-const PRESET_ITINERARIES: Record<string, { title: string; duration: string; days: ItineraryDay[] }> = {
-  Manali: {
-    title: 'Manali 3-Day Alpine & Mountain Safe Expedition',
-    duration: '3 Days / 2 Nights',
-    days: [
-      {
-        dayNumber: 1,
-        title: 'Day 1: Cultural Old Manali & Forest Trails',
-        theme: 'Heritage, Monasteries & Pine Forests',
-        stops: [
-          {
-            time: '09:30 AM',
-            activity: 'Hadimba Devi Ancient Temple & Cedar Woods',
-            safetyScore: 88,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Auto Rickshaw from Mall Road',
-            estimatedTransitFare: '₹100 – ₹150 (Metered/Fixed)',
-            safetyTip: 'Avoid unsolicited photographers charging hidden framing fees.',
-          },
-          {
-            time: '02:00 PM',
-            activity: 'Old Manali Cafes & Manu Temple Walk',
-            safetyScore: 84,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Walking through Old Village road',
-            estimatedTransitFare: 'Free / ₹0',
-            safetyTip: 'Keep on well-lit stone paths; avoid steep hillside edges after dusk.',
-          },
-          {
-            time: '06:00 PM',
-            activity: 'Mall Road Stroll & Tibetan Monastery',
-            safetyScore: 90,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Pedestrian Only Zone',
-            estimatedTransitFare: 'Free',
-            safetyTip: 'Beware of touts peddling fake saffron and substandard pashminas.',
-          },
-        ],
-      },
-      {
-        dayNumber: 2,
-        title: 'Day 2: Solang Valley & Adventure Sports',
-        theme: 'Snow Activities, Cable Car & Waterfalls',
-        stops: [
-          {
-            time: '08:30 AM',
-            activity: 'Scenic Mountain Drive to Solang Valley (13 km)',
-            safetyScore: 82,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Manali Taxi Operators Union Cab',
-            estimatedTransitFare: '₹1,400 – ₹1,800 Round-trip',
-            safetyTip: 'Do not rent snow dress at private road stops for ₹1,500; official stalls charge ₹250–₹350.',
-          },
-          {
-            time: '01:30 PM',
-            activity: 'Anjani Mahadev Trek & Paragliding Area',
-            safetyScore: 78,
-            safetyVerdict: 'MODERATE',
-            transportMode: 'Walk / Pony Ride',
-            estimatedTransitFare: '₹400 – ₹600 (Pony negotiation)',
-            safetyTip: 'Only book paragliding with pilots having valid Himachal Tourism licences and insurance.',
-          },
-        ],
-      },
-      {
-        dayNumber: 3,
-        title: 'Day 3: Atal Tunnel & Sissu Valley',
-        theme: 'Engineering Marvel & Lahaul Trans-Himalayas',
-        stops: [
-          {
-            time: '09:00 AM',
-            activity: 'Atal Tunnel North Portal & Sissu Waterfall',
-            safetyScore: 76,
-            safetyVerdict: 'MODERATE',
-            transportMode: 'Union 4x4 / Shared Cab',
-            estimatedTransitFare: '₹2,400 – ₹3,000 Private / ₹400 Shared',
-            safetyTip: 'Depart by 15:30 PM to avoid sudden sub-zero black ice on mountain hairpin turns.',
-          },
-        ],
-      },
-    ],
-  },
-  Haridwar: {
-    title: 'Haridwar & Rishikesh 2-Day Spiritual & River Rafting Trail',
-    duration: '2 Days / 1 Night',
-    days: [
-      {
-        dayNumber: 1,
-        title: 'Day 1: Sacred Ghats & Hilltop Temples',
-        theme: 'Spiritual Immersion & Ganga Aarti',
-        stops: [
-          {
-            time: '10:00 AM',
-            activity: 'Mansa Devi Temple Ropeway & Viewpoint',
-            safetyScore: 84,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'E-Rickshaw to Ropeway Base',
-            estimatedTransitFare: '₹30 – ₹50',
-            safetyTip: 'Watch out for aggressive macaques; keep snacks and eyewear inside your bag.',
-          },
-          {
-            time: '05:30 PM',
-            activity: 'World-Famous Har Ki Pauri Evening Aarti',
-            safetyScore: 82,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Walk via Moti Bazaar',
-            estimatedTransitFare: 'Free',
-            safetyTip: 'Extremely dense crowds; secure wallets in front zip pockets. Decline touts claiming private VIP seats.',
-          },
-        ],
-      },
-      {
-        dayNumber: 2,
-        title: 'Day 2: Rishikesh Adventure & Suspension Bridges',
-        theme: 'White Water Rafting, Yoga & Cafes',
-        stops: [
-          {
-            time: '08:00 AM',
-            activity: 'Transit from Haridwar to Rishikesh (28 km)',
-            safetyScore: 86,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Private Cab or Shared Vikram',
-            estimatedTransitFare: '₹600 – ₹800 (Cab) / ₹100 (Shared)',
-            safetyTip: 'Ask the driver to drop at Tapovan or Laxman Jhula parking, avoiding high luggage porter fees.',
-          },
-          {
-            time: '11:00 AM',
-            activity: 'Shivpuri to Nim Beach White Water Rafting (16 km)',
-            safetyScore: 80,
-            safetyVerdict: 'MODERATE',
-            transportMode: 'Outfitter Shuttle',
-            estimatedTransitFare: 'Included in Rafting Package (₹800–₹1,200)',
-            safetyTip: 'Wear the certified life jacket securely; never raft during unseasonal river surges.',
-          },
-        ],
-      },
-    ],
-  },
-  Agra: {
-    title: 'Agra 1-Day Heritage & Wonder of the World Tour',
-    duration: '1 Full Day',
-    days: [
-      {
-        dayNumber: 1,
-        title: 'Day 1: Imperial Mughal Architecture',
-        theme: 'Taj Mahal Sunrise to Agra Fort',
-        stops: [
-          {
-            time: '06:00 AM',
-            activity: 'Sunrise Visit to Taj Mahal (West Gate)',
-            safetyScore: 88,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Prepaid Auto from Hotel / Cantt',
-            estimatedTransitFare: '₹120 – ₹160',
-            safetyTip: 'Buy tickets exclusively at official ASI portal or counter. Decline touts claiming lines are 4 hours long.',
-          },
-          {
-            time: '11:30 AM',
-            activity: 'Agra Fort Palace & Diwan-i-Khas',
-            safetyScore: 84,
-            safetyVerdict: 'HIGH_SAFETY',
-            transportMode: 'Auto Rickshaw (4 km)',
-            estimatedTransitFare: '₹80 – ₹100',
-            safetyTip: 'Hire only government-badged guides with official Ministry of Tourism photo IDs.',
-          },
-          {
-            time: '04:30 PM',
-            activity: 'Mehtab Bagh Sunset Across Yamuna River',
-            safetyScore: 78,
-            safetyVerdict: 'MODERATE',
-            transportMode: 'Cab / Return Auto',
-            estimatedTransitFare: '₹150 – ₹200',
-            safetyTip: 'Leave the riverbank before full darkness sets in. Stick to the paved garden exit.',
-          },
-        ],
-      },
-    ],
-  },
-};
+const INTEREST_OPTIONS = [
+  'Heritage',
+  'Nature & Hills',
+  'Adventure',
+  'Spiritual',
+  'Local Food',
+  'Budget Travel',
+];
 
 export const TripsPage: React.FC = () => {
   const { currentCity } = useCity();
+  const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'trips' | 'itinerary'>('trips');
+
+  const [activeTab, setActiveTab] = useState<'planner' | 'saved'>('planner');
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [title, setTitle] = useState('Golden Triangle Heritage Tour');
-  const [destinationCity, setDestinationCity] = useState(currentCity?.name || 'Agra');
+  const [loadingTrips, setLoadingTrips] = useState(false);
+
+  // Smart Planner Form Inputs
+  const [originCity, setOriginCity] = useState('Delhi');
+  const [destinationCity, setDestinationCity] = useState(currentCity?.name || 'Manali');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(
-    new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0]
+    new Date(Date.now() + 2 * 86400000).toISOString().split('T')[0]
   );
-  const [contactName, setContactName] = useState('Parent / Spouse Contact');
-  const [contactPhone, setContactPhone] = useState('+919876543210');
+  const [travelersCount, setTravelersCount] = useState(2);
+  const [totalBudget, setTotalBudget] = useState(8000);
+  const [transportPref, setTransportPref] = useState('MIXED');
+  const [interests, setInterests] = useState<string[]>(['Heritage', 'Local Food']);
+
+  // Generated Plan State
+  const [generating, setGenerating] = useState(false);
+  const [generatedPlan, setGeneratedPlan] = useState<any>(null);
+  const [savingPlan, setSavingPlan] = useState(false);
+
+  // Add Stop Inline State
+  const [addingDayNumber, setAddingDayNumber] = useState<number | null>(null);
+  const [newStopText, setNewStopText] = useState('');
+  const [newStopTime, setNewStopTime] = useState('04:00 PM');
+
+  // Saved Trips View / Edit / Delete
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+  const [deleteTripId, setDeleteTripId] = useState<string | null>(null);
+  const [deletingTrip, setDeletingTrip] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  const selectedPresetKey =
-    Object.keys(PRESET_ITINERARIES).find((k) =>
-      currentCity?.name?.toLowerCase().includes(k.toLowerCase())
-    ) || 'Manali';
-
-  const activeItinerary = PRESET_ITINERARIES[selectedPresetKey];
-
   const loadTrips = () => {
+    if (!user) return;
+    setLoadingTrips(true);
     fetchUserTrips()
       .then(setTrips)
-      .catch(console.error);
+      .catch(() => {})
+      .finally(() => setLoadingTrips(false));
   };
 
   useEffect(() => {
     loadTrips();
-  }, []);
+  }, [user]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (currentCity?.name && !generatedPlan) {
+      setDestinationCity(currentCity.name);
+    }
+  }, [currentCity?.name]);
+
+  const toggleInterest = (tag: string) => {
+    setInterests((prev) =>
+      prev.includes(tag) ? prev.filter((i) => i !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !destinationCity) return;
+    if (!destinationCity.trim()) {
+      showToast('Please enter a destination', 'error');
+      return;
+    }
 
+    setGenerating(true);
     try {
-      await createTrip({
-        title,
+      const res = await generateSmartItinerary({
+        originCity,
         destinationCity,
-        currentLocation: `${currentCity?.name || 'Agra'} Heritage Quarter`,
         startDate,
         endDate,
-        emergencyContactName: contactName,
-        emergencyContactPhone: contactPhone,
+        travelersCount,
+        totalBudget,
+        transportPref,
+        interests,
       });
-
-      setIsCreating(false);
-      showToast(`Trip "${title}" created successfully!`, 'success');
-      loadTrips();
-    } catch (err) {
-      console.error('Failed to create trip:', err);
-      showToast('Failed to create trip. Please check your inputs.', 'error');
+      setGeneratedPlan(res.plan);
+      showToast('Smart trip plan ready — customize any stop below!', 'success');
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Failed to generate trip plan', 'error');
+    } finally {
+      setGenerating(false);
     }
   };
 
-  const getShareLink = (token: string) => {
-    return `${window.location.origin}/?tab=share&token=${token}`;
+  const handleAddStopToDay = (dayNumber: number) => {
+    if (!newStopText.trim() || !generatedPlan) return;
+    const updatedDays = generatedPlan.days.map((d: PlannerDay) => {
+      if (d.dayNumber !== dayNumber) return d;
+      return {
+        ...d,
+        stops: [
+          ...d.stops,
+          {
+            id: `custom-${Date.now()}`,
+            time: newStopTime || '04:00 PM',
+            activity: newStopText.trim(),
+            location: generatedPlan.destinationCity,
+            transportMode: 'Local Auto / Cab',
+            estimatedCost: 0,
+            safetyTip: 'Confirm fare or entry fees upfront.',
+          },
+        ],
+      };
+    });
+    setGeneratedPlan({ ...generatedPlan, days: updatedDays });
+    setNewStopText('');
+    setAddingDayNumber(null);
   };
+
+  const handleRemoveStopFromDay = (dayNumber: number, stopId: string) => {
+    if (!generatedPlan) return;
+    const updatedDays = generatedPlan.days.map((d: PlannerDay) => {
+      if (d.dayNumber !== dayNumber) return d;
+      return { ...d, stops: d.stops.filter((s) => s.id !== stopId) };
+    });
+    setGeneratedPlan({ ...generatedPlan, days: updatedDays });
+  };
+
+  const handleSaveGeneratedTrip = async () => {
+    if (!user) {
+      showToast('Please sign in to save trips to your account', 'error');
+      return;
+    }
+    if (!generatedPlan) return;
+    setSavingPlan(true);
+    try {
+      await createTrip({
+        title: generatedPlan.title,
+        originCity: generatedPlan.originCity,
+        destinationCity: generatedPlan.destinationCity,
+        startDate: generatedPlan.startDate,
+        endDate: generatedPlan.endDate,
+        travelersCount: generatedPlan.travelersCount,
+        totalBudget: generatedPlan.estimatedExpenses?.totalBudget || totalBudget,
+        transportPref: generatedPlan.transportPref,
+        interests: generatedPlan.interests,
+        itineraryData: {
+          days: generatedPlan.days,
+          estimatedExpenses: generatedPlan.estimatedExpenses,
+          nearbyMedical: generatedPlan.nearbyMedical,
+          estimatedJourneyDuration: generatedPlan.estimatedJourneyDuration,
+        },
+      });
+      showToast('Trip & itinerary saved to My Trips!', 'success');
+      loadTrips();
+      setActiveTab('saved');
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Failed to save trip', 'error');
+    } finally {
+      setSavingPlan(false);
+    }
+  };
+
+  const handleSaveEditedTrip = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTrip) return;
+    try {
+      await updateTrip(editingTrip.id, {
+        title: editingTrip.title,
+        originCity: editingTrip.originCity,
+        destinationCity: editingTrip.destinationCity,
+        startDate: editingTrip.startDate,
+        endDate: editingTrip.endDate,
+        totalBudget: editingTrip.totalBudget,
+        status: editingTrip.status,
+      });
+      showToast('Trip updated successfully', 'success');
+      setEditingTrip(null);
+      loadTrips();
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Failed to update trip', 'error');
+    }
+  };
+
+  const handleConfirmDeleteTrip = async () => {
+    if (!deleteTripId) return;
+    setDeletingTrip(true);
+    try {
+      await deleteTrip(deleteTripId);
+      showToast('Trip deleted', 'info');
+      if (selectedTrip?.id === deleteTripId) setSelectedTrip(null);
+      setDeleteTripId(null);
+      loadTrips();
+    } catch {
+      showToast('Failed to delete trip', 'error');
+    } finally {
+      setDeletingTrip(false);
+    }
+  };
+
+  const getShareLink = (token: string) => `${window.location.origin}/?tab=share&token=${token}`;
 
   const handleCopyLink = (token: string) => {
     navigator.clipboard.writeText(getShareLink(token));
     setCopiedToken(token);
-    showToast('Encrypted live family share link copied to clipboard!', 'success');
+    showToast('Live trip share link copied!', 'success');
     setTimeout(() => setCopiedToken(null), 2500);
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-16">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
-            <Compass className="w-4 h-4" />
-            YatraGuard Journey & Safety Planner
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
-            Trip Management & Safe Itineraries
-          </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Coordinate multi-day travel, track live family ETA, and evaluate route safety benchmarks
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsCreating(!isCreating)}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-900/30 flex items-center gap-2 transition-colors touch-min"
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>{isCreating ? 'Cancel' : 'Register New Trip'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Tab Switcher */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto no-scrollbar">
-        <button
-          onClick={() => setActiveTab('trips')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 flex-shrink-0 touch-min ${
-            activeTab === 'trips'
-              ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30'
-              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-          }`}
-        >
-          <Compass className="w-4 h-4" />
-          <span>Active Trips & Family Sharing ({trips.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('itinerary')}
-          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 flex-shrink-0 touch-min ${
-            activeTab === 'itinerary'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/30'
-              : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          <span>AI Safe Multi-Day Itinerary ({currentCity?.name || 'Manali'})</span>
-        </button>
-      </div>
-
-      {/* CREATE TRIP FORM */}
-      {isCreating && (
-        <form
-          onSubmit={handleCreate}
-          className="glass-panel p-6 rounded-3xl border border-blue-500/40 space-y-4 animate-fade-in"
-        >
-          <h3 className="text-sm font-extrabold text-white">Plan & Share a New Journey</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Trip Name</label>
-              <input
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Solo Himachal Expedition"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Destination City</label>
-              <input
-                type="text"
-                required
-                value={destinationCity}
-                onChange={(e) => setDestinationCity(e.target.value)}
-                placeholder="e.g. Manali, Himachal Pradesh"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Start Date</label>
-              <input
-                type="date"
-                required
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">End Date</label>
-              <input
-                type="date"
-                required
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Emergency ICE Contact Name</label>
-              <input
-                type="text"
-                required
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder="e.g. Rakesh Sharma (Father)"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 mb-1">Emergency Contact Phone</label>
-              <input
-                type="tel"
-                required
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="+919876543210"
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-16 yg-page-enter">
+      <PageHeader
+        eyebrow="Plan Smart & Stay Safe"
+        icon={Compass}
+        accentColor="blue"
+        title="Smart Trip Planner"
+        description="Build customizable day-wise itineraries with estimated budgets, medical contacts, weather & safety checks."
+        actions={
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsCreating(false)}
-              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold"
+              onClick={() => setActiveTab('planner')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                activeTab === 'planner'
+                  ? 'bg-sky-600 text-white border-sky-600 keep-white'
+                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+              }`}
             >
-              Cancel
+              Plan New Trip
             </button>
             <button
-              type="submit"
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md"
+              type="button"
+              onClick={() => setActiveTab('saved')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                activeTab === 'saved'
+                  ? 'bg-sky-600 text-white border-sky-600 keep-white'
+                  : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+              }`}
             >
-              Save & Generate Live Tracking Link
+              My Saved Trips ({trips.length})
             </button>
           </div>
-        </form>
-      )}
+        }
+      />
 
-      {/* VIEW 1: ACTIVE TRIPS & LIVE TRACKING */}
-      {activeTab === 'trips' && (
-        <div className="space-y-4">
-          {trips.length === 0 ? (
-            <div className="glass-panel p-8 rounded-3xl border border-slate-800 text-center space-y-3">
-              <Compass className="w-10 h-10 text-slate-500 mx-auto" />
-              <h3 className="text-sm font-bold text-white">No Active Trips Found</h3>
-              <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                Register a new trip above to generate an encrypted public share link with live location coordinates for your family.
-              </p>
-            </div>
-          ) : (
-            trips.map((trip) => (
-              <div
-                key={trip.id}
-                className="glass-panel-elevated rounded-3xl p-6 border border-slate-800 space-y-4 hover:border-slate-700 transition-colors"
-              >
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs uppercase font-extrabold tracking-wider text-emerald-400 flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        Status: {trip.status}
-                      </span>
-                      <span className="text-xs text-slate-400 font-medium">
-                        ({trip.startDate} to {trip.endDate})
-                      </span>
-                    </div>
-                    <h3 className="text-xl font-extrabold text-white mt-1">{trip.title}</h3>
-                  </div>
+      {/* TAB 1: SMART PLANNER */}
+      {activeTab === 'planner' && (
+        <div className="space-y-6">
+          <form onSubmit={handleGenerate} className="yg-card p-5 sm:p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Starting Location
+                </label>
+                <input
+                  type="text"
+                  value={originCity}
+                  onChange={(e) => setOriginCity(e.target.value)}
+                  placeholder="e.g. Delhi, Mumbai"
+                  className="w-full rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
 
-                  <button
-                    onClick={() => handleCopyLink(trip.shareToken)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold transition-colors"
-                  >
-                    {copiedToken === trip.shareToken ? (
-                      <>
-                        <Check className="w-4 h-4 text-emerald-400" />
-                        <span className="text-emerald-400">Share Link Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Share2 className="w-4 h-4 text-blue-400" />
-                        <span>Copy Family Share Link</span>
-                      </>
-                    )}
-                  </button>
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Destination *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={destinationCity}
+                  onChange={(e) => setDestinationCity(e.target.value)}
+                  placeholder="e.g. Manali, Jaipur, Goa"
+                  className="w-full rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Transport Preference
+                </label>
+                <select
+                  value={transportPref}
+                  onChange={(e) => setTransportPref(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                >
+                  <option value="MIXED">Balanced (Bus / Auto / Cab)</option>
+                  <option value="PUBLIC_TRANSIT">Budget Public Transit</option>
+                  <option value="CAB">Private Cab / Taxi</option>
+                  <option value="BIKE_RENTAL">Two-Wheeler / Scooter</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Travellers
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={20}
+                    value={travelersCount}
+                    onChange={(e) => setTravelersCount(Number(e.target.value))}
+                    className="w-full rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                  />
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800/80 text-xs">
-                  <div>
-                    <span className="text-slate-400 font-semibold block text-[11px] uppercase">
-                      📍 Current Location
-                    </span>
-                    <span className="font-bold text-white mt-0.5 block">
-                      {trip.currentLocation || `${trip.destinationCity} Sector`}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-400 font-semibold block text-[11px] uppercase">
-                      ⏱️ Transit / Destination ETA
-                    </span>
-                    <span className="font-bold text-emerald-400 mt-0.5 block">
-                      {trip.lastKnownEta || 'On Schedule (18 min ETA)'}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-slate-400 font-semibold block text-[11px] uppercase">
-                      📞 Emergency ICE Contact
-                    </span>
-                    <span className="font-bold text-slate-200 mt-0.5 block">
-                      {trip.emergencyContactName} ({trip.emergencyContactPhone})
-                    </span>
-                  </div>
-                </div>
-
-                <div className="text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/80 pt-3">
-                  <span>Encrypted Public Share URL Active</span>
-                  <a
-                    href={getShareLink(trip.shareToken)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1"
-                  >
-                    <span>Preview Family Tracking View</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Budget (₹)
+                  </label>
+                  <input
+                    type="number"
+                    min={500}
+                    step={500}
+                    value={totalBudget}
+                    onChange={(e) => setTotalBudget(Number(e.target.value))}
+                    className="w-full rounded-xl px-3 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white"
+                  />
                 </div>
               </div>
-            ))
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">
+                Travel Interests
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {INTEREST_OPTIONS.map((tag) => {
+                  const active = interests.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleInterest(tag)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        active
+                          ? 'bg-sky-600 text-white border-sky-600 keep-white'
+                          : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={generating}
+                className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold flex items-center gap-2 keep-white yg-press disabled:opacity-60"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    <span>Building Smart Plan...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" aria-hidden="true" />
+                    <span>Generate Smart Itinerary</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* GENERATED RESULT */}
+          {generatedPlan && (
+            <div className="space-y-5 yg-page-enter">
+              {/* Overview & Save Header */}
+              <div className="yg-card p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="px-2.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 font-semibold">
+                      {generatedPlan.daysCount} Days • {generatedPlan.travelersCount} Traveller(s)
+                    </span>
+                    {generatedPlan.safetyScore && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-semibold">
+                        Safety Index: {generatedPlan.safetyScore}/100
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    {generatedPlan.title}
+                  </h2>
+                  {generatedPlan.estimatedJourneyDuration && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                      <span>{generatedPlan.estimatedJourneyDuration}</span>
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={savingPlan}
+                  onClick={handleSaveGeneratedTrip}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-2 keep-white yg-press disabled:opacity-60 flex-shrink-0"
+                >
+                  <Save className="w-4 h-4" aria-hidden="true" />
+                  <span>{savingPlan ? 'Saving...' : 'Save to My Trips'}</span>
+                </button>
+              </div>
+
+              {/* Estimated Budget + Weather + Medical */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="yg-card p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                      <IndianRupee className="w-4 h-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                      Estimated Budget Split
+                    </h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                      Estimated
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400 block">Transport</span>
+                      <strong className="text-slate-900 dark:text-white">
+                        ~₹{generatedPlan.estimatedExpenses?.breakdown?.transportation?.toLocaleString('en-IN')}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400 block">Food</span>
+                      <strong className="text-slate-900 dark:text-white">
+                        ~₹{generatedPlan.estimatedExpenses?.breakdown?.food?.toLocaleString('en-IN')}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400 block">Stay</span>
+                      <strong className="text-slate-900 dark:text-white">
+                        ~₹{generatedPlan.estimatedExpenses?.breakdown?.accommodation?.toLocaleString('en-IN')}
+                      </strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <span className="text-slate-500 dark:text-slate-400 block">Activities/Buffer</span>
+                      <strong className="text-slate-900 dark:text-white">
+                        ~₹{generatedPlan.estimatedExpenses?.breakdown?.activitiesAndBuffer?.toLocaleString('en-IN')}
+                      </strong>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {generatedPlan.estimatedExpenses?.note}
+                  </p>
+                </div>
+
+                <div className="yg-card p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <CloudSun className="w-4 h-4 text-amber-500" aria-hidden="true" />
+                    Weather &amp; Safety Warnings
+                  </h3>
+                  {generatedPlan.weather ? (
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+                      <div className="font-bold text-slate-900 dark:text-white">
+                        {generatedPlan.weather.temp}°C • {generatedPlan.weather.condition}
+                      </div>
+                      <div className="text-slate-600 dark:text-slate-400">
+                        Rain chance: {generatedPlan.weather.rainChance}% • Wind: {generatedPlan.weather.windKmh} km/h
+                      </div>
+                      {generatedPlan.weather.alertMessage && (
+                        <div className="text-amber-700 dark:text-amber-300 font-medium">
+                          {generatedPlan.weather.alertMessage}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Live weather forecast unavailable for this destination—verify local weather advisories before departure.
+                    </p>
+                  )}
+
+                  {generatedPlan.safetyAlerts?.length > 0 && (
+                    <div className="space-y-1.5">
+                      {generatedPlan.safetyAlerts.slice(0, 2).map((a: any) => (
+                        <div
+                          key={a.id}
+                          className="p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 text-[11px] text-red-700 dark:text-red-300"
+                        >
+                          ⚠ {a.title}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="yg-card p-5 space-y-3">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                    <HeartPulse className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                    Nearby Medical &amp; Police
+                  </h3>
+                  <div className="space-y-2 text-xs">
+                    {[
+                      ...(generatedPlan.nearbyMedical?.hospitals || []).slice(0, 2),
+                      ...(generatedPlan.nearbyMedical?.pharmacies || []).slice(0, 1),
+                    ].map((svc: any) => (
+                      <div
+                        key={svc.id}
+                        className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800"
+                      >
+                        <div className="font-semibold text-slate-900 dark:text-white line-clamp-1">
+                          {svc.name}
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                          {svc.address} {svc.phone ? `• ${svc.phone}` : ''}
+                        </div>
+                      </div>
+                    ))}
+                    {(generatedPlan.nearbyMedical?.hospitals?.length || 0) === 0 && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Emergency Ambulance: <strong>108</strong> • Police: <strong>112</strong>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Day-Wise Editable Itinerary */}
+              <div className="space-y-4">
+                {generatedPlan.days?.map((day: PlannerDay) => (
+                  <div key={day.dayNumber} className="yg-card p-5 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+                      <div>
+                        <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                          {day.title}
+                        </h3>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{day.date}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAddingDayNumber(addingDayNumber === day.dayNumber ? null : day.dayNumber)
+                        }
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1"
+                      >
+                        <PlusCircle className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                        <span>Add Destination</span>
+                      </button>
+                    </div>
+
+                    {addingDayNumber === day.dayNumber && (
+                      <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                        <input
+                          type="text"
+                          value={newStopTime}
+                          onChange={(e) => setNewStopTime(e.target.value)}
+                          placeholder="Time (e.g. 04:00 PM)"
+                          className="w-28 rounded-lg px-2.5 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
+                        />
+                        <input
+                          type="text"
+                          value={newStopText}
+                          onChange={(e) => setNewStopText(e.target.value)}
+                          placeholder="Place or activity name..."
+                          className="flex-1 min-w-[180px] rounded-lg px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddStopToDay(day.dayNumber)}
+                          className="px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold keep-white"
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+
+                    <div className="space-y-2.5">
+                      {day.stops.map((stop) => (
+                        <div
+                          key={stop.id}
+                          className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        >
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300">
+                                {stop.time}
+                              </span>
+                              <span className="text-sm font-bold text-slate-900 dark:text-white">
+                                {stop.activity}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-600 dark:text-slate-400">
+                              {stop.transportMode} • Est. ~₹{stop.estimatedCost} • {stop.safetyTip}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveStopFromDay(day.dayNumber, stop.id)}
+                            aria-label={`Remove ${stop.activity}`}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 self-end sm:self-center"
+                          >
+                            <Trash2 className="w-4 h-4" aria-hidden="true" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* VIEW 2: AI SAFE MULTI-DAY ITINERARY PLANNER */}
-      {activeTab === 'itinerary' && (
-        <div className="space-y-6">
-          <div className="glass-panel p-5 rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-emerald-950/30 via-slate-900 to-slate-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-extrabold tracking-wider px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800">
-                  Curated Safe Blueprint
-                </span>
-                <span className="text-xs text-slate-400">{activeItinerary?.duration || '3 Days'}</span>
-              </div>
-              <h2 className="text-xl font-black text-white mt-1">
-                {activeItinerary?.title || `${currentCity?.name} Safe Itinerary`}
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Each stop is calibrated with localized safety scores, regulated transit fares, and proactive scam warnings.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                setTitle(activeItinerary?.title || `${currentCity?.name} Trip`);
-                setDestinationCity(currentCity?.name || 'Manali');
-                setIsCreating(true);
-                setActiveTab('trips');
-              }}
-              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs shadow-md shadow-emerald-900/40 flex items-center gap-1.5 transition-colors flex-shrink-0"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Apply to My Active Trip</span>
-            </button>
-          </div>
-
-          {/* Days Accordion / Timeline */}
-          <div className="space-y-6">
-            {activeItinerary?.days?.map((day) => (
-              <div
-                key={day.dayNumber}
-                className="glass-panel-elevated rounded-3xl p-6 border border-slate-800 space-y-4"
-              >
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div>
-                    <h3 className="text-base font-black text-white">{day.title}</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">{day.theme}</p>
-                  </div>
-                  <span className="text-xs font-bold text-emerald-400 px-3 py-1 bg-slate-900 rounded-full border border-slate-800">
-                    Day {day.dayNumber}
-                  </span>
-                </div>
-
-                <div className="space-y-4">
-                  {day.stops.map((stop, sIdx) => (
-                    <div
-                      key={sIdx}
-                      className="bg-slate-950 p-4 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-colors space-y-3"
-                    >
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                            {stop.time}
-                          </span>
-                          <h4 className="text-sm font-extrabold text-white">{stop.activity}</h4>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                              stop.safetyScore >= 85
-                                ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
-                                : 'bg-amber-950 text-amber-300 border border-amber-800'
-                            }`}
-                          >
-                            🛡️ Safety: {stop.safetyScore}/100
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                        <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block flex items-center gap-1">
-                            <IndianRupee className="w-3 h-3 text-amber-400" /> Recommended Transit & Fare
-                          </span>
-                          <span className="font-semibold text-white mt-0.5 block">
-                            {stop.transportMode}
-                          </span>
-                          <span className="text-emerald-400 font-bold block mt-0.5">
-                            Fair Fare: {stop.estimatedTransitFare}
-                          </span>
-                        </div>
-
-                        <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800">
-                          <span className="text-[10px] uppercase font-bold text-amber-400 block flex items-center gap-1">
-                            <AlertTriangle className="w-3 h-3" /> Safety Tip & Scam Watch
-                          </span>
-                          <p className="text-slate-300 mt-0.5 leading-relaxed">
-                            {stop.safetyTip}
-                          </p>
-                        </div>
-                      </div>
+      {/* TAB 2: SAVED TRIPS */}
+      {activeTab === 'saved' && (
+        <div className="space-y-4">
+          {!user ? (
+            <EmptyState
+              icon={Users}
+              title="Sign in to view saved trips"
+              description="Save generated itineraries, track trip expenses, and generate family share links."
+              accentColor="blue"
+            />
+          ) : loadingTrips ? (
+            <LoadingSkeleton variant="card" count={3} />
+          ) : trips.length === 0 ? (
+            <EmptyState
+              icon={Compass}
+              title="No saved trips yet"
+              description="Generate a smart itinerary and save it to manage stops, budgets, and share links."
+              actionLabel="Plan a Trip"
+              onAction={() => setActiveTab('planner')}
+              accentColor="blue"
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {trips.map((trip) => (
+                <div key={trip.id} className="yg-card p-5 space-y-3.5 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase border ${
+                          trip.status === 'ACTIVE'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        {trip.status}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" aria-hidden="true" />
+                        {trip.startDate} – {trip.endDate}
+                      </span>
                     </div>
-                  ))}
+
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      {trip.title}
+                    </h3>
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                        {trip.originCity ? `${trip.originCity} → ` : ''}
+                        {trip.destinationCity}
+                      </span>
+                      {trip.totalBudget && (
+                        <span className="flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200">
+                          <IndianRupee className="w-3.5 h-3.5" aria-hidden="true" />
+                          Budget: ₹{trip.totalBudget.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyLink(trip.shareToken)}
+                        className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1"
+                      >
+                        {copiedToken === trip.shareToken ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-500" aria-hidden="true" />
+                        ) : (
+                          <Share2 className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                        )}
+                        <span>{copiedToken === trip.shareToken ? 'Copied' : 'Share'}</span>
+                      </button>
+
+                      <a
+                        href={getShareLink(trip.shareToken)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-sky-600 dark:text-sky-400 flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+                      </a>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditingTrip(trip)}
+                        aria-label={`Edit ${trip.title}`}
+                        className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTripId(trip.id)}
+                        aria-label={`Delete ${trip.title}`}
+                        className="p-2 rounded-lg bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-950/50 text-slate-500 hover:text-red-600 dark:hover:text-red-400"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
+
+      {/* EDIT TRIP MODAL */}
+      {editingTrip && (
+        <div className="fixed inset-0 z-[200] bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSaveEditedTrip}
+            className="yg-card w-full max-w-md p-6 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Edit Trip Details</h3>
+              <button
+                type="button"
+                onClick={() => setEditingTrip(null)}
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editingTrip.title}
+                  onChange={(e) => setEditingTrip({ ...editingTrip, title: e.target.value })}
+                  className="w-full rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Budget (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={editingTrip.totalBudget || ''}
+                    onChange={(e) =>
+                      setEditingTrip({
+                        ...editingTrip,
+                        totalBudget: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
+                    className="w-full rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={editingTrip.status}
+                    onChange={(e) => setEditingTrip({ ...editingTrip, status: e.target.value })}
+                    className="w-full rounded-xl px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800"
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="COMPLETED">Completed</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingTrip(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-semibold keep-white"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <ConfirmationModal
+        isOpen={Boolean(deleteTripId)}
+        title="Delete this trip?"
+        description="This deletes the saved itinerary and disables its share link."
+        confirmLabel="Delete Trip"
+        cancelLabel="Keep Trip"
+        tone="danger"
+        isLoading={deletingTrip}
+        onConfirm={handleConfirmDeleteTrip}
+        onCancel={() => setDeleteTripId(null)}
+      />
     </div>
   );
 };

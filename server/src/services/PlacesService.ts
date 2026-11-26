@@ -1,10 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { calculateDistanceKm, formatDistance } from './geoService.js';
 import { fareEstimationService } from './FareEstimationService.js';
 import { googleMapsService, AutocompleteSuggestion } from './googleMapsService.js';
 import { evaluateRouteSafety } from './routeRiskEngine.js';
-
-const prisma = new PrismaClient();
 
 export interface PlaceSearchParams {
   query?: string;
@@ -184,6 +182,34 @@ export class PlacesService {
       }
       if (cat === 'POLICE' && pCat !== 'POLICE') return false;
       if ((cat === 'TOURISM' || cat === 'ATTRACTION') && pCat !== 'TOURIST_INFO') return false;
+      if (cat === 'GUIDE') {
+        const isGuide =
+          pCat === 'GUIDE' ||
+          pSub.includes('GUIDE') ||
+          (pCat === 'TOURIST_INFO' && nameLower.includes('guide'));
+        if (!isGuide) return false;
+      }
+      if (cat === 'MECHANIC') {
+        const isMech =
+          pCat === 'MECHANIC' ||
+          pSub.includes('MECHANIC') ||
+          pSub.includes('REPAIR') ||
+          nameLower.includes('mechanic') ||
+          nameLower.includes('garage') ||
+          nameLower.includes('repair');
+        if (!isMech) return false;
+      }
+      if ((cat === 'FUEL' || cat === 'PETROL_PUMP') && pCat !== 'FUEL' && !pSub.includes('PETROL') && !nameLower.includes('petrol') && !nameLower.includes('fuel')) {
+        return false;
+      }
+      if (cat === 'TAXI') {
+        const isTaxi =
+          pCat === 'TAXI' ||
+          pSub.includes('TAXI') ||
+          pSub.includes('CAB') ||
+          (pCat === 'TRANSPORT' && (nameLower.includes('taxi') || nameLower.includes('cab') || pSub === 'AUTO_STAND'));
+        if (!isTaxi) return false;
+      }
       if ((cat === 'FOOD' || cat === 'RESTAURANT') && pCat !== 'RESTAURANT') return false;
       if ((cat === 'ACCOMMODATION' || cat === 'HOTEL') && pCat !== 'HOTEL') return false;
       if (cat === 'TRANSPORT' && pCat !== 'TRANSPORT') return false;

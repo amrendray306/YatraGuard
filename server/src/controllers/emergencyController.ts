@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { calculateDistanceKm, formatDistance } from '../services/geoService.js';
-
-const prisma = new PrismaClient();
 
 export const OFFICIAL_INDIAN_EMERGENCY_NUMBERS = [
   {
@@ -78,7 +76,6 @@ export async function getEmergencyInfo(req: Request, res: Response) {
     const lng = req.query.lng ? parseFloat(req.query.lng as string) : 78.0081;
     const cityId = req.query.cityId as string | undefined;
 
-    // Find closest hospital and police station
     const services = await prisma.locationService.findMany({
       where: cityId ? { cityId } : undefined,
     });
@@ -114,7 +111,7 @@ export async function getEmergencyInfo(req: Request, res: Response) {
 
 export async function triggerSosLog(req: AuthenticatedRequest, res: Response) {
   try {
-    const { emergencyType, lat, lng, address, cityId } = req.body;
+    const { emergencyType, lat, lng, address, cityId, messageText, sharedWithCount, status } = req.body;
 
     const log = await prisma.emergencyLog.create({
       data: {
@@ -124,17 +121,172 @@ export async function triggerSosLog(req: AuthenticatedRequest, res: Response) {
         lat: lat ? parseFloat(lat) : 0,
         lng: lng ? parseFloat(lng) : 0,
         address: address || 'Current User Coordinates',
-        status: 'DISPATCHED_DEMO',
+        messageText: messageText ? String(messageText).slice(0, 1000) : null,
+        sharedWithCount: sharedWithCount ? Math.max(0, parseInt(sharedWithCount, 10) || 0) : 0,
+        status: status || 'LOGGED_CLIENT_ACTION',
       },
     });
 
     return res.status(201).json({
-      message: 'SOS Alert triggered and logged.',
+      message: 'SOS event logged.',
       log,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('SOS trigger error:', error);
     return res.status(500).json({ error: 'Failed to record emergency event' });
+  }
+}
+
+export async function getEmergencyHistory(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const logs = await prisma.emergencyLog.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 25,
+    });
+
+    return res.json({ logs });
+  } catch (error) {
+    console.error('Emergency history error:', error);
+    return res.status(500).json({ error: 'Failed to load SOS history' });
+  }
+}
+
+export async function getEmergencyContacts(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const contacts = await prisma.emergencyContact.findMany({
+      where: { userId: req.user.id },
+      orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+    });
+
+    return res.json({ contacts });
+  } catch (error) {
+    console.error('Get emergency contacts error:', error);
+    return res.status(500).json({ error: 'Failed to load emergency contacts' });
+  }
+}
+
+export async function createEmergencyContact(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { name, phone, relation = 'Family', isPrimary = false, canShareLocation = true } = req.body;
+    if (!name?.trim() || !phone?.trim()) {
+      return res.status(400).json({ error: 'Contact name and phone number are required' });
+    }
+
+    const cleanedPhone = String(phone).trim();
+    if (cleanedPhone.replace(/[^0-9+]/g, '').length < 6) {
+      return res.status(400).json({ error: 'Please enter a valid phone number' });
+    }
+
+    const existingCount = await prisma.emergencyContact.count({
+      where: { userId: req.user.id },
+    });
+    if (existingCount >= 8) {
+      return res.status(400).json({ error: 'Maximum 8 trusted emergency contacts allowed' });
+    }
+
+    if (isPrimary) {
+      await prisma.emergencyContact.updateMany({
+        where: { userId: req.user.id },
+        data: { isPrimary: false },
+      });
+    }
+
+    const contact = await prisma.emergencyContact.create({
+      data: {
+        userId: req.user.id,
+        name: name.trim(),
+        phone: cleanedPhone,
+        relation: String(relation).trim() || 'Family',
+        isPrimary: Boolean(isPrimary) || existingCount === 0,
+        canShareLocation: Boolean(canShareLocation),
+      },
+    });
+
+    return res.status(201).json({ message: 'Emergency contact saved', contact });
+  } catch (error) {
+    console.error('Create emergency contact error:', error);
+    return res.status(500).json({ error: 'Failed to save emergency contact' });
+  }
+}
+
+export async function updateEmergencyContact(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+    const existing = await prisma.emergencyContact.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Emergency contact not found' });
+    }
+    if (existing.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized to modify this contact' });
+    }
+
+    const { name, phone, relation, isPrimary, canShareLocation } = req.body;
+    if (phone !== undefined && String(phone).replace(/[^0-9+]/g, '').length < 6) {
+      return res.status(400).json({ error: 'Please enter a valid phone number' });
+    }
+
+    if (isPrimary === true) {
+      await prisma.emergencyContact.updateMany({
+        where: { userId: req.user.id },
+        data: { isPrimary: false },
+      });
+    }
+
+    const updated = await prisma.emergencyContact.update({
+      where: { id },
+      data: {
+        ...(name !== undefined && { name: String(name).trim() }),
+        ...(phone !== undefined && { phone: String(phone).trim() }),
+        ...(relation !== undefined && { relation: String(relation).trim() }),
+        ...(isPrimary !== undefined && { isPrimary: Boolean(isPrimary) }),
+        ...(canShareLocation !== undefined && { canShareLocation: Boolean(canShareLocation) }),
+      },
+    });
+
+    return res.json({ message: 'Emergency contact updated', contact: updated });
+  } catch (error) {
+    console.error('Update emergency contact error:', error);
+    return res.status(500).json({ error: 'Failed to update emergency contact' });
+  }
+}
+
+export async function deleteEmergencyContact(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+    const existing = await prisma.emergencyContact.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Emergency contact not found' });
+    }
+    if (existing.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized to delete this contact' });
+    }
+
+    await prisma.emergencyContact.delete({ where: { id } });
+    return res.json({ message: 'Emergency contact deleted' });
+  } catch (error) {
+    console.error('Delete emergency contact error:', error);
+    return res.status(500).json({ error: 'Failed to delete emergency contact' });
   }
 }

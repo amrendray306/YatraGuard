@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import { fareEstimationService } from '../services/FareEstimationService.js';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 
 export const calculateFareEstimate = async (req: Request, res: Response) => {
   try {

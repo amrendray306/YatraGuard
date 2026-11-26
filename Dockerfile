@@ -51,8 +51,9 @@ COPY --from=server-builder /app/server/dist ./dist/
 WORKDIR /app/client
 COPY --from=client-builder /app/client/dist ./dist/
 
-# Run as non-root user for security hardening
+# Ensure writable runtime upload and private vault directories for non-root user
 WORKDIR /app/server
+RUN mkdir -p /app/server/public/uploads /app/server/private_vault && chown -R node:node /app/server
 USER node
 
 EXPOSE 5001

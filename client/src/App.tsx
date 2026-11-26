@@ -1,65 +1,86 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 // Layouts & Route Guards
 import { AdminRoute } from './components/guards/AdminRoute';
 import { ModeratorRoute } from './components/guards/ModeratorRoute';
 
-// Unified Authentication Pages
+// Eager Auth & Landing Entry Points for Instant First Paint
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
-
-// Admin Pages
-import { AdminLoginPage } from './pages/admin/AdminLoginPage';
-import { AdminDashboard } from './pages/admin/AdminDashboard';
-import { AdminUsersPage } from './pages/admin/AdminUsersPage';
-import { AdminModeratorsPage } from './pages/admin/AdminModeratorsPage';
-import { AdminIncidentsPage } from './pages/admin/AdminIncidentsPage';
-import { AdminCommunityPage } from './pages/admin/AdminCommunityPage';
-import { AdminDestinationsPage } from './pages/admin/AdminDestinationsPage';
-import { AdminPricesPage } from './pages/admin/AdminPricesPage';
-import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
-import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
-import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
-
-// Moderator Pages
-import { ModeratorLoginPage } from './pages/moderator/ModeratorLoginPage';
-import { ModeratorDashboard } from './pages/moderator/ModeratorDashboard';
-import { ModeratorReportsPage } from './pages/moderator/ModeratorReportsPage';
-import { ModeratorCommunityPage } from './pages/moderator/ModeratorCommunityPage';
-import { ModeratorPricesPage } from './pages/moderator/ModeratorPricesPage';
-import { ModeratorComplaintsPage } from './pages/moderator/ModeratorComplaintsPage';
-import { ModeratorHistoryPage } from './pages/moderator/ModeratorHistoryPage';
-import { ModeratorProfilePage } from './pages/moderator/ModeratorProfilePage';
-
-// User SPA Components & Pages
-import { Navbar } from './components/Navbar';
-import { MobileNav } from './components/MobileNav';
 import { LandingPage } from './pages/LandingPage';
-import { Dashboard } from './pages/Dashboard';
-import { MapPage } from './pages/MapPage';
-import { SafetyPage } from './pages/SafetyPage';
-import { ScamsPage } from './pages/ScamsPage';
-import { ServicesPage } from './pages/ServicesPage';
-import { NearbyPlacesPage } from './pages/NearbyPlacesPage';
-import { RouteSafetyModal } from './components/RouteSafetyModal';
-import { GuardianPage } from './pages/GuardianPage';
-import { TripsPage } from './pages/TripsPage';
-import { SharedTripPage } from './pages/SharedTripPage';
-import { VaultPage } from './pages/VaultPage';
-import { CostsPage } from './pages/CostsPage';
-import { TranslatorPage } from './pages/TranslatorPage';
-import { AdminPage } from './pages/AdminPage';
-import { CommunityPage } from './pages/CommunityPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { AlertsPage } from './pages/AlertsPage';
-import { RoutesPage } from './pages/RoutesPage';
-import { TravelBuddyPage } from './pages/TravelBuddyPage';
+
+// Core App Shell Components
+import { Navbar } from './components/Navbar';
+import { Sidebar, NavSectionKey } from './components/Sidebar';
+import { MobileNav } from './components/MobileNav';
 import { OnboardingModal } from './components/OnboardingModal';
 import { EmergencyModal } from './components/EmergencyModal';
 import { IncidentModal } from './components/IncidentModal';
 import { AuthModal } from './components/AuthModal';
+
+function lazyNamed<T extends React.ComponentType<any>>(
+  loader: () => Promise<Record<string, any>>,
+  exportName: string
+) {
+  return lazy(() => loader().then((m) => ({ default: m[exportName] as T })));
+}
+
+// Lazy-loaded Admin Portal Pages
+const AdminDashboard = lazyNamed(() => import('./pages/admin/AdminDashboard'), 'AdminDashboard');
+const AdminUsersPage = lazyNamed(() => import('./pages/admin/AdminUsersPage'), 'AdminUsersPage');
+const AdminModeratorsPage = lazyNamed(() => import('./pages/admin/AdminModeratorsPage'), 'AdminModeratorsPage');
+const AdminIncidentsPage = lazyNamed(() => import('./pages/admin/AdminIncidentsPage'), 'AdminIncidentsPage');
+const AdminCommunityPage = lazyNamed(() => import('./pages/admin/AdminCommunityPage'), 'AdminCommunityPage');
+const AdminDestinationsPage = lazyNamed(() => import('./pages/admin/AdminDestinationsPage'), 'AdminDestinationsPage');
+const AdminPricesPage = lazyNamed(() => import('./pages/admin/AdminPricesPage'), 'AdminPricesPage');
+const AdminAnalyticsPage = lazyNamed(() => import('./pages/admin/AdminAnalyticsPage'), 'AdminAnalyticsPage');
+const AdminAuditLogsPage = lazyNamed(() => import('./pages/admin/AdminAuditLogsPage'), 'AdminAuditLogsPage');
+const AdminSettingsPage = lazyNamed(() => import('./pages/admin/AdminSettingsPage'), 'AdminSettingsPage');
+
+// Lazy-loaded Moderator Portal Pages
+const ModeratorDashboard = lazyNamed(() => import('./pages/moderator/ModeratorDashboard'), 'ModeratorDashboard');
+const ModeratorReportsPage = lazyNamed(() => import('./pages/moderator/ModeratorReportsPage'), 'ModeratorReportsPage');
+const ModeratorCommunityPage = lazyNamed(() => import('./pages/moderator/ModeratorCommunityPage'), 'ModeratorCommunityPage');
+const ModeratorPricesPage = lazyNamed(() => import('./pages/moderator/ModeratorPricesPage'), 'ModeratorPricesPage');
+const ModeratorComplaintsPage = lazyNamed(() => import('./pages/moderator/ModeratorComplaintsPage'), 'ModeratorComplaintsPage');
+const ModeratorHistoryPage = lazyNamed(() => import('./pages/moderator/ModeratorHistoryPage'), 'ModeratorHistoryPage');
+const ModeratorProfilePage = lazyNamed(() => import('./pages/moderator/ModeratorProfilePage'), 'ModeratorProfilePage');
+
+// Lazy-loaded User Feature Pages
+const Dashboard = lazyNamed(() => import('./pages/Dashboard'), 'Dashboard');
+const MapPage = lazyNamed(() => import('./pages/MapPage'), 'MapPage');
+const SafetyPage = lazyNamed(() => import('./pages/SafetyPage'), 'SafetyPage');
+const ScamsPage = lazyNamed(() => import('./pages/ScamsPage'), 'ScamsPage');
+const NearbyPlacesPage = lazyNamed(() => import('./pages/NearbyPlacesPage'), 'NearbyPlacesPage');
+const GuardianPage = lazyNamed(() => import('./pages/GuardianPage'), 'GuardianPage');
+const TripsPage = lazyNamed(() => import('./pages/TripsPage'), 'TripsPage');
+const ExpensesPage = lazyNamed(() => import('./pages/ExpensesPage'), 'ExpensesPage');
+const WeatherPage = lazyNamed(() => import('./pages/WeatherPage'), 'WeatherPage');
+const OfflineEmergencyPage = lazyNamed(() => import('./pages/OfflineEmergencyPage'), 'OfflineEmergencyPage');
+const WomenSafetyPage = lazyNamed(() => import('./pages/WomenSafetyPage'), 'WomenSafetyPage');
+const LostFoundPage = lazyNamed(() => import('./pages/LostFoundPage'), 'LostFoundPage');
+const RoadCrowdPage = lazyNamed(() => import('./pages/RoadCrowdPage'), 'RoadCrowdPage');
+const SharedTripPage = lazyNamed(() => import('./pages/SharedTripPage'), 'SharedTripPage');
+const VaultPage = lazyNamed(() => import('./pages/VaultPage'), 'VaultPage');
+const CostsPage = lazyNamed(() => import('./pages/CostsPage'), 'CostsPage');
+const TranslatorPage = lazyNamed(() => import('./pages/TranslatorPage'), 'TranslatorPage');
+const AdminPage = lazyNamed(() => import('./pages/AdminPage'), 'AdminPage');
+const CommunityPage = lazyNamed(() => import('./pages/CommunityPage'), 'CommunityPage');
+const ProfilePage = lazyNamed(() => import('./pages/ProfilePage'), 'ProfilePage');
+const AlertsPage = lazyNamed(() => import('./pages/AlertsPage'), 'AlertsPage');
+const RoutesPage = lazyNamed(() => import('./pages/RoutesPage'), 'RoutesPage');
+const TravelBuddyPage = lazyNamed(() => import('./pages/TravelBuddyPage'), 'TravelBuddyPage');
+
+const RouteFallback = () => (
+  <div className="min-h-[50vh] flex items-center justify-center p-8">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 rounded-full border-2 border-sky-500 border-t-transparent animate-spin" />
+      <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loading module...</p>
+    </div>
+  </div>
+);
 
 import {
   ShieldAlert,
@@ -75,11 +96,24 @@ import {
   ArrowRight,
   Sparkles,
   Users,
+  CloudSun,
+  WifiOff,
+  PackageSearch,
   User as UserIcon,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<string>('landing');
+  const [profileSubSection, setProfileSubSection] = useState<'OVERVIEW' | 'SETTINGS'>('OVERVIEW');
+  const [communitySubSection, setCommunitySubSection] = useState<'POSTS' | 'HIGHLIGHTS'>('POSTS');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('yatraguard_sidebar_collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [isSidebarDrawerOpen, setIsSidebarDrawerOpen] = useState(false);
   const [isEmergencyOpen, setIsEmergencyOpen] = useState(false);
   const [isIncidentOpen, setIsIncidentOpen] = useState(false);
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
@@ -89,6 +123,44 @@ export const App: React.FC = () => {
   const [shareToken, setShareToken] = useState<string | null>(null);
 
   const location = useLocation();
+
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('yatraguard_sidebar_collapsed', String(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  // Update SPA document title cleanly per active view (WCAG 2.4.2)
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      landing: 'YatraGuard | Intelligent Travel Safety & Fare Transparency',
+      dashboard: 'Explore Dashboard | YatraGuard',
+      map: 'Interactive Safety Map | YatraGuard',
+      routes: 'Travel Tariff & Route Planner | YatraGuard',
+      services: 'Nearby Places & Emergency Services | YatraGuard',
+      buddy: 'Travel Buddy Matching | YatraGuard',
+      alerts: 'Scam & Safety Reports | YatraGuard',
+      safety: 'Emergency Services & Safety Index | YatraGuard',
+      community: 'Travel Community | YatraGuard',
+      profile: profileSubSection === 'SETTINGS' ? 'Account Settings | YatraGuard' : 'My Profile | YatraGuard',
+      guardian: 'AI Travel Assistant | YatraGuard',
+      fare: 'Local Price Benchmarks | YatraGuard',
+      trips: 'Smart Trip Planner | YatraGuard',
+      expenses: 'Travel Expense Tracker | YatraGuard',
+      weather: 'Weather Intelligence | YatraGuard',
+      'women-safety': 'Women Traveller Safety | YatraGuard',
+      'offline-emergency': 'Offline Emergency Mode | YatraGuard',
+      'road-crowd': 'Crowd & Road Intelligence | YatraGuard',
+      'lost-found': 'Lost & Found Hub | YatraGuard',
+      vault: 'Travel Document Vault | YatraGuard',
+      translator: 'Language Assistant | YatraGuard',
+    };
+    document.title = titles[currentTab] || 'YatraGuard | Travel Safety Platform';
+  }, [currentTab, profileSubSection]);
 
   // Show onboarding on first launch if not yet completed
   useEffect(() => {
@@ -129,8 +201,22 @@ export const App: React.FC = () => {
       setCurrentTab('services');
     } else if (path === '/assistant' || path === '/guardian') {
       setCurrentTab('guardian');
-    } else if (path === '/trips' || path === '/my-trips') {
+    } else if (path === '/trips' || path === '/my-trips' || path === '/planner') {
       setCurrentTab('trips');
+    } else if (path === '/expenses' || path === '/expense-tracker') {
+      setCurrentTab('expenses');
+    } else if (path === '/weather') {
+      setCurrentTab('weather');
+    } else if (path === '/women-safety') {
+      setCurrentTab('women-safety');
+    } else if (path === '/offline-emergency') {
+      setCurrentTab('offline-emergency');
+    } else if (path === '/road-crowd') {
+      setCurrentTab('road-crowd');
+    } else if (path === '/lost-found') {
+      setCurrentTab('lost-found');
+    } else if (path === '/vault' || path === '/documents') {
+      setCurrentTab('vault');
     } else if (path === '/emergency') {
       setIsEmergencyOpen(true);
     } else if (path === '/safety/alerts' || path === '/alerts') {
@@ -158,6 +244,7 @@ export const App: React.FC = () => {
   };
 
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* ========================================= */}
       {/* 0. UNIFIED AUTHENTICATION ROUTES          */}
@@ -209,199 +296,291 @@ export const App: React.FC = () => {
       {/* ========================================= */}
       <Route
         path="*"
-        element={
-          <div
-            className={`min-h-screen flex flex-col selection:bg-sky-600 selection:text-white ${
-              currentTab === 'map'
-                ? 'h-[100dvh] overflow-hidden'
-                : 'min-h-screen pb-16 md:pb-0'
-            }`}
-          >
-            {/* Top Navbar */}
-            <Navbar
-              currentTab={currentTab}
-              setCurrentTab={setCurrentTab}
-              openEmergencyModal={openEmergency}
-              openAuthModal={openAuth}
-              openIncidentModal={openIncident}
-              openOnboarding={() => setIsOnboardingOpen(true)}
-            />
+        element={(() => {
+          const hasSidebar = currentTab !== 'landing';
+          const handleSidebarNav = (key: NavSectionKey) => {
+            if (key === 'settings') {
+              setProfileSubSection('SETTINGS');
+              setCurrentTab('profile');
+            } else if (key === 'profile') {
+              setProfileSubSection('OVERVIEW');
+              setCurrentTab('profile');
+            } else if (key === 'highlights') {
+              setCommunitySubSection('HIGHLIGHTS');
+              setCurrentTab('community');
+            } else if (key === 'community') {
+              setCommunitySubSection('POSTS');
+              setCurrentTab('community');
+            } else {
+              setCurrentTab(key);
+            }
+          };
 
-            {/* Main Content Router */}
-            <main className="flex-1">
-              {/* Landing Page */}
-              {currentTab === 'landing' && (
-                <LandingPage
+          return (
+            <div
+              className={`min-h-screen flex bg-slate-50 dark:bg-slate-950 selection:bg-sky-600 selection:text-white ${
+                currentTab === 'map' ? 'h-[100dvh] overflow-hidden' : 'min-h-screen pb-16 md:pb-0'
+              }`}
+            >
+              {/* Skip Link for Keyboard & Screen Reader Users */}
+              <a
+                href="#main-content"
+                className="visually-hidden fixed top-3 left-3 z-[300] px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-bold shadow-lg keep-white"
+              >
+                Skip to main content
+              </a>
+
+              {/* Collapsible Workspace Sidebar (shown on all app pages; Drawer on < lg) */}
+              {hasSidebar && (
+                <Sidebar
+                  currentTab={currentTab}
+                  activeSubSection={
+                    currentTab === 'profile'
+                      ? profileSubSection === 'SETTINGS'
+                        ? 'SETTINGS'
+                        : 'PROFILE'
+                      : currentTab === 'community'
+                      ? communitySubSection === 'HIGHLIGHTS'
+                        ? 'HIGHLIGHTS'
+                        : 'COMMUNITY'
+                      : undefined
+                  }
+                  onSelectNav={handleSidebarNav}
+                  openEmergencyModal={openEmergency}
+                  collapsed={sidebarCollapsed}
+                  onToggleCollapse={toggleSidebarCollapsed}
+                  mobileOpen={isSidebarDrawerOpen}
+                  onCloseMobile={() => setIsSidebarDrawerOpen(false)}
+                />
+              )}
+
+              <div className="flex-1 flex flex-col min-w-0">
+                {/* Top Navbar */}
+                <Navbar
+                  currentTab={currentTab}
                   setCurrentTab={setCurrentTab}
                   openEmergencyModal={openEmergency}
                   openAuthModal={openAuth}
                   openIncidentModal={openIncident}
+                  openOnboarding={() => setIsOnboardingOpen(true)}
+                  hasSidebar={hasSidebar}
+                  onOpenSidebarDrawer={() => setIsSidebarDrawerOpen(true)}
                 />
-              )}
 
-              {/* Primary Screen Views */}
-              {currentTab === 'dashboard' && (
-                <Dashboard
-                  setCurrentTab={setCurrentTab}
-                  openEmergencyModal={openEmergency}
-                  openIncidentModal={openIncident}
-                />
-              )}
+                {/* Main Content Router */}
+                <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">
+                  <Suspense fallback={<RouteFallback />}>
+                  {/* Landing Page */}
+                  {currentTab === 'landing' && (
+                    <LandingPage
+                      setCurrentTab={setCurrentTab}
+                      openEmergencyModal={openEmergency}
+                      openAuthModal={openAuth}
+                      openIncidentModal={openIncident}
+                    />
+                  )}
 
-              {currentTab === 'map' && (
-                <MapPage
-                  openEmergencyModal={openEmergency}
-                  openIncidentModal={openIncident}
-                  setCurrentTab={setCurrentTab}
-                />
-              )}
+                  {/* Primary Screen Views */}
+                  {currentTab === 'dashboard' && (
+                    <Dashboard
+                      setCurrentTab={setCurrentTab}
+                      openEmergencyModal={openEmergency}
+                      openIncidentModal={openIncident}
+                    />
+                  )}
 
-              {/* Real-Time Community Scam & Safety Alert Feed (/safety/alerts) */}
-              {currentTab === 'alerts' && (
-                <AlertsPage
-                  onOpenReportModal={openIncident}
-                  onNavigateToMap={() => setCurrentTab('map')}
-                />
-              )}
+                  {currentTab === 'map' && (
+                    <MapPage
+                      openEmergencyModal={openEmergency}
+                      openIncidentModal={openIncident}
+                      setCurrentTab={setCurrentTab}
+                    />
+                  )}
 
-              {/* Real Route-Wise Price Intelligence & Comparison (/explore/routes) */}
-              {currentTab === 'routes' && (
-                <RoutesPage
-                  onNavigateToMap={() => setCurrentTab('map')}
-                />
-              )}
+                  {/* Real-Time Community Scam & Safety Alert Feed (/safety/alerts) */}
+                  {currentTab === 'alerts' && (
+                    <AlertsPage
+                      onOpenReportModal={openIncident}
+                      onNavigateToMap={() => setCurrentTab('map')}
+                    />
+                  )}
 
-              {/* City-Wise Local Prices & Benchmarks (Food, Stays, Activities & RTO Tariffs) */}
-              {(currentTab === 'fare' || currentTab === 'costs') && <CostsPage />}
+                  {/* Real Route-Wise Price Intelligence & Comparison (/explore/routes) */}
+                  {currentTab === 'routes' && (
+                    <RoutesPage
+                      onNavigateToMap={() => setCurrentTab('map')}
+                    />
+                  )}
 
-              {currentTab === 'safety' && <SafetyPage />}
+                  {/* City-Wise Local Prices & Benchmarks */}
+                  {(currentTab === 'fare' || currentTab === 'costs') && <CostsPage />}
 
-              {currentTab === 'scams' && <ScamsPage />}
+                  {currentTab === 'safety' && <SafetyPage />}
 
-              {(currentTab === 'services' || currentTab === 'nearby' || currentTab === 'places') && (
-                <NearbyPlacesPage openEmergencyModal={openEmergency} />
-              )}
+                  {currentTab === 'scams' && <ScamsPage />}
 
-              {currentTab === 'guardian' && <GuardianPage />}
+                  {(currentTab === 'services' || currentTab === 'nearby' || currentTab === 'places') && (
+                    <NearbyPlacesPage openEmergencyModal={openEmergency} />
+                  )}
 
-              {currentTab === 'trips' && <TripsPage />}
+                  {currentTab === 'guardian' && <GuardianPage />}
 
-              {currentTab === 'vault' && <VaultPage />}
+                  {currentTab === 'trips' && <TripsPage />}
 
-              {currentTab === 'translator' && <TranslatorPage />}
+                  {currentTab === 'expenses' && <ExpensesPage />}
 
-              {/* Travel Community & Travel Buddy Finder */}
-              {currentTab === 'community' && <CommunityPage />}
+                  {currentTab === 'weather' && (
+                    <WeatherPage
+                      onNavigateToAlerts={() => setCurrentTab('alerts')}
+                      onNavigateToTrips={() => setCurrentTab('trips')}
+                    />
+                  )}
 
-              {/* Dedicated Travel Buddy Exploration & Connections */}
-              {currentTab === 'buddy' && <TravelBuddyPage />}
+                  {currentTab === 'women-safety' && (
+                    <WomenSafetyPage
+                      openEmergencyModal={openEmergency}
+                      openIncidentModal={openIncident}
+                    />
+                  )}
 
-              {/* Dedicated User Profile & Personal Dashboard */}
-              {currentTab === 'profile' && (
-                <ProfilePage
-                  setCurrentTab={setCurrentTab}
-                  openEmergencyModal={openEmergency}
-                  openAuthModal={openAuth}
-                />
-              )}
+                  {currentTab === 'offline-emergency' && <OfflineEmergencyPage />}
 
-              {/* Legacy Tab Admin Fallback */}
-              {currentTab === 'admin' && <AdminPage />}
+                  {currentTab === 'road-crowd' && <RoadCrowdPage />}
 
-              {currentTab === 'shared_trip' && shareToken && (
-                <SharedTripPage
-                  token={shareToken}
-                  onBack={() => {
-                    setShareToken(null);
-                    setCurrentTab('dashboard');
-                  }}
-                />
-              )}
-            </main>
+                  {currentTab === 'lost-found' && <LostFoundPage />}
 
-            {/* Persistent Bottom Navigation for Mobile */}
-            <MobileNav
-              currentTab={currentTab}
-              setCurrentTab={setCurrentTab}
-              openMoreSheet={() => setIsMoreSheetOpen(true)}
-            />
+                  {currentTab === 'vault' && <VaultPage />}
 
-            {/* Mobile "More" Drawer Sheet */}
-            {isMoreSheetOpen && (
-              <div className="md:hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col justify-end animate-fade-in">
-                <div className="bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 max-h-[85dvh] overflow-y-auto">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="font-extrabold text-sm text-white">All Platform Features</span>
-                    <button
-                      onClick={() => setIsMoreSheetOpen(false)}
-                      className="text-xs text-slate-400 hover:text-white font-bold p-1 touch-min"
-                    >
-                      Close
-                    </button>
-                  </div>
+                  {currentTab === 'translator' && <TranslatorPage />}
 
-                  <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                    {[
-                      { id: 'landing', label: 'Home', icon: Compass },
-                      { id: 'routes', label: 'Travel Tariff', icon: IndianRupee },
-                      { id: 'fare', label: 'Local Prices', icon: IndianRupee },
-                      { id: 'services', label: 'Nearby Places', icon: Building2 },
-                      { id: 'alerts', label: 'Scam Alerts', icon: AlertTriangle },
-                      { id: 'safety', label: 'Safety Index', icon: ShieldCheck },
-                      { id: 'guardian', label: 'AI Assistant', icon: Bot },
-                      { id: 'community', label: 'Community', icon: Users },
-                      { id: 'buddy', label: 'Travel Buddy', icon: Users },
-                      { id: 'trips', label: 'My Trips', icon: Compass },
-                      { id: 'vault', label: 'Emergency Vault', icon: Lock },
-                      { id: 'translator', label: 'Translator', icon: Languages },
-                      { id: 'profile', label: 'My Profile', icon: UserIcon },
-                      { id: 'admin', label: 'Admin Portal', icon: ShieldAlert },
-                    ].map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            setCurrentTab(item.id);
-                            setIsMoreSheetOpen(false);
-                          }}
-                          className="p-3 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-2 text-slate-200 text-left"
-                        >
-                          <Icon className="w-4 h-4 text-amber-400" />
-                          <span>{item.label}</span>
-                        </button>
-                      );
-                    })}
+                  {/* Travel Community */}
+                  {currentTab === 'community' && (
+                    <CommunityPage key={communitySubSection} initialView={communitySubSection} />
+                  )}
+
+                  {/* Dedicated Travel Buddy Exploration & Connections */}
+                  {currentTab === 'buddy' && <TravelBuddyPage />}
+
+                  {/* Dedicated User Profile & Personal Dashboard */}
+                  {currentTab === 'profile' && (
+                    <ProfilePage
+                      key={profileSubSection}
+                      initialSection={profileSubSection}
+                      setCurrentTab={setCurrentTab}
+                      openEmergencyModal={openEmergency}
+                      openAuthModal={openAuth}
+                    />
+                  )}
+
+                  {/* Legacy Tab Admin Fallback */}
+                  {currentTab === 'admin' && <AdminPage />}
+
+                  {currentTab === 'shared_trip' && shareToken && (
+                    <SharedTripPage
+                      token={shareToken}
+                      onBack={() => {
+                        setShareToken(null);
+                        setCurrentTab('dashboard');
+                      }}
+                    />
+                  )}
+                  </Suspense>
+                </main>
+              </div>
+
+              {/* Persistent Bottom Navigation for Mobile */}
+              <MobileNav
+                currentTab={currentTab}
+                setCurrentTab={setCurrentTab}
+                openMoreSheet={() => setIsMoreSheetOpen(true)}
+              />
+
+              {/* Mobile "More" Drawer Sheet */}
+              {isMoreSheetOpen && (
+                <div className="md:hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex flex-col justify-end">
+                  <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 max-h-[85dvh] overflow-y-auto">
+                    <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                      <span className="font-bold text-sm text-slate-900 dark:text-white">All Platform Features</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsMoreSheetOpen(false)}
+                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold p-1 touch-min"
+                      >
+                        Close
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
+                      {[
+                        { id: 'landing', label: 'Home', icon: Compass },
+                        { id: 'routes', label: 'Travel Tariff', icon: IndianRupee },
+                        { id: 'fare', label: 'Local Prices', icon: IndianRupee },
+                        { id: 'services', label: 'Nearby Places', icon: Building2 },
+                        { id: 'alerts', label: 'Risk & Scam Alerts', icon: AlertTriangle },
+                        { id: 'weather', label: 'Weather Forecast', icon: CloudSun },
+                        { id: 'women-safety', label: 'Women Safety', icon: ShieldCheck },
+                        { id: 'offline-emergency', label: 'Offline Emergency', icon: WifiOff },
+                        { id: 'road-crowd', label: 'Crowd & Road Intel', icon: Navigation },
+                        { id: 'lost-found', label: 'Lost & Found', icon: PackageSearch },
+                        { id: 'safety', label: 'Emergency Services', icon: ShieldCheck },
+                        { id: 'guardian', label: 'AI Assistant', icon: Bot },
+                        { id: 'community', label: 'Travel Community', icon: Users },
+                        { id: 'buddy', label: 'Travel Buddy', icon: Users },
+                        { id: 'trips', label: 'Trip Planner', icon: Compass },
+                        { id: 'expenses', label: 'Expense Tracker', icon: IndianRupee },
+                        { id: 'vault', label: 'Emergency Vault', icon: Lock },
+                        { id: 'translator', label: 'Translator', icon: Languages },
+                        { id: 'profile', label: 'Profile & Settings', icon: UserIcon },
+                        { id: 'admin', label: 'Admin Portal', icon: ShieldAlert },
+                      ].map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentTab(item.id);
+                              setIsMoreSheetOpen(false);
+                            }}
+                            className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200 text-left"
+                          >
+                            <Icon className="w-4 h-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Emergency Modal Dialog */}
-            <EmergencyModal isOpen={isEmergencyOpen} onClose={closeEmergency} />
+              {/* Emergency Modal Dialog */}
+              <EmergencyModal isOpen={isEmergencyOpen} onClose={closeEmergency} />
 
-            {/* Crowdsourced Incident Submission Modal Dialog */}
-            <IncidentModal isOpen={isIncidentOpen} onClose={closeIncident} />
+              {/* Crowdsourced Incident Submission Modal Dialog */}
+              <IncidentModal isOpen={isIncidentOpen} onClose={closeIncident} />
 
-            {/* User Authentication & Onboarding Modal (Google OAuth & Email/Password) */}
-            <AuthModal
-              isOpen={isAuthOpen}
-              onClose={() => setIsAuthOpen(false)}
-              initialMode={authMode}
-            />
+              {/* User Authentication & Onboarding Modal (Google OAuth & Email/Password) */}
+              <AuthModal
+                isOpen={isAuthOpen}
+                onClose={() => setIsAuthOpen(false)}
+                initialMode={authMode}
+              />
 
-            {/* First-Time User Interactive Onboarding Guided Walkthrough */}
-            <OnboardingModal
-              isOpen={isOnboardingOpen}
-              onClose={() => setIsOnboardingOpen(false)}
-              onNavigateToTab={(tab) => {
-                setCurrentTab(tab);
-                setIsOnboardingOpen(false);
-              }}
-            />
-          </div>
-        }
+              {/* First-Time User Interactive Onboarding Guided Walkthrough */}
+              <OnboardingModal
+                isOpen={isOnboardingOpen}
+                onClose={() => setIsOnboardingOpen(false)}
+                onNavigateToTab={(tab) => {
+                  setCurrentTab(tab);
+                  setIsOnboardingOpen(false);
+                }}
+              />
+            </div>
+          );
+        })()}
       />
     </Routes>
+    </Suspense>
   );
 };

@@ -29,47 +29,50 @@ export interface SafetyAwareRouteOption {
 
 export class RoadRoutingService {
   /**
-   * Fetches real road-network geometry from OSRM with graceful fallback
+   * Fetches real road-network geometries (with OSRM alternatives when available)
    */
+  public async fetchRoadGeometries(
+    start: [number, number],
+    dest: [number, number],
+    mode: 'driving' | 'walking' = 'driving'
+  ): Promise<RouteGeometry[]> {
+    try {
+      const profile = mode === 'walking' ? 'foot' : 'driving';
+      const url = `https://router.project-osrm.org/route/v1/${profile}/${start[1]},${start[0]};${dest[1]},${dest[0]}?overview=full&geometries=geojson&alternatives=true`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4500);
+
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) return [];
+
+      const data = await response.json();
+      if (!data.routes || data.routes.length === 0) return [];
+
+      return data.routes.slice(0, 3).map((route: any) => ({
+        coordinates: route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]),
+        distanceKm: Math.round((route.distance / 1000) * 10) / 10,
+        durationMinutes: Math.max(1, Math.round(route.duration / 60)),
+      }));
+    } catch {
+      // Offline, network block or fallback
+      return [];
+    }
+  }
+
   public async fetchRoadGeometry(
     start: [number, number],
     dest: [number, number],
     mode: 'driving' | 'walking' = 'driving'
   ): Promise<RouteGeometry | null> {
-    try {
-      const profile = mode === 'walking' ? 'foot' : 'driving';
-      const url = `https://router.project-osrm.org/route/v1/${profile}/${start[1]},${start[0]};${dest[1]},${dest[0]}?overview=full&geometries=geojson`;
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) return null;
-
-      const data = await response.json();
-      if (!data.routes || data.routes.length === 0) return null;
-
-      const route = data.routes[0];
-      // GeoJSON coordinates are [lng, lat] -> convert to Leaflet [lat, lng]
-      const coordinates: [number, number][] = route.geometry.coordinates.map(
-        (c: [number, number]) => [c[1], c[0]]
-      );
-
-      return {
-        coordinates,
-        distanceKm: Math.round((route.distance / 1000) * 10) / 10,
-        durationMinutes: Math.round(route.duration / 60),
-      };
-    } catch {
-      // Offline, network block or sandbox fallback
-      return null;
-    }
+    const routes = await this.fetchRoadGeometries(start, dest, mode);
+    return routes[0] || null;
   }
 
   /**
-   * Generates 3 Safety-Aware Route Alternatives combining road network & YatraGuard Risk Engine
+   * Generates up to 3 Safety-Aware Route Alternatives using genuine OSRM geometries & YatraGuard Risk Engine
    */
   public async planSaferRoutes(params: {
     startCoords: [number, number];
@@ -85,61 +88,52 @@ export class RoadRoutingService {
   }> {
     const { startCoords, destCoords, startName, destName, cityId, mode = 'driving' } = params;
 
-    // 1. Fetch Safety Risk Evaluation from YatraGuard Backend
-    const backendResult = await evaluateRouteRisk({
-      fromLat: startCoords[0],
-      fromLng: startCoords[1],
-      toLat: destCoords[0],
-      toLng: destCoords[1],
-      fromName: startName || 'Current Location',
-      toName: destName || 'Destination',
-      cityId,
-    });
-
-    // 2. Fetch Road Network geometry for primary road path
-    const roadGeometry = await this.fetchRoadGeometry(startCoords, destCoords, mode);
+    const [backendResult, roadGeometries] = await Promise.all([
+      evaluateRouteRisk({
+        fromLat: startCoords[0],
+        fromLng: startCoords[1],
+        toLat: destCoords[0],
+        toLng: destCoords[1],
+        fromName: startName || 'Current Location',
+        toName: destName || 'Destination',
+        cityId,
+      }),
+      this.fetchRoadGeometries(startCoords, destCoords, mode),
+    ]);
 
     const routes: SafetyAwareRouteOption[] = backendResult.routes.map((backendOption: any) => {
-      let coords: [number, number][];
-
-      if (roadGeometry && backendOption.id === 'fastest') {
-        // Direct fastest road path
-        coords = roadGeometry.coordinates;
-      } else if (roadGeometry && backendOption.id === 'safest') {
-        // Safest route applies safety offsets to primary arterial boulevards
-        coords = roadGeometry.coordinates.map((pt, i) => {
-          if (i === 0 || i === roadGeometry.coordinates.length - 1) return pt;
-          const factor = Math.sin((i / roadGeometry.coordinates.length) * Math.PI) * 0.003;
-          return [pt[0] + factor, pt[1] + factor] as [number, number];
-        });
-      } else if (roadGeometry) {
-        // Balanced route
-        coords = roadGeometry.coordinates.map((pt, i) => {
-          if (i === 0 || i === roadGeometry.coordinates.length - 1) return pt;
-          const factor = Math.cos((i / roadGeometry.coordinates.length) * Math.PI) * 0.002;
-          return [pt[0] + factor, pt[1] - factor] as [number, number];
-        });
+      let geometry: RouteGeometry | undefined;
+      if (backendOption.id === 'fastest') {
+        geometry = roadGeometries[0];
+      } else if (backendOption.id === 'balanced') {
+        geometry = roadGeometries[1] || roadGeometries[0];
       } else {
-        // Fallback to waypoints from backend
-        coords = backendOption.waypoints.map((w: any) => [w.lat, w.lng] as [number, number]);
+        geometry = roadGeometries[2] || roadGeometries[1] || roadGeometries[0];
       }
+
+      const coords: [number, number][] = geometry
+        ? geometry.coordinates
+        : backendOption.waypoints.map((w: any) => [w.lat, w.lng] as [number, number]);
+
+      const distanceKm = geometry ? geometry.distanceKm : backendOption.distanceKm;
+      const durationMinutes = geometry ? geometry.durationMinutes : backendOption.durationMinutes;
 
       return {
         id: backendOption.id,
         title: backendOption.title,
         badge: backendOption.badge,
-        distanceKm: backendOption.distanceKm,
-        distanceLabel: backendOption.distanceLabel,
-        durationMinutes: backendOption.durationMinutes,
-        durationLabel: backendOption.durationLabel,
+        distanceKm,
+        distanceLabel: `${distanceKm} km`,
+        durationMinutes,
+        durationLabel: `${durationMinutes} min`,
         riskTier: backendOption.riskTier,
         riskScore: backendOption.riskScore,
         color:
           backendOption.id === 'safest'
-            ? '#10B981' // Green
+            ? '#10B981'
             : backendOption.id === 'fastest'
-            ? '#3B82F6' // Blue
-            : '#F59E0B', // Amber
+            ? '#3B82F6'
+            : '#F59E0B',
         description: backendOption.description,
         highlights: backendOption.highlights,
         hazards: backendOption.hazards,
@@ -151,10 +145,10 @@ export class RoadRoutingService {
       routes,
       recommendationReason:
         backendResult.recommendationReason ||
-        'Route ranked based on reported incident density, CCTV coverage, and arterial street lighting.',
+        'Route ranked using YatraGuard incident reports, mapped safety zones, and OSRM road paths.',
       disclaimer:
         backendResult.disclaimer ||
-        'Reported safety information based on available community and official data. Real-world conditions may change.',
+        'Safety ratings combine reported incident density, mapped safety zones, and OSRM routing. Real-world conditions may change.',
     };
   }
 }

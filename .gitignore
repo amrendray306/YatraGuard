@@ -1,14 +1,21 @@
 node_modules
 dist
+build
 .DS_Store
 *.log
 .env
 .env.*
+.env*.local
 !.env.example
 !.env.*.example
+*.pem
+*.key
 dev.db*
 *.tsbuildinfo
 .vercel
+tmp/
 server/public/uploads/*
 !server/public/uploads/.gitkeep
+server/private_vault/*
+!server/private_vault/.gitkeep
 

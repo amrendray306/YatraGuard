@@ -3,18 +3,22 @@ import {
   Users, Compass, MapPin, Calendar, IndianRupee, Search,
   PlusCircle, MessageSquare, Send, X, UserCheck, Clock,
   CheckCircle2, XCircle, Loader2, Languages, ChevronRight,
-  ArrowLeft, Backpack,
+  ArrowLeft, Backpack, ShieldBan, StickyNote, Flag, Star,
 } from 'lucide-react';
 import {
-  fetchBuddyPlans, createBuddyPlan, cancelBuddyPlan, fetchMyBuddyPlans,
+  fetchBuddyPlans, createBuddyPlan, updateBuddyPlanStatus, cancelBuddyPlan, fetchMyBuddyPlans,
   sendBuddyConnect, acceptBuddyConn, rejectBuddyConn, fetchMyBuddyConnections,
-  fetchBuddyMessages, sendBuddyMessage,
+  fetchBuddyMessages, sendBuddyMessage, submitBuddyFeedback,
+  fetchTravelGroups, createTravelGroup, joinTravelGroup, leaveTravelGroup,
+  updateGroupNotes, fetchGroupMessages, sendGroupMessage,
+  fetchBlockedUsers, blockSafetyUser, unblockSafetyUser, reportSafetyUser,
 } from '../services/api';
 import { resolveMediaUrl } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { PageHeader, EmptyState, LoadingSkeleton, ConfirmationModal } from '../components/ui';
 
-type Tab = 'find' | 'my-plans' | 'requests' | 'buddies' | 'chat';
+type Tab = 'find' | 'groups' | 'my-plans' | 'requests' | 'buddies' | 'chat';
 
 const STYLES = [
   { value: 'ALL', label: 'All Styles' },
@@ -50,7 +54,7 @@ function Avatar({ url, name, size = 'md' }: { url?: string | null; name: string;
     return <img src={resolveMediaUrl(url) || url} alt={name} className={`${sz} rounded-2xl object-cover border border-purple-500/40 flex-shrink-0`} />;
   }
   return (
-    <div className={`${sz} rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white font-black flex-shrink-0`}>
+    <div className={`${sz} rounded-2xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white font-bold flex-shrink-0 keep-white`}>
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -110,9 +114,9 @@ function PlanCard({ plan, myId, onConnect }: { plan: any; myId?: string; onConne
         ) : (
           <button
             onClick={() => onConnect(plan)}
-            className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black transition-all flex items-center gap-1.5 active:scale-95"
+            className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 keep-white yg-press"
           >
-            <Send className="w-3.5 h-3.5" /> Connect
+            <Send className="w-3.5 h-3.5" aria-hidden="true" /> Connect
           </button>
         )}
       </div>
@@ -120,8 +124,8 @@ function PlanCard({ plan, myId, onConnect }: { plan: any; myId?: string; onConne
   );
 }
 
-function ConnectionCard({ conn, myId, onAccept, onReject, onChat }: {
-  conn: any; myId: string; onAccept?: () => void; onReject?: () => void; onChat?: () => void;
+function ConnectionCard({ conn, myId, onAccept, onReject, onChat, onFeedback, onReport, onBlock }: {
+  conn: any; myId: string; onAccept?: () => void; onReject?: () => void; onChat?: () => void; onFeedback?: () => void; onReport?: () => void; onBlock?: () => void;
 }) {
   const isSender = conn.senderId === myId;
   const other = isSender ? conn.receiverUser : conn.senderUser;
@@ -140,7 +144,7 @@ function ConnectionCard({ conn, myId, onAccept, onReject, onChat }: {
         </div>
         {dest && <div className="text-[11px] text-slate-400 flex items-center gap-1"><MapPin className="w-3 h-3" />{dest}</div>}
         {conn.message && <p className="text-[11px] text-slate-400 line-clamp-1">"{conn.message}"</p>}
-        <div className="flex items-center gap-2 pt-1">
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           {conn.status === 'PENDING' && !isSender && onAccept && (
             <>
               <button onClick={onAccept} className="px-2.5 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1">
@@ -156,11 +160,30 @@ function ConnectionCard({ conn, myId, onAccept, onReject, onChat }: {
               Cancel Request
             </button>
           )}
-          {conn.status === 'ACCEPTED' && onChat && (
-            <button onClick={onChat} className="px-2.5 py-1 rounded-lg bg-purple-700 hover:bg-purple-600 text-white text-[11px] font-bold flex items-center gap-1 relative">
-              <MessageSquare className="w-3 h-3" /> Message
-              {unread && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500" />}
-            </button>
+          {conn.status === 'ACCEPTED' && (
+            <>
+              {onChat && (
+                <button onClick={onChat} className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-semibold flex items-center gap-1 relative keep-white">
+                  <MessageSquare className="w-3 h-3" aria-hidden="true" /> Message
+                  {unread && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500" />}
+                </button>
+              )}
+              {onFeedback && (
+                <button onClick={onFeedback} className="px-2.5 py-1 rounded-lg bg-amber-950/60 hover:bg-amber-900/60 text-amber-300 border border-amber-800/50 text-[11px] font-semibold flex items-center gap-1">
+                  <Star className="w-3 h-3" aria-hidden="true" /> Feedback
+                </button>
+              )}
+              {onReport && (
+                <button onClick={onReport} className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold flex items-center gap-1" title="Report traveler">
+                  <Flag className="w-3 h-3 text-amber-400" aria-hidden="true" /> Report
+                </button>
+              )}
+              {onBlock && (
+                <button onClick={onBlock} className="px-2 py-1 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 text-[11px] font-semibold flex items-center gap-1" title="Block traveler">
+                  <ShieldBan className="w-3 h-3" aria-hidden="true" /> Block
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -168,7 +191,9 @@ function ConnectionCard({ conn, myId, onAccept, onReject, onChat }: {
   );
 }
 
-function ChatView({ conn, myId, onBack }: { conn: any; myId: string; onBack: () => void }) {
+function ChatView({ conn, myId, onBack, onReport, onBlock }: {
+  conn: any; myId: string; onBack: () => void; onReport?: () => void; onBlock?: () => void;
+}) {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -205,14 +230,28 @@ function ChatView({ conn, myId, onBack }: { conn: any; myId: string; onBack: () 
   return (
     <div className="flex flex-col h-[calc(100vh-14rem)] max-h-[640px] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-slate-800 flex-shrink-0">
-        <button onClick={onBack} className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400">
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-        <Avatar url={other?.avatarUrl} name={other?.name || 'T'} size="sm" />
-        <div>
-          <div className="text-sm font-bold text-white">{other?.name || 'Traveler'}</div>
-          <div className="text-[10px] text-emerald-400">Connected • {conn.request?.destinationCity}</div>
+      <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-800 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <Avatar url={other?.avatarUrl} name={other?.name || 'T'} size="sm" />
+          <div>
+            <div className="text-sm font-bold text-white">{other?.name || 'Traveler'}</div>
+            <div className="text-[10px] text-emerald-400">Connected • {conn.request?.destinationCity}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {onReport && (
+            <button type="button" onClick={onReport} className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 text-[11px] font-semibold flex items-center gap-1">
+              <Flag className="w-3 h-3" /> Report
+            </button>
+          )}
+          {onBlock && (
+            <button type="button" onClick={onBlock} className="px-2.5 py-1.5 rounded-lg bg-red-950/60 hover:bg-red-900/70 text-red-300 text-[11px] font-semibold flex items-center gap-1">
+              <ShieldBan className="w-3 h-3" /> Block
+            </button>
+          )}
         </div>
       </div>
       {/* Messages */}
@@ -250,8 +289,8 @@ function ChatView({ conn, myId, onBack }: { conn: any; myId: string; onBack: () 
           className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
         />
         <button type="submit" disabled={!text.trim() || sending}
-          className="p-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white disabled:opacity-50 transition-colors">
-          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          className="p-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white disabled:opacity-50 transition-colors keep-white">
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Send className="w-4 h-4" aria-hidden="true" />}
         </button>
       </form>
     </div>
@@ -287,8 +326,131 @@ export const TravelBuddyPage: React.FC = () => {
   const [connectMsg, setConnectMsg] = useState('');
   const [connecting, setConnecting] = useState(false);
 
-  // Chat
+  // Cancel plan confirmation
+  const [cancelPlanId, setCancelPlanId] = useState<string | null>(null);
+  const [isCancellingPlan, setIsCancellingPlan] = useState(false);
+
+  // Chat & Step 6 Trip Completion / Feedback / Report Modals
   const [chatConn, setChatConn] = useState<any>(null);
+  const [feedbackConn, setFeedbackConn] = useState<any>(null);
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [savingFeedback, setSavingFeedback] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
+  const [reportReason, setReportReason] = useState('');
+  const [savingReport, setSavingReport] = useState(false);
+
+  // Module 12: Travel Groups & Safety Blocks
+  const [groups, setGroups] = useState<any[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(false);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [groupForm, setGroupForm] = useState({
+    title: '',
+    destinationCity: '',
+    originCity: '',
+    startDate: '',
+    endDate: '',
+    maxMembers: 6,
+    budgetNote: '',
+    itineraryNotes: '',
+  });
+  const [activeGroup, setActiveGroup] = useState<any>(null);
+  const [groupMessages, setGroupMessages] = useState<any[]>([]);
+  const [groupMsgText, setGroupMsgText] = useState('');
+  const [groupNotesEdit, setGroupNotesEdit] = useState({ itineraryNotes: '', sharedExpenseNote: '' });
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
+
+  const loadGroups = async () => {
+    setGroupsLoading(true);
+    try {
+      const res = await fetchTravelGroups();
+      setGroups(res.groups || []);
+    } catch {}
+    finally { setGroupsLoading(false); }
+  };
+
+  const loadBlocked = async () => {
+    if (!user) return;
+    try {
+      const res = await fetchBlockedUsers();
+      setBlockedUsers(res.blocks || []);
+    } catch {}
+  };
+
+  const handleCreateGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) { showToast('Login required', 'error'); return; }
+    try {
+      await createTravelGroup(groupForm);
+      showToast('Travel group created!', 'success');
+      setShowCreateGroup(false);
+      setGroupForm({ title: '', destinationCity: '', originCity: '', startDate: '', endDate: '', maxMembers: 6, budgetNote: '', itineraryNotes: '' });
+      loadGroups();
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Could not create group', 'error');
+    }
+  };
+
+  const handleJoinGroup = async (id: string) => {
+    if (!user) { showToast('Login required', 'error'); return; }
+    try {
+      await joinTravelGroup(id);
+      showToast('Joined group!', 'success');
+      loadGroups();
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Could not join group', 'error');
+    }
+  };
+
+  const openGroupRoom = async (grp: any) => {
+    setActiveGroup(grp);
+    setGroupNotesEdit({
+      itineraryNotes: grp.itineraryNotes || '',
+      sharedExpenseNote: grp.sharedExpenseNote || '',
+    });
+    try {
+      const res = await fetchGroupMessages(grp.id);
+      setGroupMessages(res.messages || []);
+    } catch {
+      setGroupMessages([]);
+    }
+  };
+
+  const handleSendGroupMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeGroup || !groupMsgText.trim()) return;
+    try {
+      await sendGroupMessage(activeGroup.id, groupMsgText.trim());
+      setGroupMsgText('');
+      const res = await fetchGroupMessages(activeGroup.id);
+      setGroupMessages(res.messages || []);
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Join group first to send messages', 'error');
+    }
+  };
+
+  const handleSaveGroupNotes = async () => {
+    if (!activeGroup) return;
+    try {
+      await updateGroupNotes(activeGroup.id, groupNotesEdit);
+      showToast('Shared group notes saved', 'success');
+      loadGroups();
+    } catch {
+      showToast('Only group members can edit shared notes', 'error');
+    }
+  };
+
+  const handleBlockUser = async (targetUserId: string, name?: string) => {
+    if (!user) { showToast('Login required', 'error'); return; }
+    try {
+      await blockSafetyUser(targetUserId, 'Safety precaution');
+      showToast(`Blocked ${name || 'user'} — their plans & messages are hidden.`, 'info');
+      loadPlans();
+      loadBlocked();
+    } catch {
+      showToast('Failed to block user', 'error');
+    }
+  };
 
   const loadPlans = async () => {
     setLoading(true);
@@ -317,6 +479,7 @@ export const TravelBuddyPage: React.FC = () => {
   useEffect(() => {
     if (tab === 'my-plans') loadMyPlans();
     if (tab === 'requests' || tab === 'buddies') loadConnections();
+    if (tab === 'groups') { loadGroups(); loadBlocked(); }
   }, [tab, user]);
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -366,9 +529,69 @@ export const TravelBuddyPage: React.FC = () => {
     catch (err: any) { showToast(err.response?.data?.error || 'Failed', 'error'); }
   };
 
-  const handleCancelPlan = async (planId: string) => {
-    try { await cancelBuddyPlan(planId); showToast('Plan cancelled', 'info'); loadMyPlans(); }
-    catch (err: any) { showToast(err.response?.data?.error || 'Failed', 'error'); }
+  const handleCancelPlan = async () => {
+    if (!cancelPlanId) return;
+    setIsCancellingPlan(true);
+    try {
+      await cancelBuddyPlan(cancelPlanId);
+      showToast('Travel plan cancelled', 'info');
+      setCancelPlanId(null);
+      loadMyPlans();
+    } catch (err: any) {
+      showToast(err.response?.data?.error || 'Failed to cancel plan', 'error');
+    } finally {
+      setIsCancellingPlan(false);
+    }
+  };
+
+  const handlePlanStatusChange = async (
+    planId: string,
+    status: 'TRAVELLING' | 'COMPLETED'
+  ) => {
+    try {
+      await updateBuddyPlanStatus(planId, status);
+      showToast(
+        status === 'TRAVELLING' ? 'Marked as actively travelling!' : 'Trip marked completed!',
+        'success'
+      );
+      loadMyPlans();
+      loadPlans();
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Could not update plan status', 'error');
+    }
+  };
+
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackConn) return;
+    setSavingFeedback(true);
+    try {
+      await submitBuddyFeedback(feedbackConn.id, feedbackRating, feedbackText);
+      showToast('Thank you! Companion feedback submitted.', 'success');
+      setFeedbackConn(null);
+      setFeedbackRating(5);
+      setFeedbackText('');
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Could not submit feedback', 'error');
+    } finally {
+      setSavingFeedback(false);
+    }
+  };
+
+  const handleSubmitReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportTarget || !reportReason.trim()) return;
+    setSavingReport(true);
+    try {
+      await reportSafetyUser(reportTarget.id, reportReason.trim());
+      showToast(`Reported ${reportTarget.name} for safety review.`, 'info');
+      setReportTarget(null);
+      setReportReason('');
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Could not submit safety report', 'error');
+    } finally {
+      setSavingReport(false);
+    }
   };
 
   const incoming = connections.received?.filter(c => c.status === 'PENDING') || [];
@@ -378,47 +601,64 @@ export const TravelBuddyPage: React.FC = () => {
   ];
 
   if (chatConn) {
+    const other = chatConn.senderId === user?.id ? chatConn.receiverUser : chatConn.senderUser;
     return (
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <ChatView conn={chatConn} myId={user?.id || ''} onBack={() => setChatConn(null)} />
+        <ChatView
+          conn={chatConn}
+          myId={user?.id || ''}
+          onBack={() => setChatConn(null)}
+          onReport={other?.id ? () => setReportTarget({ id: other.id, name: other.name || 'Traveler' }) : undefined}
+          onBlock={
+            other?.id
+              ? () => {
+                  handleBlockUser(other.id, other.name);
+                  setChatConn(null);
+                }
+              : undefined
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-16 yg-page-enter">
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-900/40 via-indigo-900/30 to-slate-900 border border-purple-500/30 rounded-2xl p-5 sm:p-6 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 border border-purple-500/40 text-purple-300 text-[11px] font-black uppercase tracking-wider">
-              <Users className="w-3.5 h-3.5" /> Travel Companion Matching
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white">Find Your Travel Buddy</h1>
-            <p className="text-xs text-slate-400">Post your travel plan and connect with compatible travelers.</p>
-          </div>
-          {user && (
-            <button onClick={() => setShowCreate(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg flex-shrink-0">
-              <PlusCircle className="w-4 h-4" /> Post Travel Plan
+      <PageHeader
+        eyebrow="Travel Companion Matching"
+        icon={Users}
+        accentColor="indigo"
+        title="Travel Buddy"
+        description="Post your upcoming travel plan, match with compatible travelers, and coordinate safely."
+        actions={
+          user && (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm flex-shrink-0 keep-white yg-press"
+            >
+              <PlusCircle className="w-4 h-4" aria-hidden="true" />
+              <span>Post Travel Plan</span>
             </button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-slate-900 border border-slate-800 rounded-2xl overflow-x-auto no-scrollbar">
+      <div className="flex gap-1 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-x-auto no-scrollbar">
         {([
           { key: 'find', label: 'Find Buddies', icon: Search },
+          { key: 'groups', label: 'Travel Groups', icon: Users },
           { key: 'my-plans', label: 'My Plans', icon: Backpack },
           { key: 'requests', label: `Requests${incoming.length ? ` (${incoming.length})` : ''}`, icon: Clock },
           { key: 'buddies', label: 'My Buddies', icon: UserCheck },
         ] as { key: Tab; label: string; icon: React.FC<any> }[]).map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex-shrink-0 ${
-              tab === t.key ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-white'
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex-shrink-0 ${
+              tab === t.key ? 'bg-sky-600 text-white shadow-sm keep-white' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}>
-            <t.icon className="w-3.5 h-3.5" />{t.label}
+            <t.icon className="w-3.5 h-3.5" aria-hidden="true" />{t.label}
           </button>
         ))}
       </div>
@@ -427,40 +667,37 @@ export const TravelBuddyPage: React.FC = () => {
       {tab === 'find' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="flex flex-wrap gap-2 items-center bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+          <div className="yg-card flex flex-wrap gap-2 items-center p-3">
             <div className="relative flex-1 min-w-[180px]">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
               <input type="text" value={destFilter} onChange={e => setDestFilter(e.target.value)}
-                placeholder="Search destination..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500" />
+                placeholder="Search destination (e.g. Kedarnath, Manali)..."
+                aria-label="Search destination"
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-sky-500" />
             </div>
             <select value={styleFilter} onChange={e => setStyleFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-300 focus:outline-none focus:border-purple-500">
+              aria-label="Filter by travel style"
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500">
               {STYLES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <select value={budgetFilter} onChange={e => setBudgetFilter(e.target.value)}
-              className="px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-semibold text-slate-300 focus:outline-none focus:border-purple-500">
+              aria-label="Filter by budget"
+              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500">
               {BUDGETS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
             </select>
           </div>
 
           {loading ? (
-            <div className="py-16 flex flex-col items-center gap-3">
-              <Loader2 className="w-7 h-7 animate-spin text-purple-400" />
-              <p className="text-xs text-slate-400">Finding compatible travelers...</p>
-            </div>
+            <LoadingSkeleton variant="card" count={3} />
           ) : plans.length === 0 ? (
-            <div className="py-14 text-center bg-slate-900/40 border border-slate-800 rounded-2xl space-y-3">
-              <Users className="w-10 h-10 text-purple-400/50 mx-auto" />
-              <p className="text-sm font-bold text-white">No travel plans found</p>
-              <p className="text-xs text-slate-400">Be the first! Post your travel plan and others will find you.</p>
-              {user && (
-                <button onClick={() => setShowCreate(true)}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold">
-                  Post Travel Plan
-                </button>
-              )}
-            </div>
+            <EmptyState
+              icon={Users}
+              title="No travel plans found"
+              description="Be the first to post a travel plan for this destination so compatible travelers can connect with you."
+              actionLabel={user ? 'Post Travel Plan' : undefined}
+              onAction={user ? () => setShowCreate(true) : undefined}
+              accentColor="blue"
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {plans.map(plan => (
@@ -499,6 +736,8 @@ export const TravelBuddyPage: React.FC = () => {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${STYLE_COLORS[plan.travelStyle] || 'bg-slate-800 text-slate-300'}`}>{plan.travelStyle}</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
                         plan.status === 'OPEN' ? 'bg-emerald-900/40 text-emerald-300 border-emerald-700/50' :
+                        plan.status === 'TRAVELLING' ? 'bg-sky-900/50 text-sky-300 border-sky-700/50' :
+                        plan.status === 'COMPLETED' ? 'bg-purple-900/50 text-purple-300 border-purple-700/50' :
                         plan.status === 'CANCELLED' ? 'bg-slate-800 text-slate-400 border-slate-700' :
                         'bg-blue-900/40 text-blue-300 border-blue-700/50'
                       }`}>{plan.status}</span>
@@ -509,12 +748,35 @@ export const TravelBuddyPage: React.FC = () => {
                       <div className="text-[11px] text-purple-300">{plan.connections.length} buddy request{plan.connections.length !== 1 ? 's' : ''} received</div>
                     )}
                   </div>
-                  {plan.status === 'OPEN' && (
-                    <button onClick={() => handleCancelPlan(plan.id)}
-                      className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-red-900/40 text-slate-400 hover:text-red-400 text-[11px] font-bold border border-slate-700 flex-shrink-0">
-                      Cancel
-                    </button>
-                  )}
+                  <div className="flex flex-wrap gap-1.5 justify-end flex-shrink-0">
+                    {plan.status === 'OPEN' && (
+                      <button
+                        type="button"
+                        onClick={() => handlePlanStatusChange(plan.id, 'TRAVELLING')}
+                        className="px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 text-[11px] font-semibold border border-sky-500/30 transition-colors"
+                      >
+                        Start Trip
+                      </button>
+                    )}
+                    {(plan.status === 'OPEN' || plan.status === 'TRAVELLING') && (
+                      <button
+                        type="button"
+                        onClick={() => handlePlanStatusChange(plan.id, 'COMPLETED')}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 text-[11px] font-semibold border border-emerald-500/30 transition-colors"
+                      >
+                        Complete Trip
+                      </button>
+                    )}
+                    {plan.status === 'OPEN' && (
+                      <button
+                        type="button"
+                        onClick={() => setCancelPlanId(plan.id)}
+                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-red-900/40 text-slate-600 hover:text-red-600 dark:text-slate-300 dark:hover:text-red-400 text-[11px] font-semibold border border-slate-200 dark:border-slate-700 transition-colors"
+                      >
+                        Cancel Plan
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })
@@ -567,10 +829,20 @@ export const TravelBuddyPage: React.FC = () => {
               <p className="text-xs text-slate-400">Find a travel plan and send a connect request to get started.</p>
             </div>
           ) : (
-            accepted.map(c => (
-              <ConnectionCard key={c.id} conn={c} myId={user.id}
-                onChat={() => setChatConn(c)} />
-            ))
+            accepted.map(c => {
+              const other = c.senderId === user.id ? c.receiverUser : c.senderUser;
+              return (
+                <ConnectionCard
+                  key={c.id}
+                  conn={c}
+                  myId={user.id}
+                  onChat={() => setChatConn(c)}
+                  onFeedback={() => setFeedbackConn(c)}
+                  onReport={other?.id ? () => setReportTarget({ id: other.id, name: other.name || 'Traveler' }) : undefined}
+                  onBlock={other?.id ? () => handleBlockUser(other.id, other.name) : undefined}
+                />
+              );
+            })
           )}
         </div>
       )}
@@ -710,6 +982,318 @@ export const TravelBuddyPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      <ConfirmationModal
+        isOpen={Boolean(cancelPlanId)}
+        title="Cancel this travel plan?"
+        description="Pending connection requests on this plan will no longer receive new matches. You can post a new plan anytime."
+        confirmLabel="Cancel Plan"
+        cancelLabel="Keep Plan"
+        tone="warning"
+        isLoading={isCancellingPlan}
+        onConfirm={handleCancelPlan}
+        onCancel={() => setCancelPlanId(null)}
+      />
+
+      {/* Modal: Companion Trip Feedback */}
+      {feedbackConn && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-400" /> Leave Trip Feedback
+              </h3>
+              <button type="button" onClick={() => setFeedbackConn(null)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={handleSubmitFeedback} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-300 mb-1.5">Companion Rating</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setFeedbackRating(num)}
+                      className={`px-3 py-1.5 rounded-xl font-bold border ${
+                        feedbackRating === num
+                          ? 'bg-amber-500 text-slate-950 border-amber-400'
+                          : 'bg-slate-950 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      {num} ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">Travel Notes (Optional)</label>
+                <textarea
+                  rows={3}
+                  value={feedbackText}
+                  onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder="Share how safe, punctual, and helpful your companion was..."
+                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setFeedbackConn(null)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold">Cancel</button>
+                <button type="submit" disabled={savingFeedback} className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black disabled:opacity-50">
+                  {savingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Report Inappropriate Traveler */}
+      {reportTarget && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <Flag className="w-4 h-4 text-red-400" /> Report {reportTarget.name}
+              </h3>
+              <button type="button" onClick={() => setReportTarget(null)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={handleSubmitReport} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-300 mb-1">Reason for safety report *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  placeholder="Describe harassment, scam attempt, or unsafe behavior..."
+                  className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button type="button" onClick={() => setReportTarget(null)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold">Cancel</button>
+                <button type="submit" disabled={savingReport} className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black disabled:opacity-50">
+                  {savingReport ? 'Reporting...' : 'Submit Safety Report'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Travel Groups Tab */}
+      {tab === 'groups' && (
+        <div className="space-y-5">
+          <div className="yg-card p-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">Group Travel &amp; Shared Coordination</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Form small groups for shared rides/itineraries, coordinate via group chat, and manage safety blocks.
+              </p>
+            </div>
+            {user && (
+              <button
+                type="button"
+                onClick={() => setShowCreateGroup(true)}
+                className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 keep-white"
+              >
+                <PlusCircle className="w-4 h-4" /> Create Travel Group
+              </button>
+            )}
+          </div>
+
+          {groupsLoading ? (
+            <LoadingSkeleton variant="card" count={3} />
+          ) : groups.length === 0 ? (
+            <EmptyState
+              icon={Users}
+              title="No Active Travel Groups Yet"
+              description="Start a travel group for a route or trek so buddies can join and coordinate shared plans."
+              actionLabel={user ? 'Create Travel Group' : undefined}
+              onAction={() => setShowCreateGroup(true)}
+              accentColor="blue"
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groups.map((g) => {
+                const isMember = user && g.members?.some((m: any) => m.userId === user.id);
+                const memberCount = g._count?.members ?? g.members?.length ?? 1;
+                return (
+                  <div key={g.id} className="yg-card p-5 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="px-2 py-0.5 rounded-full bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold text-[10px]">
+                          {memberCount}/{g.maxMembers} Members
+                        </span>
+                        <span className="text-[11px] text-slate-500">{g.startDate} → {g.endDate}</span>
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">{g.title}</h3>
+                      <div className="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-sky-500" />
+                        <span>{g.originCity ? `${g.originCity} → ` : ''}{g.destinationCity}</span>
+                      </div>
+                      {g.budgetNote && <p className="text-[11px] text-slate-500">Budget: {g.budgetNote}</p>}
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
+                      {isMember ? (
+                        <button
+                          type="button"
+                          onClick={() => openGroupRoom(g)}
+                          className="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold keep-white"
+                        >
+                          Open Group Room
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleJoinGroup(g.id)}
+                          className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold keep-white"
+                        >
+                          Join Group
+                        </button>
+                      )}
+                      {user && g.creatorId !== user.id && (
+                        <button
+                          type="button"
+                          onClick={() => handleBlockUser(g.creatorId, g.creator?.name)}
+                          className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-red-500"
+                          title="Block creator"
+                        >
+                          <ShieldBan className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {blockedUsers.length > 0 && (
+            <div className="yg-card p-4 space-y-2 text-xs">
+              <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                <ShieldBan className="w-4 h-4 text-red-500" /> Blocked Travelers ({blockedUsers.length})
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {blockedUsers.map((b) => (
+                  <span key={b.id} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <span>{b.blockedUser?.name || 'User'}</span>
+                    <button
+                      type="button"
+                      onClick={() => unblockSafetyUser(b.blockedUserId).then(loadBlocked)}
+                      className="text-sky-600 dark:text-sky-400 font-bold"
+                    >
+                      Unblock
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Create Travel Group */}
+      {showCreateGroup && (
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-3 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Travel Group</h3>
+              <button type="button" onClick={() => setShowCreateGroup(false)} className="text-slate-400"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={handleCreateGroup} className="space-y-2.5 text-xs">
+              <input type="text" required placeholder="Group Title *" value={groupForm.title}
+                onChange={e => setGroupForm(p => ({ ...p, title: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="text" placeholder="Origin City" value={groupForm.originCity}
+                  onChange={e => setGroupForm(p => ({ ...p, originCity: e.target.value }))}
+                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+                <input type="text" required placeholder="Destination *" value={groupForm.destinationCity}
+                  onChange={e => setGroupForm(p => ({ ...p, destinationCity: e.target.value }))}
+                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input type="date" required value={groupForm.startDate}
+                  onChange={e => setGroupForm(p => ({ ...p, startDate: e.target.value }))}
+                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+                <input type="date" required value={groupForm.endDate}
+                  onChange={e => setGroupForm(p => ({ ...p, endDate: e.target.value }))}
+                  className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+              </div>
+              <input type="text" placeholder="Budget estimate (e.g. ₹6,500 split)" value={groupForm.budgetNote}
+                onChange={e => setGroupForm(p => ({ ...p, budgetNote: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+              <textarea rows={2} placeholder="Shared itinerary notes" value={groupForm.itineraryNotes}
+                onChange={e => setGroupForm(p => ({ ...p, itineraryNotes: e.target.value }))}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowCreateGroup(false)} className="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 font-semibold">Cancel</button>
+                <button type="submit" className="px-4 py-2 rounded-xl bg-sky-600 text-white font-bold keep-white">Create</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Group Coordination Room */}
+      {activeGroup && (
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-2xl p-5 space-y-4 shadow-2xl max-h-[90dvh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{activeGroup.title}</h3>
+                <p className="text-[11px] text-slate-500">{activeGroup.destinationCity} • {activeGroup.members?.length || 1} members</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {user && activeGroup.creatorId !== user.id && (
+                  <button
+                    type="button"
+                    onClick={() => leaveTravelGroup(activeGroup.id).then(() => { setActiveGroup(null); loadGroups(); })}
+                    className="px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-600 text-[11px] font-bold"
+                  >
+                    Leave Group
+                  </button>
+                )}
+                <button type="button" onClick={() => setActiveGroup(null)} className="text-slate-400"><X className="w-5 h-5" /></button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div className="space-y-2">
+                <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                  <StickyNote className="w-3.5 h-3.5 text-sky-500" /> Shared Itinerary &amp; Expense Notes
+                </div>
+                <textarea rows={3} placeholder="Shared itinerary stops..." value={groupNotesEdit.itineraryNotes}
+                  onChange={e => setGroupNotesEdit(p => ({ ...p, itineraryNotes: e.target.value }))}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+                <textarea rows={2} placeholder="Shared expenses / cab split notes..." value={groupNotesEdit.sharedExpenseNote}
+                  onChange={e => setGroupNotesEdit(p => ({ ...p, sharedExpenseNote: e.target.value }))}
+                  className="w-full p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+                <button type="button" onClick={handleSaveGroupNotes} className="px-3 py-1.5 rounded-lg bg-sky-600 text-white font-bold keep-white">
+                  Save Shared Notes
+                </button>
+              </div>
+
+              <div className="flex flex-col border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden h-64">
+                <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50 dark:bg-slate-950">
+                  {groupMessages.length === 0 ? (
+                    <div className="text-slate-400 text-center py-8">No group messages yet.</div>
+                  ) : groupMessages.map((m) => (
+                    <div key={m.id} className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                      <div className="font-bold text-[10px] text-sky-600 dark:text-sky-400">{m.sender?.name}</div>
+                      <div className="text-xs text-slate-800 dark:text-slate-200">{m.content}</div>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={handleSendGroupMessage} className="p-2 border-t border-slate-200 dark:border-slate-800 flex gap-1.5">
+                  <input type="text" value={groupMsgText} onChange={e => setGroupMsgText(e.target.value)}
+                    placeholder="Message group..." className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
+                  <button type="submit" className="px-3 py-1.5 rounded-lg bg-sky-600 text-white font-bold keep-white">Send</button>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       )}

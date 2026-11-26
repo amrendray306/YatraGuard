@@ -1,9 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { isCloudinaryConfigured, deleteStoredImage } from '../services/uploadService.js';
-
-const prisma = new PrismaClient();
 
 function buildLocalUploadUrl(filename: string): string {
   const publicBase = (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '')

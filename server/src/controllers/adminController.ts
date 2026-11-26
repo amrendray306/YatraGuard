@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-
-const prisma = new PrismaClient();
 
 // Helper to log admin actions
 async function recordAuditLog(adminId: string, action: string, targetEntity: string, targetId?: string, details?: string) {
@@ -42,6 +40,10 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
       recentEmergencyLogs,
       pendingIncidents,
       pendingFareReports,
+      pendingRiskAlerts,
+      pendingRoadReports,
+      openLostFound,
+      verifiedServices,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { role: 'TRAVELER', isActive: true } }),
@@ -73,6 +75,18 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
         orderBy: { createdAt: 'desc' },
         include: { city: true, transportMode: true },
       }),
+      prisma.travelRiskAlert.count({
+        where: { verificationStatus: 'PENDING' },
+      }),
+      prisma.roadCrowdReport.count({
+        where: { status: 'PENDING' },
+      }),
+      prisma.lostFoundItem.count({
+        where: { status: 'OPEN' },
+      }),
+      prisma.locationService.count({
+        where: { isVerified: true },
+      }),
     ]);
 
     return res.json({
@@ -88,6 +102,10 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
         reportedContent: pendingCount + totalScamReports,
         pendingFareReports: pendingFareCount,
         verifiedFareReports: verifiedFareCount,
+        pendingRiskAlerts,
+        pendingRoadReports,
+        openLostFound,
+        verifiedServices,
       },
       highRiskZones,
       recentEmergencyLogs,

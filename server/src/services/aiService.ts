@@ -1,7 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma.js';
 
 export interface GuardianContext {
   city?: string;
@@ -10,11 +8,13 @@ export interface GuardianContext {
   safetyScore?: number;
   nearbyPolice?: string;
   nearbyHospital?: string;
+  nearbyPharmacy?: string;
   weatherCondition?: string;
   recentIncidents?: string[];
   activeScams?: string[];
   fareRulesSummary?: string;
   activeCorridors?: string[];
+  localPriceSummary?: string;
 }
 
 export async function askTravelGuardian(
@@ -28,42 +28,71 @@ export async function askTravelGuardian(
   if (geminiApiKey && geminiApiKey.length > 5) {
     try {
       const ai = new GoogleGenAI({ apiKey: geminiApiKey });
-      const systemInstruction = `You are "YatraGuard AI", an elite AI travel safety companion and local transportation fare intelligence advisor for travelers across India.
-Current User Context:
-- Current City: ${context.city || 'India'}
-- Estimated Safety Score: ${context.safetyScore || 'N/A'}/100
-- Nearest Hospital: ${context.nearbyHospital || 'Emergency Services available via 102/108'}
-- Nearest Police: ${context.nearbyPolice || 'Police assistance via 112/100'}
-- Weather: ${context.weatherCondition || 'Normal'}
-- Active Incidents Nearby: ${context.recentIncidents?.join('; ') || 'None reported'}
-- Known Tourist Scams Nearby: ${context.activeScams?.join('; ') || 'None reported'}
-- Regulated Transportation Tariffs & Popular Corridors for ${context.city || 'Current Location'}:
-${context.fareRulesSummary || 'Auto: ₹25-30 base, ₹11-15/km. Local taxi: ₹20-25/km. Always ask for meter or government prepaid booth.'}
+      const systemInstruction = `You are "YatraGuard AI", a trustworthy intelligent travel safety companion and trip advisor across India.
+Current Verified Context from YatraGuard Database:
+- Active Destination: ${context.city || 'India'}
+- Estimated Area Safety Score: ${context.safetyScore || 'N/A'}/100
+- Nearest Listed Hospital: ${context.nearbyHospital || 'Emergency Ambulance via 108 / 112'}
+- Nearest Listed Police Desk: ${context.nearbyPolice || 'Police via 112 / 100'}
+- Nearest Listed Pharmacy: ${context.nearbyPharmacy || 'Ask for licensed 24/7 chemist or verify locally'}
+- Cached Weather Context: ${context.weatherCondition || 'Not currently available from live feed'}
+- Recent Incidents Logged: ${context.recentIncidents?.join('; ') || 'None currently logged'}
+- Known Scam Patterns Logged: ${context.activeScams?.join('; ') || 'None currently logged'}
+- Regulated Transportation Tariffs for ${context.city || 'Current Location'}:
+${context.fareRulesSummary || 'Auto: ₹25-30 base, ₹11-15/km. Local taxi: ₹20-25/km. Prefer official prepaid booths or metered rides.'}
 ${context.activeCorridors && context.activeCorridors.length > 0 ? `Verified Corridor Benchmarks:\n${context.activeCorridors.map((c) => `- ${c}`).join('\n')}` : ''}
+${context.localPriceSummary ? `Local Food/Stay/Activity Benchmarks:\n${context.localPriceSummary}` : ''}
 
-Critical Rules:
-1. Always answer "What should I do right now?" with clear, actionable safety instructions.
-2. For emergencies: ALWAYS emphasize calling official emergency services (112 for Pan-India emergency, 100 for Police, 108/102 for Ambulance, 1091 for Women Helpline, 1363 for Tourist Helpline). Never pretend to replace human first responders.
-3. For transportation fares and overcharging questions: Compare the requested route or driver quote against the regulated city tariffs and corridor benchmarks. Explicitly state whether the quoted price is Fair, Slightly Elevated, Potential Overcharge, or Severe Overcharge. Always recommend using official traffic police prepaid taxi booths or app-based booking where available.
-4. NEVER invent or hallucinate phone numbers, locations, or regulations. When information is unavailable, clearly state: "I don't have verified information for this."
-5. Be empathetic, calm, practical, and protective. Format answers cleanly with markdown bullet points for rapid reading on mobile devices.`;
+Critical Truthfulness & Safety Rules:
+1. For budget-based trip suggestions (e.g. "I am in Manali with a budget of ₹2,000"), break down:
+   • Suggested destinations / stops
+   • Approximate transportation costs (marked as Approximate / Estimated)
+   • Estimated food & entry expenses (marked as Estimated)
+   • Estimated travel duration
+   • Relevant safety advisories & local scam warnings
+2. For emergencies: ALWAYS advise dialing official Indian helplines (112 All-in-One, 100 Police, 108/102 Ambulance, 1091 Women Helpline, 1363 Tourist Helpline). Never claim live service bed/medicine availability unless directly stated.
+3. For translations: Provide the Hindi script, English pronunciation (transliteration), and polite safety context.
+4. NEVER fabricate live road closures, live weather telemetry, phone numbers, or guaranteed transport availability. Clearly label estimates as approximate and state if live data is unavailable.
+5. Keep responses concise, structured with clear markdown bullets, and easy to scan on mobile.`;
+
+      const recentTurns = history
+        .slice(-8)
+        .filter((h) => h.text && h.text.trim())
+        .map((h) => ({
+          role: h.role === 'model' ? ('model' as const) : ('user' as const),
+          parts: [{ text: h.text.slice(0, 1500) }],
+        }));
+
+      const contents = [
+        ...recentTurns,
+        { role: 'user' as const, parts: [{ text: query }] },
+      ];
+
+      const withTimeout = <T>(p: Promise<T>, ms = 10000): Promise<T> =>
+        Promise.race([
+          p,
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Gemini API request timed out')), ms)
+          ),
+        ]);
 
       let response;
       try {
-        response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: [
-            { role: 'user', parts: [{ text: `${systemInstruction}\n\nUser Question: ${query}` }] },
-          ],
-        });
-      } catch (primaryErr) {
-        // Fallback to gemini-2.0-flash if 2.5 is unavailable or rate-limited
-        response = await ai.models.generateContent({
-          model: 'gemini-2.0-flash',
-          contents: [
-            { role: 'user', parts: [{ text: `${systemInstruction}\n\nUser Question: ${query}` }] },
-          ],
-        });
+        response = await withTimeout(
+          ai.models.generateContent({
+            model: 'gemini-3.8-flash',
+            config: { systemInstruction },
+            contents,
+          })
+        );
+      } catch {
+        response = await withTimeout(
+          ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            config: { systemInstruction },
+            contents,
+          })
+        );
       }
 
       const reply = response.text || "I don't have verified information for this.";
@@ -277,6 +306,39 @@ ${context.fareRulesSummary || `• Auto Rickshaw: Base ₹25–₹30 (first 1.5�
 1. **Always insist on meter or prepaid booth:** Locate the official **Traffic Police Prepaid Booth** before leaving the railway station or airport terminal.
 2. **Use App Alternatives:** Uber, Ola, or Rapido provide GPS-tracked rides with upfront regulated digital tariffs.
 3. **Audit Your Quote:** Use our **Fare Intelligence Tab** to calculate the exact estimated fare and overcharge risk for any distance in ${city}.`,
+      isAiGenerated: false,
+      mode: 'DEMO_HEURISTIC',
+    };
+  }
+
+  // 4b. Budget trip / Places to visit / Itinerary suggestion
+  if (
+    q.includes('budget') ||
+    q.includes('visit') ||
+    q.includes('itinerary') ||
+    q.includes('places') ||
+    q.includes('suggest') ||
+    q.includes('day trip')
+  ) {
+    const budgetMatch = q.match(/(?:rs\.?|inr|₹|\b)(\d{3,6})\b/i);
+    const totalBudget = budgetMatch ? parseInt(budgetMatch[1], 10) : 2000;
+    const estTransport = Math.round(totalBudget * 0.35);
+    const estFood = Math.round(totalBudget * 0.35);
+    const estEntryBuffer = Math.max(0, totalBudget - estTransport - estFood);
+
+    return {
+      reply: `🧭 **ESTIMATED DAY PLAN FOR ${city.toUpperCase()} (BUDGET ~₹${totalBudget.toLocaleString('en-IN')})**
+
+**Suggested Budget Allocation *(Approximate Estimates)*:**
+- **Local Transport:** ~₹${estTransport.toLocaleString('en-IN')} (prefer shared autos, HRTC/state buses, or official prepaid counters)
+- **Food & Hydration:** ~₹${estFood.toLocaleString('en-IN')} (local dhabas / verified dining)
+- **Monument Entry & Buffer:** ~₹${estEntryBuffer.toLocaleString('en-IN')}
+
+**Key Guidance:**
+- **Safety Score:** **${score}/100** (${context.weatherCondition || 'Check local weather before departing'})
+- **Nearest Medical:** ${hospital} (Call **108** for emergency ambulance)
+- **Nearest Police:** ${police} (Call **112** for urgent police help)
+- **Travel Tip:** Confirm exact entry fees at official monument counters and avoid touts offering bundled "skip-the-line" packages. Use the **Smart Trip Planner** tab to customize and save a full day-by-day itinerary.`,
       isAiGenerated: false,
       mode: 'DEMO_HEURISTIC',
     };

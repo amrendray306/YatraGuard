@@ -37,22 +37,29 @@ import { ProfileCard } from '../components/cards/ProfileCard';
 import { EmergencyContactCard } from '../components/cards/EmergencyContactCard';
 import { NotificationCard } from '../components/cards/NotificationCard';
 import { ProfileImageModal } from '../components/shared/ProfileImageModal';
+import { ConfirmationModal } from '../components/ui';
 
 interface ProfilePageProps {
   setCurrentTab: (tab: string) => void;
   openEmergencyModal: () => void;
   openAuthModal: (mode?: 'LOGIN' | 'REGISTER') => void;
+  initialSection?: 'OVERVIEW' | 'SETTINGS';
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
   setCurrentTab,
   openEmergencyModal,
   openAuthModal,
+  initialSection = 'OVERVIEW',
 }) => {
   const { user, logout } = useAuth();
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<'OVERVIEW' | 'SETTINGS'>('OVERVIEW');
+  const [activeSection, setActiveSection] = useState<'OVERVIEW' | 'SETTINGS'>(initialSection);
+
+  useEffect(() => {
+    setActiveSection(initialSection);
+  }, [initialSection]);
 
   // Modals
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -81,6 +88,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const loadData = async () => {
+    if (!user) {
+      setDashboardData(null);
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       const data = await fetchUserDashboardData();
@@ -122,6 +134,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (passwordForm.newPassword.length < 8) {
+      setToastMessage({ text: 'New password must be at least 8 characters long', type: 'error' });
+      return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setToastMessage({ text: 'New passwords do not match', type: 'error' });
       return;
@@ -737,7 +753,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">New Password (min. 6 chars)</label>
+                <label className="block text-slate-300 font-bold mb-1">New Password (min. 8 chars)</label>
                 <input
                   type="password"
                   value={passwordForm.newPassword}
@@ -779,35 +795,16 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       )}
 
       {/* DELETE ACCOUNT CONFIRMATION MODAL */}
-      {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-slate-900 border border-red-900 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl">
-            <div className="flex items-center gap-3 text-red-400">
-              <AlertTriangle className="w-6 h-6" />
-              <h3 className="text-lg font-black text-white">Delete YatraGuard Account?</h3>
-            </div>
-
-            <p className="text-xs text-slate-300 leading-relaxed">
-              This action is permanent and cannot be undone. All your trips, saved destinations, and emergency vault entries will be permanently deleted from the database.
-            </p>
-
-            <div className="pt-3 flex items-center justify-end gap-3">
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 text-xs"
-              >
-                Keep Account
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs shadow-lg"
-              >
-                Yes, Delete My Account
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Delete YatraGuard Account?"
+        description="This action is permanent and cannot be undone. All your trips, saved destinations, and emergency vault entries will be permanently deleted."
+        confirmLabel="Yes, Delete Account"
+        cancelLabel="Keep Account"
+        tone="danger"
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setIsDeleteModalOpen(false)}
+      />
 
       {/* PROFILE PHOTO UPLOAD & CROP MODAL */}
       <ProfileImageModal

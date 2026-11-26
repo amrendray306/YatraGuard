@@ -43,6 +43,11 @@ export function securityHeaders(req: Request, res: Response, next: NextFunction)
 
   res.setHeader('Content-Security-Policy', csp);
 
+  // Enforce HSTS in production
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
   // Remove Express identifier header
   res.removeHeader('X-Powered-By');
 
@@ -83,6 +88,7 @@ export function createRateLimiter(options: {
     }
 
     const clientIp =
+      req.ip ||
       (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
       req.socket.remoteAddress ||
       'unknown-ip';

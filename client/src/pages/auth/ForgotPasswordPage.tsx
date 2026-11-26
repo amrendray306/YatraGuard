@@ -35,7 +35,7 @@ export function ForgotPasswordPage() {
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestSuccess, setRequestSuccess] = useState<string | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [generatedToken, setGeneratedToken] = useState<string | null>(null);
+  const [emailDeliveryMode, setEmailDeliveryMode] = useState<string | null>(null);
 
   // Reset State
   const [resetToken, setResetToken] = useState(tokenFromUrl);
@@ -50,17 +50,17 @@ export function ForgotPasswordPage() {
     e.preventDefault();
     setRequestError(null);
     setRequestSuccess(null);
+    setEmailDeliveryMode(null);
     setRequestLoading(true);
 
     try {
       const res = await apiForgotPassword(email);
       setRequestSuccess(
         res.message ||
-          'If an account exists with this email, password reset instructions have been generated.'
+          'If an account exists with this email, password reset instructions have been issued.'
       );
-      if (res.resetToken) {
-        setGeneratedToken(res.resetToken);
-        setResetToken(res.resetToken);
+      if (res.emailDelivery) {
+        setEmailDeliveryMode(res.emailDelivery);
       }
     } catch (err: any) {
       console.error('Password reset request error:', err);
@@ -84,8 +84,8 @@ export function ForgotPasswordPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setResetError('New password must be at least 6 characters long.');
+    if (newPassword.length < 8) {
+      setResetError('New password must be at least 8 characters long.');
       return;
     }
 
@@ -221,23 +221,22 @@ export function ForgotPasswordPage() {
                     <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
                     <span>{requestSuccess}</span>
                   </div>
-                  {generatedToken && (
-                    <div className="mt-2 pt-2 border-t border-emerald-500/20 text-slate-300">
-                      <p className="font-semibold text-[11px] mb-1">
-                        Demo Reset Token Generated:
-                      </p>
-                      <code className="bg-slate-950 px-2 py-1 rounded text-amber-400 text-[11px] select-all break-all block mb-2">
-                        {generatedToken}
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => setMode('RESET')}
-                        className="text-xs font-bold text-amber-400 hover:underline inline-flex items-center gap-1"
-                      >
-                        Proceed to Enter Token <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="mt-2 pt-2 border-t border-emerald-500/20 text-slate-300 space-y-2">
+                    <p className="text-[11px] leading-relaxed">
+                      {emailDeliveryMode === 'SENT'
+                        ? 'Check your inbox for your one-time password reset link or copy the code into step 2.'
+                        : emailDeliveryMode === 'DEV_CONSOLE'
+                        ? 'Email dispatch is not configured in local dev; check your server console log for the 15-minute reset code.'
+                        : 'Email delivery provider (RESEND_API_KEY) is not configured on this server; contact an administrator if needed.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setMode('RESET')}
+                      className="text-xs font-bold text-amber-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      Proceed to Enter Token <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -346,7 +345,7 @@ export function ForgotPasswordPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    placeholder="At least 6 characters"
+                    placeholder="At least 8 characters"
                     className={`w-full pl-10 pr-10 py-3 rounded-2xl border text-sm font-medium transition-all outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 ${
                       isDark
                         ? 'bg-slate-800/60 border-slate-700/80 text-white placeholder-slate-500'

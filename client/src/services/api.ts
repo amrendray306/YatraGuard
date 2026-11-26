@@ -60,8 +60,22 @@ export const evaluateRouteRisk = async (payload: {
   cityId?: string;
 }) => (await api.post('/route-risk', payload)).data;
 
-export const fetchWeather = async (cityId?: string, cityName?: string) =>
-  (await api.get('/weather', { params: { cityId, cityName } })).data;
+export const fetchWeather = async (
+  cityId?: string,
+  cityName?: string,
+  opts?: { lat?: number; lng?: number; refresh?: boolean }
+) =>
+  (
+    await api.get('/weather', {
+      params: {
+        cityId,
+        cityName,
+        lat: opts?.lat,
+        lng: opts?.lng,
+        refresh: opts?.refresh ? 'true' : undefined,
+      },
+    })
+  ).data;
 
 export const fetchCosts = async (cityId?: string, category?: string) =>
   (await api.get('/costs', { params: { cityId, category } })).data;
@@ -285,7 +299,72 @@ export const triggerSos = async (payload: {
   lng: number;
   address?: string;
   cityId?: string;
+  messageText?: string;
+  sharedWithCount?: number;
+  status?: string;
 }) => (await api.post('/emergency/sos', payload)).data;
+
+export const fetchEmergencyHistory = async () =>
+  (await api.get('/emergency/history')).data;
+
+export const fetchEmergencyContacts = async () =>
+  (await api.get('/emergency/contacts')).data;
+
+export const createEmergencyContact = async (payload: {
+  name: string;
+  phone: string;
+  relation?: string;
+  isPrimary?: boolean;
+  canShareLocation?: boolean;
+}) => (await api.post('/emergency/contacts', payload)).data;
+
+export const updateEmergencyContact = async (
+  id: string,
+  payload: {
+    name?: string;
+    phone?: string;
+    relation?: string;
+    isPrimary?: boolean;
+    canShareLocation?: boolean;
+  }
+) => (await api.put(`/emergency/contacts/${id}`, payload)).data;
+
+export const deleteEmergencyContact = async (id: string) =>
+  (await api.delete(`/emergency/contacts/${id}`)).data;
+
+// --- LIVE TRAVEL RISK ALERTS API ---
+export const fetchRiskAlerts = async (params?: {
+  cityId?: string;
+  category?: string;
+  severity?: string;
+  sourceType?: string;
+  tab?: 'ALL' | 'OFFICIAL' | 'COMMUNITY';
+  search?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  includeExpired?: boolean;
+}) => (await api.get('/risk-alerts', { params })).data;
+
+export const createRiskAlert = async (payload: {
+  cityId?: string;
+  destinationName: string;
+  lat?: number;
+  lng?: number;
+  category: string;
+  title: string;
+  description: string;
+  severity: string;
+  sourceType?: string;
+  sourceName?: string;
+  expiresInHours?: number;
+}) => (await api.post('/risk-alerts', payload)).data;
+
+export const verifyRiskAlert = async (id: string, action: 'APPROVE' | 'REJECT') =>
+  (await api.put(`/risk-alerts/${id}/verify`, { action })).data;
+
+export const deleteRiskAlert = async (id: string) =>
+  (await api.delete(`/risk-alerts/${id}`)).data;
 
 export const askTravelGuardian = async (payload: {
   query: string;
@@ -295,14 +374,181 @@ export const askTravelGuardian = async (payload: {
   safetyScore?: number;
   history?: Array<{ role: 'user' | 'model'; text: string }>;
 }) => (await api.post('/ai/chat', payload)).data;
+export const fetchAiHistory = async () => (await api.get('/ai/history')).data;
+export const clearAiHistory = async () => (await api.delete('/ai/history')).data;
 
+export const generateSmartItinerary = async (payload: {
+  originCity?: string;
+  destinationCity: string;
+  startDate?: string;
+  endDate?: string;
+  travelersCount?: number;
+  totalBudget?: number;
+  transportPref?: string;
+  interests?: string[];
+}) => (await api.post('/trips/generate', payload)).data;
 export const fetchUserTrips = async () => (await api.get('/trips')).data;
 export const createTrip = async (payload: any) => (await api.post('/trips', payload)).data;
+export const updateTrip = async (id: string, payload: any) => (await api.put(`/trips/${id}`, payload)).data;
+export const deleteTrip = async (id: string) => (await api.delete(`/trips/${id}`)).data;
 export const fetchSharedTrip = async (token: string) => (await api.get(`/trips/share/${token}`)).data;
+
+export const fetchExpenses = async (params?: {
+  tripId?: string;
+  category?: string;
+  startDate?: string;
+  endDate?: string;
+}) => (await api.get('/expenses', { params })).data;
+export const createExpense = async (payload: {
+  title: string;
+  category: string;
+  amount: number;
+  expenseDate?: string;
+  tripId?: string | null;
+  notes?: string;
+}) => (await api.post('/expenses', payload)).data;
+export const updateExpense = async (id: string, payload: any) =>
+  (await api.put(`/expenses/${id}`, payload)).data;
+export const deleteExpense = async (id: string) =>
+  (await api.delete(`/expenses/${id}`)).data;
 
 export const fetchVault = async () => (await api.get('/vault')).data;
 export const createVaultItem = async (payload: any) => (await api.post('/vault', payload)).data;
 export const deleteVaultItem = async (id: string) => (await api.delete(`/vault/${id}`)).data;
+
+export const fetchVaultDocuments = async () => (await api.get('/vault/documents')).data;
+export const uploadVaultDocument = async (formData: FormData) =>
+  (
+    await api.post('/vault/documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  ).data;
+export const downloadVaultDocumentBlob = async (id: string, download = false) =>
+  (
+    await api.get(`/vault/documents/${id}/download`, {
+      params: download ? { download: 'true' } : undefined,
+      responseType: 'blob',
+    })
+  ).data;
+export const deleteVaultDocument = async (id: string) =>
+  (await api.delete(`/vault/documents/${id}`)).data;
+
+// --- LOST & FOUND HUB API ---
+export const fetchLostFoundItems = async (params?: {
+  type?: string;
+  category?: string;
+  cityId?: string;
+  status?: string;
+  search?: string;
+  mine?: boolean;
+}) =>
+  (
+    await api.get('/lost-found', {
+      params: { ...params, mine: params?.mine ? 'true' : undefined },
+    })
+  ).data;
+
+export const createLostFoundItem = async (formData: FormData) =>
+  (
+    await api.post('/lost-found', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  ).data;
+
+export const updateLostFoundStatus = async (id: string, status: 'OPEN' | 'MATCHED' | 'RESOLVED') =>
+  (await api.put(`/lost-found/${id}/status`, { status })).data;
+
+export const moderateLostFoundItem = async (id: string, moderationStatus: 'APPROVED' | 'HIDDEN') =>
+  (await api.put(`/lost-found/${id}/moderate`, { moderationStatus })).data;
+
+export const inquireLostFoundItem = async (
+  id: string,
+  payload: { message: string; contactHint?: string }
+) => (await api.post(`/lost-found/${id}/inquire`, payload)).data;
+
+export const fetchLostFoundInquiries = async (id: string) =>
+  (await api.get(`/lost-found/${id}/inquiries`)).data;
+
+export const deleteLostFoundItem = async (id: string) =>
+  (await api.delete(`/lost-found/${id}`)).data;
+
+// --- PHASE 4: SERVICES REVIEWS, CROWD/ROAD, TRAVEL GROUPS & SAFETY BLOCKS ---
+export const fetchServiceReviews = async (serviceId: string) =>
+  (await api.get(`/services/${serviceId}/reviews`)).data;
+
+export const createServiceReview = async (serviceId: string, payload: { rating: number; comment: string }) =>
+  (await api.post(`/services/${serviceId}/reviews`, payload)).data;
+
+export const verifyLocalService = async (id: string, payload?: { isVerified?: boolean; verificationSource?: string }) =>
+  (await api.put(`/admin/services/${id}/verify`, payload || {})).data;
+
+export const fetchRoadCrowdReports = async (params?: {
+  cityId?: string;
+  category?: string;
+  difficulty?: string;
+  includeExpired?: boolean;
+  lat?: number;
+  lng?: number;
+}) => (await api.get('/road-crowd', { params })).data;
+
+export const createRoadCrowdReport = async (payload: {
+  cityId?: string;
+  locationName: string;
+  lat?: number;
+  lng?: number;
+  category: string;
+  difficulty: string;
+  description: string;
+  expiresInHours?: number;
+}) => (await api.post('/road-crowd', payload)).data;
+
+export const verifyRoadCrowdReport = async (id: string, action: 'APPROVE' | 'REJECT') =>
+  (await api.put(`/road-crowd/${id}/verify`, { action })).data;
+
+export const deleteRoadCrowdReport = async (id: string) =>
+  (await api.delete(`/road-crowd/${id}`)).data;
+
+export const fetchTravelGroups = async (params?: { destination?: string; mine?: boolean }) =>
+  (await api.get('/buddy/groups', { params: { ...params, mine: params?.mine ? 'true' : undefined } })).data;
+
+export const createTravelGroup = async (payload: {
+  title: string;
+  destinationCity: string;
+  originCity?: string;
+  startDate: string;
+  endDate: string;
+  maxMembers?: number;
+  budgetNote?: string;
+  itineraryNotes?: string;
+}) => (await api.post('/buddy/groups', payload)).data;
+
+export const joinTravelGroup = async (id: string) =>
+  (await api.post(`/buddy/groups/${id}/join`)).data;
+
+export const leaveTravelGroup = async (id: string) =>
+  (await api.post(`/buddy/groups/${id}/leave`)).data;
+
+export const updateGroupNotes = async (
+  id: string,
+  payload: { itineraryNotes?: string; sharedExpenseNote?: string; budgetNote?: string }
+) => (await api.put(`/buddy/groups/${id}/notes`, payload)).data;
+
+export const fetchGroupMessages = async (id: string) =>
+  (await api.get(`/buddy/groups/${id}/messages`)).data;
+
+export const sendGroupMessage = async (id: string, content: string) =>
+  (await api.post(`/buddy/groups/${id}/messages`, { content })).data;
+
+export const fetchBlockedUsers = async () => (await api.get('/buddy/safety/blocks')).data;
+
+export const blockSafetyUser = async (blockedUserId: string, reason?: string) =>
+  (await api.post('/buddy/safety/blocks', { blockedUserId, reason })).data;
+
+export const unblockSafetyUser = async (blockedUserId: string) =>
+  (await api.delete(`/buddy/safety/blocks/${blockedUserId}`)).data;
+
+export const reportSafetyUser = async (reportedUserId: string, reason: string, notes?: string) =>
+  (await api.post('/buddy/safety/report', { reportedUserId, reason, notes })).data;
 
 // --- LOCAL TRANSPORTATION FARE INTELLIGENCE API ---
 export const estimateFare = async (payload: {
@@ -407,6 +653,14 @@ export const submitCommunityPost = async (payload: {
   media?: any[];
 }) => (await api.post('/community/posts', payload)).data;
 export const likeCommunityPost = async (id: string) => (await api.post(`/community/posts/${id}/like`)).data;
+export const updateCommunityPost = async (
+  id: string,
+  payload: { title?: string; content?: string; category?: string; destinationName?: string }
+) => (await api.put(`/community/posts/${id}`, payload)).data;
+export const deleteCommunityPost = async (id: string) =>
+  (await api.delete(`/community/posts/${id}`)).data;
+export const reportCommunityPost = async (id: string, reason: string) =>
+  (await api.post(`/community/posts/${id}/report`, { reason })).data;
 export const submitPostComment = async (postId: string, content: string) =>
   (await api.post(`/community/posts/${postId}/comment`, { content })).data;
 export const fetchTravelBuddies = async (params?: { city?: string; style?: string }) =>
@@ -435,6 +689,10 @@ export const createBuddyPlan = async (payload: {
 }) => (await api.post('/buddy/plans', payload)).data;
 export const cancelBuddyPlan = async (id: string) =>
   (await api.put(`/buddy/plans/${id}/cancel`)).data;
+export const updateBuddyPlanStatus = async (
+  id: string,
+  status: 'OPEN' | 'TRAVELLING' | 'COMPLETED' | 'CANCELLED'
+) => (await api.put(`/buddy/plans/${id}/status`, { status })).data;
 export const fetchMyBuddyPlans = async () =>
   (await api.get('/buddy/my-plans')).data;
 export const sendBuddyConnect = async (planId: string, message?: string) =>
@@ -443,6 +701,8 @@ export const acceptBuddyConn = async (id: string) =>
   (await api.put(`/buddy/connections/${id}/accept`)).data;
 export const rejectBuddyConn = async (id: string) =>
   (await api.put(`/buddy/connections/${id}/reject`)).data;
+export const submitBuddyFeedback = async (connId: string, rating: number, feedback?: string) =>
+  (await api.post(`/buddy/connections/${connId}/feedback`, { rating, feedback })).data;
 export const fetchMyBuddyConnections = async () =>
   (await api.get('/buddy/connections')).data;
 export const fetchBuddyMessages = async (connId: string) =>

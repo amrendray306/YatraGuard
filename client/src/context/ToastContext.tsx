@@ -22,52 +22,60 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, message, type }]);
+  const showToast = useCallback(
+    (message: string, type: ToastType = 'info') => {
+      const id = Math.random().toString(36).substring(2, 9);
+      setToasts((prev) => [...prev, { id, message, type }]);
 
-    setTimeout(() => {
-      removeToast(id);
-    }, 3800);
-  }, [removeToast]);
+      setTimeout(() => {
+        removeToast(id);
+      }, 3800);
+    },
+    [removeToast]
+  );
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Toast Floating Viewport */}
-      <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none pb-safe">
+      {/* Accessible Live Region Toast Container */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-[9999] flex flex-col gap-2 max-w-sm w-[calc(100%-2rem)] sm:w-full pointer-events-none pb-safe"
+      >
         {toasts.map((toast) => {
-          const bg =
+          const style =
             toast.type === 'success'
-              ? 'bg-emerald-950/95 border-emerald-600 text-emerald-100 shadow-emerald-950/60'
+              ? 'bg-white dark:bg-slate-900 border-emerald-300 dark:border-emerald-700/70 text-slate-900 dark:text-emerald-100'
               : toast.type === 'error'
-              ? 'bg-red-950/95 border-red-600 text-red-100 shadow-red-950/60'
-              : 'bg-slate-900/95 border-slate-700 text-slate-100 shadow-black/60';
+              ? 'bg-white dark:bg-slate-900 border-red-300 dark:border-red-700/70 text-slate-900 dark:text-red-100'
+              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100';
 
           const icon =
             toast.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" aria-hidden="true" />
             ) : toast.type === 'error' ? (
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0" aria-hidden="true" />
             ) : (
-              <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />
+              <Info className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0" aria-hidden="true" />
             );
 
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto p-3.5 rounded-2xl border shadow-xl backdrop-blur-md flex items-center justify-between gap-3 text-xs font-semibold animate-in slide-in-from-bottom-3 fade-in duration-200 ${bg}`}
+              className={`pointer-events-auto p-3.5 rounded-2xl border shadow-lg flex items-center justify-between gap-3 text-xs font-semibold yg-page-enter ${style}`}
             >
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
                 {icon}
                 <span className="leading-snug">{toast.message}</span>
               </div>
               <button
+                type="button"
                 onClick={() => removeToast(toast.id)}
-                className="p-1 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors"
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors flex-shrink-0"
                 aria-label="Close notification"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
               </button>
             </div>
           );
@@ -84,4 +92,3 @@ export const useToast = () => {
   }
   return context;
 };
-

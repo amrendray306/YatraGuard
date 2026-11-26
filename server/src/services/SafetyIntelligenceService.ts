@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { calculateDistanceKm, formatDistance } from './geoService.js';
-
-const prisma = new PrismaClient();
 
 export interface SafetyScoreCalculationParams {
   lat: number;
@@ -301,20 +299,33 @@ export class SafetyIntelligenceService {
     }
 
     // 7. Weather-Related Environmental Hazards
-    if (weatherSeverity === 'HIGH') {
+    let effectiveWeatherSeverity = weatherSeverity;
+    if (!effectiveWeatherSeverity && city) {
+      const latestWeather = await prisma.weatherAlert
+        .findFirst({
+          where: { cityId: city.id },
+          orderBy: { updatedAt: 'desc' },
+        })
+        .catch(() => null);
+      if (latestWeather?.severity === 'HIGH' || latestWeather?.severity === 'MODERATE') {
+        effectiveWeatherSeverity = latestWeather.severity;
+      }
+    }
+
+    if (effectiveWeatherSeverity === 'HIGH') {
       score -= 7;
       factors.push({
         type: 'warning',
         category: 'WEATHER',
-        text: '⚠️ Severe Weather Advisory: Torrential rain or heavy mountain fog reduces road safety',
+        text: '⚠️ Severe Weather Advisory: Torrential rain, heat, or heavy mountain fog reduces road safety',
         impact: -7,
       });
-    } else if (weatherSeverity === 'MODERATE') {
+    } else if (effectiveWeatherSeverity === 'MODERATE') {
       score -= 3;
       factors.push({
         type: 'info',
         category: 'WEATHER',
-        text: 'ℹ️ Moderate Weather Advisory: Check surface conditions before mountain transit',
+        text: 'ℹ️ Moderate Weather Advisory: Check surface conditions before mountain or long transit',
         impact: -3,
       });
     }

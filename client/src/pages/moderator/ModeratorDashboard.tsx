@@ -89,6 +89,30 @@ export function ModeratorDashboard() {
       bg: 'bg-cyan-500/10 border-cyan-500/20',
       link: '/moderator/history',
     },
+    {
+      label: 'Pending Risk Alerts',
+      value: stats?.pendingRiskAlerts ?? '—',
+      icon: Shield,
+      color: 'text-rose-400',
+      bg: 'bg-rose-500/10 border-rose-500/20',
+      link: '/alerts',
+    },
+    {
+      label: 'Pending Road Reports',
+      value: stats?.pendingRoadReports ?? '—',
+      icon: Activity,
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/10 border-amber-500/20',
+      link: '/road-crowd',
+    },
+    {
+      label: 'Open Lost & Found',
+      value: stats?.openLostFound ?? '—',
+      icon: FileWarning,
+      color: 'text-teal-400',
+      bg: 'bg-teal-500/10 border-teal-500/20',
+      link: '/lost-found',
+    },
   ];
 
   return (

@@ -1,0 +1,55 @@
+name: YatraGuard CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: yatraguard
+          POSTGRES_PASSWORD: yatraguard_ci_password
+          POSTGRES_DB: yatraguard_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U yatraguard -d yatraguard_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install and build frontend
+        working-directory: client
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install, validate Prisma, and build backend
+        working-directory: server
+        env:
+          DATABASE_URL: postgresql://yatraguard:yatraguard_ci_password@localhost:5432/yatraguard_test
+          JWT_SECRET: ci-test-jwt-secret-key-minimum-32-chars
+        run: |
+          npm ci
+          npx prisma validate
+          npx prisma generate
+          npx prisma migrate deploy
+          npx tsx prisma/seed.ts
+          npm run build
+          npm test

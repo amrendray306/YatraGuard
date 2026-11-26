@@ -21,6 +21,7 @@ import {
 import { useCity } from '../context/CityContext';
 import { useToast } from '../context/ToastContext';
 import { fetchPriceRecords, submitPriceRecord } from '../services/api';
+import { PageHeader, EmptyState, LoadingSkeleton } from '../components/ui';
 
 const CATEGORIES = [
   { id: 'ALL', label: 'All Categories' },
@@ -147,30 +148,24 @@ export const CostsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-400 mb-1">
-            <IndianRupee className="w-4 h-4 text-amber-400" />
-            <span>Fair Price Transparency</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Local Price Benchmarks
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
-            Fair price guides for food, stays, monument tickets, and local services across cities.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setIsSubmitModalOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all shadow-md flex items-center gap-2 active:scale-95 flex-shrink-0"
-        >
-          <PlusCircle className="w-4 h-4 text-slate-950" />
-          <span>Submit Price You Paid</span>
-        </button>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-16 yg-page-enter">
+      <PageHeader
+        eyebrow="Fair Price Transparency"
+        icon={IndianRupee}
+        accentColor="amber"
+        title="Local Price Benchmarks"
+        description="Fair price guides for food, stays, monument tickets, and local services across cities."
+        actions={
+          <button
+            type="button"
+            onClick={() => setIsSubmitModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs transition-colors shadow-sm flex items-center gap-1.5 keep-white yg-press"
+          >
+            <PlusCircle className="w-4 h-4" aria-hidden="true" />
+            <span>Submit Price Paid</span>
+          </button>
+        }
+      />
 
       {/* Filter and Search Bar */}
       <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
@@ -229,24 +224,16 @@ export const CostsPage: React.FC = () => {
 
       {/* Price Cards Grid */}
       {isLoading ? (
-        <div className="py-20 text-center space-y-3">
-          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-400 font-medium">Loading verified price benchmarks...</p>
-        </div>
+        <LoadingSkeleton variant="card" count={6} />
       ) : prices.length === 0 ? (
-        <div className="py-16 text-center space-y-3 bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <Sparkles className="w-10 h-10 text-amber-400 mx-auto" />
-          <h3 className="text-base font-bold text-white">No Price Records Found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Be the first traveler to submit an authentic price benchmark for this destination category.
-          </p>
-          <button
-            onClick={() => setIsSubmitModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs"
-          >
-            Submit Price
-          </button>
-        </div>
+        <EmptyState
+          icon={Sparkles}
+          title="No Price Records Found"
+          description="Be the first traveler to submit an authentic price benchmark for this category."
+          actionLabel="Submit Price Paid"
+          onAction={() => setIsSubmitModalOpen(true)}
+          accentColor="amber"
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {prices.map((record) => (

@@ -1,14 +1,12 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { safetyIntelligenceService } from '../services/SafetyIntelligenceService.js';
 import { evaluateRouteSafety } from '../services/routeRiskEngine.js';
 import { getCityWeather } from '../services/weatherService.js';
 
-const prisma = new PrismaClient();
-
 export async function getSafetyScore(req: Request, res: Response) {
   try {
-    const lat = req.query.lat ? parseFloat(req.query.lat as string) : 28.6139; // Default Delhi
+    const lat = req.query.lat ? parseFloat(req.query.lat as string) : 28.6139;
     const lng = req.query.lng ? parseFloat(req.query.lng as string) : 77.2090;
     const cityId = req.query.cityId as string | undefined;
     const simulatedHour = req.query.hour ? parseInt(req.query.hour as string, 10) : undefined;
@@ -55,22 +53,34 @@ export async function postRouteRisk(req: Request, res: Response) {
 
 export async function getWeather(req: Request, res: Response) {
   try {
-    const cityId = req.query.cityId as string;
-    const cityName = req.query.cityName as string;
+    const cityId = req.query.cityId as string | undefined;
+    const cityName = req.query.cityName as string | undefined;
+    const lat = req.query.lat !== undefined ? parseFloat(req.query.lat as string) : undefined;
+    const lng = req.query.lng !== undefined ? parseFloat(req.query.lng as string) : undefined;
+    const forceRefresh = req.query.refresh === 'true';
 
-    if (!cityId && !cityName) {
+    if (!cityId && !cityName && (lat === undefined || Number.isNaN(lat))) {
       const defaultCity = await prisma.city.findFirst({ where: { name: 'Agra' } });
-      const weather = await getCityWeather(defaultCity ? defaultCity.id : '1', 'Agra');
+      const weather = await getCityWeather(defaultCity?.id, defaultCity?.name || 'Agra', { forceRefresh });
       return res.json(weather);
     }
 
     let targetCityId = cityId;
     if (!targetCityId && cityName) {
-      const city = await prisma.city.findFirst({ where: { name: cityName } });
+      const city = await prisma.city.findFirst({
+        where: { name: { equals: cityName.trim(), mode: 'insensitive' } },
+      });
       if (city) targetCityId = city.id;
     }
 
-    const weather = await getCityWeather(targetCityId || 'default', cityName);
+    const validLat = lat !== undefined && !Number.isNaN(lat) ? lat : undefined;
+    const validLng = lng !== undefined && !Number.isNaN(lng) ? lng : undefined;
+
+    const weather = await getCityWeather(targetCityId, cityName, {
+      lat: validLat,
+      lng: validLng,
+      forceRefresh,
+    });
     return res.json(weather);
   } catch (error) {
     console.error('Weather error:', error);

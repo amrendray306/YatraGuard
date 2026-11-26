@@ -12,7 +12,9 @@
     "start": "cd server && npm start",
     "test": "cd server && npm test",
     "seed": "cd server && npm run seed",
-    "db:push": "cd server && npm run db:push"
+    "db:push": "cd server && npm run db:push",
+    "db:migrate": "cd server && npm run db:migrate",
+    "db:migrate:status": "cd server && npm run db:migrate:status"
   },
   "keywords": ["travel-safety", "india", "ai-guardian", "emergency-sos", "route-risk"]
 }

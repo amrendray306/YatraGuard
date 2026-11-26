@@ -1,9 +1,14 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Response } from 'express';
+import { prisma } from '../lib/prisma.js';
 import bcrypt from 'bcryptjs';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 
-const prisma = new PrismaClient();
+export function isSafeAvatarUrl(url: any): boolean {
+  if (url === null || url === '') return true;
+  if (typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  return trimmed.startsWith('/uploads/') || trimmed.startsWith('https://') || trimmed.startsWith('http://localhost');
+}
 
 export async function getUserProfile(req: AuthenticatedRequest, res: Response) {
   try {
@@ -62,6 +67,10 @@ export async function updateUserProfile(req: AuthenticatedRequest, res: Response
       emergencyContactPhone,
     } = req.body;
 
+    if (avatarUrl !== undefined && !isSafeAvatarUrl(avatarUrl)) {
+      return res.status(400).json({ error: 'Invalid avatar URL protocol' });
+    }
+
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
@@ -113,8 +122,8 @@ export async function changeUserPassword(req: AuthenticatedRequest, res: Respons
       return res.status(400).json({ error: 'Current password and new password are required' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters' });
     }
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -142,14 +151,9 @@ export async function changeUserPassword(req: AuthenticatedRequest, res: Respons
 
 export async function getUserDashboardData(req: AuthenticatedRequest, res: Response) {
   try {
-    let userId = req.user?.id;
+    const userId = req.user?.id;
     if (!userId) {
-      const demoTraveler = await prisma.user.findFirst({ where: { role: 'TRAVELER' } });
-      userId = demoTraveler?.id;
-    }
-
-    if (!userId) {
-      return res.status(401).json({ error: 'User not authenticated' });
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const [
@@ -231,10 +235,9 @@ export async function getUserDashboardData(req: AuthenticatedRequest, res: Respo
 
 export async function getSavedDestinations(req: AuthenticatedRequest, res: Response) {
   try {
-    let userId = req.user?.id;
+    const userId = req.user?.id;
     if (!userId) {
-      const demoTraveler = await prisma.user.findFirst({ where: { role: 'TRAVELER' } });
-      userId = demoTraveler?.id;
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const destinations = await prisma.savedDestination.findMany({
@@ -251,12 +254,7 @@ export async function getSavedDestinations(req: AuthenticatedRequest, res: Respo
 
 export async function createSavedDestination(req: AuthenticatedRequest, res: Response) {
   try {
-    let userId = req.user?.id;
-    if (!userId) {
-      const demoTraveler = await prisma.user.findFirst({ where: { role: 'TRAVELER' } });
-      userId = demoTraveler?.id;
-    }
-
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
@@ -288,7 +286,17 @@ export async function createSavedDestination(req: AuthenticatedRequest, res: Res
 
 export async function deleteSavedDestination(req: AuthenticatedRequest, res: Response) {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const { id } = req.params;
+    const existing = await prisma.savedDestination.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Saved destination not found' });
+    }
+    if (existing.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden: you do not own this saved destination' });
+    }
     await prisma.savedDestination.delete({ where: { id } });
     return res.json({ message: 'Saved destination removed' });
   } catch (error) {
@@ -299,10 +307,9 @@ export async function deleteSavedDestination(req: AuthenticatedRequest, res: Res
 
 export async function getNotifications(req: AuthenticatedRequest, res: Response) {
   try {
-    let userId = req.user?.id;
+    const userId = req.user?.id;
     if (!userId) {
-      const demoTraveler = await prisma.user.findFirst({ where: { role: 'TRAVELER' } });
-      userId = demoTraveler?.id;
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const notifications = await prisma.notification.findMany({
@@ -319,7 +326,17 @@ export async function getNotifications(req: AuthenticatedRequest, res: Response)
 
 export async function markNotificationRead(req: AuthenticatedRequest, res: Response) {
   try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     const { id } = req.params;
+    const existing = await prisma.notification.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+    if (existing.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden: notification belongs to another user' });
+    }
     await prisma.notification.update({
       where: { id },
       data: { isRead: true },

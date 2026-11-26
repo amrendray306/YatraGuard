@@ -1,14 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 
 const DEFAULT_DEV_JWT = 'travel-guardian-secure-jwt-secret-key-2025';
-if (process.env.NODE_ENV === 'production' && (!process.env.JWT_SECRET || process.env.JWT_SECRET === DEFAULT_DEV_JWT)) {
-  console.warn('⚠️ SECURITY WARNING: Configure a strong custom JWT_SECRET in production environment variables.');
+const configuredJwt = process.env.JWT_SECRET?.trim();
+
+if (process.env.NODE_ENV === 'production') {
+  if (!configuredJwt || configuredJwt === DEFAULT_DEV_JWT || configuredJwt.length < 16) {
+    throw new Error(
+      'FATAL SECURITY ERROR: A strong custom JWT_SECRET (min 16 characters) must be configured in production.'
+    );
+  }
+} else if (!configuredJwt || configuredJwt === DEFAULT_DEV_JWT) {
+  console.warn('⚠️ SECURITY WARNING: Configure a custom JWT_SECRET before deploying to production.');
 }
-export const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_DEV_JWT;
+
+export const JWT_SECRET = configuredJwt || DEFAULT_DEV_JWT;
 
 export function generateToken(payload: { id: string; email: string; role: string; name?: string }) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
@@ -27,7 +34,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export function authenticateToken(
+export async function authenticateToken(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
@@ -41,7 +48,29 @@ export function authenticateToken(
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthenticatedRequest['user'];
-    req.user = decoded;
+    if (!decoded?.id) {
+      return res.status(403).json({ error: 'Invalid token payload' });
+    }
+
+    // Revalidate user active status & role directly against PostgreSQL
+    const dbUser = await prisma.user.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, email: true, role: true, name: true, isActive: true },
+    });
+
+    if (!dbUser) {
+      return res.status(401).json({ error: 'Account no longer exists' });
+    }
+    if (!dbUser.isActive) {
+      return res.status(403).json({ error: 'Account is suspended or inactive' });
+    }
+
+    req.user = {
+      id: dbUser.id,
+      email: dbUser.email,
+      role: dbUser.role as 'TRAVELER' | 'MODERATOR' | 'ADMIN',
+      name: dbUser.name,
+    };
     next();
   } catch (err) {
     return res.status(403).json({ error: 'Invalid or expired token' });

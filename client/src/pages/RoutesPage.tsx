@@ -45,6 +45,7 @@ import {
 } from '../services/api';
 import { mapProviderService } from '../services/mapProviderService';
 import { PlaceAutocompleteInput } from '../components/places/PlaceAutocompleteInput';
+import { PageHeader } from '../components/ui';
 import { ComputedRouteGeometry, MultimodalFareOption } from '../types';
 
 interface RoutesPageProps {
@@ -490,45 +491,40 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ onNavigateToMap }) => {
       : null);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-20">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-20 yg-page-enter">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-sky-400">
-            <Compass className="w-4 h-4" />
-            <span>Global Route &amp; Fare Intelligence</span>
+      <PageHeader
+        eyebrow="Global Route & Fare Intelligence"
+        icon={Compass}
+        accentColor="blue"
+        title="Travel Tariff"
+        description="Search any source and destination worldwide or pick points on the map to compare fair transport fares."
+        actions={
+          <div className="flex flex-wrap items-center gap-1.5">
+            {PRESET_CORRIDORS.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => {
+                  setSourceText(preset.origin.name);
+                  setSourcePoint(preset.origin);
+                  setDestText(preset.dest.name);
+                  setDestPoint(preset.dest);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white mt-0.5">Travel Tariff</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
-            Search any location worldwide or pick points directly on the map to compare routes and fair transport fares.
-          </p>
-        </div>
-
-        {/* Quick Preset Corridors */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          {PRESET_CORRIDORS.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() => {
-                setSourceText(preset.origin.name);
-                setSourcePoint(preset.origin);
-                setDestText(preset.dest.name);
-                setDestPoint(preset.dest);
-              }}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] font-semibold text-slate-300 transition-colors"
-            >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-      </div>
+        }
+      />
 
       {/* 1. SOURCE & DESTINATION SEARCH BAR (Elevated z-index above Leaflet) */}
-      <div className="relative z-[1100] bg-slate-900 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-xl space-y-4">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+      <div className="relative z-[1100] yg-card rounded-2xl p-4 sm:p-5 space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
           {/* Source Input */}
-          <div className="lg:col-span-5 space-y-1.5">
+          <div className="lg:col-span-5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider px-1">
               <span className="text-sky-400">Source (A)</span>
               <div className="flex items-center gap-2.5">
@@ -596,7 +592,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ onNavigateToMap }) => {
           </div>
 
           {/* Destination Input */}
-          <div className="lg:col-span-5 space-y-1.5">
+          <div className="lg:col-span-5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
             <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider px-1">
               <span className="text-red-400">Destination (B)</span>
               <button
@@ -725,7 +721,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ onNavigateToMap }) => {
       {/* 2. INTERACTIVE MAP + ROUTE DETAILS SPLIT */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Interactive Map */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl relative h-[380px] sm:h-[460px] lg:h-[540px]">
+        <div className="lg:col-span-7 yg-card rounded-2xl overflow-hidden relative h-[400px] sm:h-[480px] lg:h-[560px]">
           {/* Map Controls */}
           <div className="absolute top-3 left-3 right-3 z-[500] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
             <div className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1 rounded-xl border border-slate-800 text-[11px] pointer-events-auto">

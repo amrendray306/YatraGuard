@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import apiRouter from './routes/api.js';
 import { securityHeaders, globalApiLimiter } from './middleware/security.js';
+import { prisma } from './lib/prisma.js';
 
 dotenv.config();
 
@@ -57,13 +58,45 @@ app.use(
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
-// 4. Global API Rate Limiter
+// 4. Global API Rate Limiter & Structured Request Logger
+app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    if (req.originalUrl === '/api/health') return;
+    const durationMs = Date.now() - start;
+    console.info(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        method: req.method,
+        path: req.originalUrl,
+        status: res.statusCode,
+        durationMs,
+        ip: req.ip,
+      })
+    );
+  });
+  next();
+});
 app.use('/api', globalApiLimiter);
 
-// 5. Health Check & Readiness Endpoint
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({
-    status: 'ok',
+// 5. Health Check & Live Database Readiness Endpoint
+app.get('/api/health', async (req: Request, res: Response) => {
+  let database: 'connected' | 'unreachable' = 'unreachable';
+  let dbLatencyMs: number | null = null;
+  const dbStart = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    database = 'connected';
+    dbLatencyMs = Date.now() - dbStart;
+  } catch (err: any) {
+    console.error('❌ Health check DB probe failed:', err?.message || err);
+  }
+
+  const healthy = database === 'connected';
+  res.status(healthy ? 200 : 503).json({
+    status: healthy ? 'ok' : 'degraded',
+    database,
+    dbLatencyMs,
     app: 'YatraGuard API - Travel Safety & Local Transportation Intelligence Platform',
     version: '1.0.0',
     environment: NODE_ENV,
@@ -75,8 +108,11 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// 6. Mount Primary API Router
+// 6. Mount Primary API Router & Explicit JSON 404 Guard for Unknown API Routes
 app.use('/api', apiRouter);
+app.use('/api/*', (req: Request, res: Response) => {
+  res.status(404).json({ error: `API endpoint ${req.method} ${req.originalUrl} not found` });
+});
 
 // 6b. Serve uploaded static media if using local disk fallback
 const localUploadsDir = path.resolve(process.cwd(), 'public/uploads');

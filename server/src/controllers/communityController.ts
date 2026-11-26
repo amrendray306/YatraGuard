@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-
-const prisma = new PrismaClient();
 
 export async function getCommunityPosts(req: Request, res: Response) {
   try {
@@ -18,7 +16,7 @@ export async function getCommunityPosts(req: Request, res: Response) {
 
     const posts = await prisma.communityPost.findMany({
       where,
-      take: parseInt(limit as string, 10),
+      take: Math.min(100, Math.max(1, parseInt(limit as string, 10) || 30)),
       orderBy: { createdAt: 'desc' },
       include: {
         media: {
@@ -58,20 +56,14 @@ export async function getCommunityPosts(req: Request, res: Response) {
 
 export async function createCommunityPost(req: AuthenticatedRequest, res: Response) {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required to create a post' });
+    }
+
     const { title, content, destinationName, category, imageUrl, media: incomingMedia } = req.body;
-
-    if (!title || !content || !destinationName) {
+    if (!title?.trim() || !content?.trim() || !destinationName?.trim()) {
       return res.status(400).json({ error: 'Title, content and destination are required' });
-    }
-
-    let userId = req.user?.id;
-    if (!userId) {
-      const demoTraveler = await prisma.user.findFirst({ where: { role: 'TRAVELER' } });
-      userId = demoTraveler?.id;
-    }
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const firstImageUrl = imageUrl || (Array.isArray(incomingMedia) && incomingMedia[0]?.url) || null;
@@ -79,15 +71,15 @@ export async function createCommunityPost(req: AuthenticatedRequest, res: Respon
     const post = await prisma.communityPost.create({
       data: {
         userId,
-        title,
-        content,
-        destinationName,
+        title: String(title).trim().slice(0, 180),
+        content: String(content).trim().slice(0, 5000),
+        destinationName: String(destinationName).trim().slice(0, 120),
         category: category || 'STORY',
         imageUrl: firstImageUrl,
         ...(Array.isArray(incomingMedia) && incomingMedia.length > 0
           ? {
               media: {
-                create: incomingMedia.map((m: any, idx: number) => ({
+                create: incomingMedia.slice(0, 8).map((m: any, idx: number) => ({
                   userId,
                   url: m.url,
                   publicId: m.publicId || null,
@@ -125,6 +117,94 @@ export async function createCommunityPost(req: AuthenticatedRequest, res: Respon
   }
 }
 
+export async function updateCommunityPost(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+    const existing = await prisma.communityPost.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    if (existing.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden: you can only edit your own posts' });
+    }
+
+    const { title, content, destinationName, category } = req.body;
+    const updated = await prisma.communityPost.update({
+      where: { id },
+      data: {
+        ...(title !== undefined && { title: String(title).trim().slice(0, 180) }),
+        ...(content !== undefined && { content: String(content).trim().slice(0, 5000) }),
+        ...(destinationName !== undefined && { destinationName: String(destinationName).trim().slice(0, 120) }),
+        ...(category !== undefined && { category }),
+      },
+    });
+
+    return res.json({ message: 'Post updated', post: updated });
+  } catch (error) {
+    console.error('updateCommunityPost error:', error);
+    return res.status(500).json({ error: 'Failed to update community post' });
+  }
+}
+
+export async function deleteCommunityPost(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { id } = req.params;
+    const existing = await prisma.communityPost.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+    const isStaff = ['ADMIN', 'MODERATOR'].includes(req.user.role);
+    if (existing.userId !== req.user.id && !isStaff) {
+      return res.status(403).json({ error: 'Forbidden: you cannot delete another user’s post' });
+    }
+
+    await prisma.communityPost.delete({ where: { id } });
+    return res.json({ message: 'Post deleted' });
+  } catch (error) {
+    console.error('deleteCommunityPost error:', error);
+    return res.status(500).json({ error: 'Failed to delete post' });
+  }
+}
+
+export async function reportCommunityPost(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required to report content' });
+    }
+
+    const { id } = req.params;
+    const { reason = 'INAPPROPRIATE', details } = req.body;
+    const post = await prisma.communityPost.findUnique({ where: { id } });
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    await prisma.moderationAction.create({
+      data: {
+        moderatorId: req.user.id,
+        action: 'FLAG_CONTENT',
+        targetEntity: 'POST',
+        targetId: id,
+        reason: String(reason).slice(0, 120),
+        notes: details ? String(details).trim().slice(0, 500) : `Reported by traveler (${req.user.name})`,
+      },
+    });
+
+    return res.status(201).json({ message: 'Content flagged for moderator review' });
+  } catch (error) {
+    console.error('reportCommunityPost error:', error);
+    return res.status(500).json({ error: 'Failed to flag community post' });
+  }
+}
+
 export async function likeCommunityPost(req: Request, res: Response) {
   try {
     const { id } = req.params;
@@ -150,26 +230,20 @@ export async function addPostComment(req: AuthenticatedRequest, res: Response) {
   try {
     const { id } = req.params;
     const { content } = req.body;
+    const userId = req.user?.id;
 
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required to comment' });
+    }
     if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Comment content cannot be empty' });
-    }
-
-    let userId = req.user?.id;
-    if (!userId) {
-      const demoTraveler = await prisma.user.findFirst({ where: { role: 'TRAVELER' } });
-      userId = demoTraveler?.id;
-    }
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
     }
 
     const comment = await prisma.postComment.create({
       data: {
         postId: id,
         userId,
-        content: content.trim(),
+        content: content.trim().slice(0, 1500),
       },
       include: {
         user: {
@@ -213,8 +287,6 @@ export async function getTravelBuddies(req: Request, res: Response) {
           select: {
             id: true,
             name: true,
-            email: true,
-            phone: true,
             avatarUrl: true,
             role: true,
             travelPreferences: true,
@@ -233,20 +305,14 @@ export async function getTravelBuddies(req: Request, res: Response) {
 
 export async function createTravelBuddy(req: AuthenticatedRequest, res: Response) {
   try {
-    const { destinationCity, startDate, endDate, travelStyle, notes } = req.body;
-
-    if (!destinationCity || !startDate || !endDate) {
-      return res.status(400).json({ error: 'Destination, start date and end date are required' });
-    }
-
-    let userId = req.user?.id;
-    if (!userId) {
-      const demoTraveler = await prisma.user.findFirst({ where: { role: 'TRAVELER' } });
-      userId = demoTraveler?.id;
-    }
-
+    const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const { destinationCity, startDate, endDate, travelStyle, notes } = req.body;
+    if (!destinationCity || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Destination, start date and end date are required' });
     }
 
     const request = await prisma.travelBuddyRequest.create({

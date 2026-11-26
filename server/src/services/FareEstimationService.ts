@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { calculateDistanceKm } from './geoService.js';
-
-const prisma = new PrismaClient();
 
 export interface FareCalculationInput {
   cityId?: string;

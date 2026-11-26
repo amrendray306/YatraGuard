@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart, MessageSquare, MapPin, Share2, ShieldCheck, Tag, Eye } from 'lucide-react';
+import { Heart, MessageSquare, MapPin, Share2, Flag, Trash2 } from 'lucide-react';
 import { resolveMediaUrl } from '../../services/api';
 
 export interface CommunityPostCardProps {
@@ -17,9 +17,12 @@ export interface CommunityPostCardProps {
   imageUrl?: string;
   media?: Array<{ id: string; url: string; altText?: string }>;
   isLiked?: boolean;
+  canDelete?: boolean;
   onLike?: () => void;
   onComment?: () => void;
   onShare?: () => void;
+  onDelete?: () => void;
+  onReport?: () => void;
   onImageClick?: (url: string) => void;
 }
 
@@ -46,9 +49,12 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
   imageUrl,
   media,
   isLiked = false,
+  canDelete = false,
   onLike,
   onComment,
   onShare,
+  onDelete,
+  onReport,
   onImageClick,
 }) => {
   const cat = categoryBadges[category] || {
@@ -61,14 +67,16 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
     : (imageUrl ? [resolveMediaUrl(imageUrl) || imageUrl] : []));
 
   return (
-    <div className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-3xl overflow-hidden transition-all duration-300 shadow-xl flex flex-col justify-between">
+    <article className="yg-card yg-card-interactive overflow-hidden flex flex-col justify-between">
       {/* Multi-Image Gallery or Single Header Image */}
       {images.length > 0 && (
         <div className="photo-overlay relative w-full bg-slate-950">
           {images.length === 1 ? (
-            <div
-              className="relative h-48 sm:h-56 w-full overflow-hidden cursor-pointer group"
+            <button
+              type="button"
+              className="relative h-48 sm:h-52 w-full overflow-hidden cursor-pointer group block text-left"
               onClick={() => onImageClick?.(images[0])}
+              aria-label={`View image for ${title}`}
             >
               <img
                 src={images[0]}
@@ -76,17 +84,19 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
-            </div>
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-transparent to-transparent opacity-70" />
+            </button>
           ) : (
-            <div className="grid grid-cols-2 gap-1 h-52 sm:h-60 p-1">
+            <div className="grid grid-cols-2 gap-1 h-48 sm:h-52 p-1">
               {images.slice(0, 4).map((imgUrl, index) => {
                 const isFourth = index === 3 && images.length > 4;
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={index}
-                    className="relative w-full h-full overflow-hidden rounded-xl cursor-pointer group"
+                    className="relative w-full h-full overflow-hidden rounded-xl cursor-pointer group block"
                     onClick={() => onImageClick?.(imgUrl)}
+                    aria-label={`View photo ${index + 1} for ${title}`}
                   >
                     <img
                       src={imgUrl}
@@ -95,11 +105,11 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
                       loading="lazy"
                     />
                     {isFourth && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-sm">
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm keep-white">
                         +{images.length - 3} more
                       </div>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -107,7 +117,7 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
 
           <div className="absolute top-3 left-3 pointer-events-none">
             <span
-              className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border backdrop-blur-md ${cat.color}`}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider border backdrop-blur-md ${cat.color}`}
             >
               {cat.label}
             </span>
@@ -115,7 +125,7 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
         </div>
       )}
 
-      <div className="p-5 sm:p-6 space-y-4 flex-1 flex flex-col justify-between">
+      <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-between">
         <div className="space-y-3">
           {/* Author Header */}
           <div className="flex items-center justify-between gap-2">
@@ -161,49 +171,77 @@ export const CommunityPostCard: React.FC<CommunityPostCardProps> = ({
           )}
 
           {/* Title & Body */}
-          <div className="space-y-1.5">
-            <h4 className="text-base font-black text-white hover:text-amber-400 transition-colors">
+          <div className="space-y-1">
+            <h4 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug">
               {title}
             </h4>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-normal">
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
               {content}
             </p>
           </div>
         </div>
 
         {/* Footer Actions */}
-        <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <div className="pt-3 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={onLike}
               className={`flex items-center gap-1.5 transition-colors font-semibold ${
-                isLiked ? 'text-red-400' : 'hover:text-red-400 text-slate-400'
+                isLiked ? 'text-red-500 dark:text-red-400' : 'hover:text-red-500 dark:hover:text-red-400'
               }`}
             >
-              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} aria-hidden="true" />
               <span>{likesCount}</span>
             </button>
 
             <button
+              type="button"
               onClick={onComment}
-              className="flex items-center gap-1.5 hover:text-amber-400 text-slate-400 transition-colors font-semibold"
+              className="flex items-center gap-1.5 hover:text-sky-600 dark:hover:text-sky-400 transition-colors font-semibold"
             >
-              <MessageSquare className="w-4 h-4" />
+              <MessageSquare className="w-4 h-4" aria-hidden="true" />
               <span>{commentsCount} comments</span>
             </button>
           </div>
 
-          {onShare && (
-            <button
-              onClick={onShare}
-              className="hover:text-white transition-colors"
-              title="Share tip"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {onReport && (
+              <button
+                type="button"
+                onClick={onReport}
+                className="hover:text-amber-500 transition-colors"
+                title="Report post for moderation"
+                aria-label={`Report ${title}`}
+              >
+                <Flag className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            )}
+            {canDelete && onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="hover:text-red-500 transition-colors"
+                title="Delete post"
+                aria-label={`Delete ${title}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            )}
+            {onShare && (
+              <button
+                type="button"
+                onClick={onShare}
+                className="hover:text-slate-900 dark:hover:text-white transition-colors"
+                title="Share post"
+                aria-label={`Share ${title}`}
+              >
+                <Share2 className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 };

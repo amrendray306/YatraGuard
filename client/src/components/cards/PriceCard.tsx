@@ -33,26 +33,26 @@ export const PriceCard: React.FC<PriceCardProps> = ({
   return (
     <div
       onClick={onSelect}
-      className={`relative bg-slate-900/90 border rounded-2xl p-5 transition-all cursor-pointer ${
+      className={`relative yg-card yg-card-interactive p-5 transition-all cursor-pointer ${
         isSelected
-          ? 'border-amber-400 ring-2 ring-amber-400/20 bg-slate-800/80 shadow-xl'
-          : 'border-slate-800 hover:border-slate-700 hover:bg-slate-800/50 shadow-md'
+          ? 'border-sky-500 ring-2 ring-sky-500/20'
+          : ''
       }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
             {vehicleType}
           </span>
-          <h4 className="text-base font-black text-white mt-1.5">{vehicleName}</h4>
+          <h4 className="text-base font-bold text-slate-900 dark:text-white mt-1.5">{vehicleName}</h4>
         </div>
 
         <div className="text-right">
-          <div className="flex items-center justify-end text-lg font-black text-amber-400">
-            <IndianRupee className="w-4 h-4" />
+          <div className="flex items-center justify-end text-lg font-bold text-sky-600 dark:text-sky-400">
+            <IndianRupee className="w-4 h-4" aria-hidden="true" />
             <span>{baseFare.toFixed(0)}</span>
           </div>
-          <span className="text-[11px] text-slate-400 font-medium">Base for {baseKm} km</span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Base for {baseKm} km</span>
         </div>
       </div>
 

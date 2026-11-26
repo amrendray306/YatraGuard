@@ -1,8 +1,6 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../lib/prisma.js';
 
 export async function getModeratorDashboard(req: AuthenticatedRequest, res: Response) {
   try {
@@ -13,6 +11,9 @@ export async function getModeratorDashboard(req: AuthenticatedRequest, res: Resp
       escalatedReports,
       totalCommunityPosts,
       pendingPrices,
+      pendingRiskAlerts,
+      pendingRoadReports,
+      openLostFound,
       recentActions,
       myActionsCount,
     ] = await Promise.all([
@@ -22,6 +23,9 @@ export async function getModeratorDashboard(req: AuthenticatedRequest, res: Resp
       prisma.incidentReport.count({ where: { status: 'ESCALATED' } }),
       prisma.communityPost.count(),
       prisma.priceRecord.count({ where: { verificationStatus: 'PENDING' } }),
+      prisma.travelRiskAlert.count({ where: { verificationStatus: 'PENDING' } }),
+      prisma.roadCrowdReport.count({ where: { status: 'PENDING' } }),
+      prisma.lostFoundItem.count({ where: { status: 'OPEN' } }),
       prisma.moderationAction.findMany({
         orderBy: { createdAt: 'desc' },
         take: 10,
@@ -42,6 +46,9 @@ export async function getModeratorDashboard(req: AuthenticatedRequest, res: Resp
         escalatedReports,
         totalCommunityPosts,
         pendingPrices,
+        pendingRiskAlerts,
+        pendingRoadReports,
+        openLostFound,
         myActionsCount,
       },
       recentActions,

@@ -53,7 +53,7 @@ import {
 import { DashboardStatCard } from '../components/cards/DashboardStatCard';
 
 export const AdminPage: React.FC = () => {
-  const { user, quickLogin, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [activeModule, setActiveModule] = useState<
     'OVERVIEW' | 'USERS' | 'INCIDENTS' | 'PRICES' | 'DESTINATIONS' | 'COMMUNITY' | 'ANALYTICS' | 'AUDIT'
   >('OVERVIEW');
@@ -258,27 +258,6 @@ export const AdminPage: React.FC = () => {
               Sign In to Admin Console
             </button>
           </form>
-
-          {/* Quick Demo Evaluation Buttons */}
-          <div className="pt-4 border-t border-slate-800 space-y-2 text-center">
-            <span className="text-[10px] font-black uppercase text-slate-500 block">
-              Capstone Defense Demo Sign-In
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => quickLogin('ADMIN')}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-purple-300 font-bold text-[11px] border border-purple-500/30"
-              >
-                Dr. Rajesh (Admin)
-              </button>
-              <button
-                onClick={() => quickLogin('MODERATOR')}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-300 font-bold text-[11px] border border-blue-500/30"
-              >
-                Priya Nair (Mod)
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     );

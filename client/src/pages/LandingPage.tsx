@@ -156,32 +156,33 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-transparent" />
         </div>
 
-        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-6 py-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-sky-400/35 text-xs font-bold text-sky-200 backdrop-blur-md">
-            <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
-            <span>YatraGuard • Travel Safety &amp; Fare Intelligence</span>
+        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-5 py-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-sky-400/35 text-xs font-semibold text-sky-200 backdrop-blur-md">
+            <ShieldCheck className="w-3.5 h-3.5 text-teal-400" aria-hidden="true" />
+            <span>YatraGuard • Intelligent Travel Safety &amp; Fare Platform</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
             Explore Freely.{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-sky-300 to-teal-300">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-300 via-teal-300 to-emerald-300">
               Travel Safely.
             </span>
           </h1>
 
-          <p className="text-sm sm:text-lg text-slate-200 max-w-xl mx-auto leading-relaxed">
-            Real-time safety scores, fair transport tariffs, nearby emergency services, and trusted traveler reports.
+          <p className="text-sm sm:text-base text-slate-200 max-w-xl mx-auto leading-relaxed">
+            Real-time area safety scores, fair transport tariffs, nearby emergency services, and verified traveler reports.
           </p>
 
           {/* Destination Search */}
           <div className="max-w-2xl mx-auto pt-1 space-y-3">
-            <div className="flex items-center bg-slate-900/95 border border-slate-700 rounded-2xl p-2 shadow-2xl focus-within:border-sky-400 transition-colors backdrop-blur-xl">
-              <Search className="w-5 h-5 text-sky-400 ml-3 mr-2 flex-shrink-0" />
+            <div className="flex items-center bg-slate-900/95 border border-slate-700 rounded-2xl p-2 shadow-xl focus-within:border-sky-400 transition-colors backdrop-blur-xl">
+              <Search className="w-5 h-5 text-sky-400 ml-3 mr-2 flex-shrink-0" aria-hidden="true" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search a destination (e.g. Manali, Jaipur, Goa, Delhi)..."
+                aria-label="Search destination"
                 className="w-full bg-transparent border-none text-white text-sm placeholder-slate-400 focus:outline-none"
               />
               <button
@@ -193,10 +194,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                     setCurrentTab('dashboard');
                   }
                 }}
-                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm transition-colors flex items-center gap-1.5 flex-shrink-0"
+                className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs sm:text-sm transition-colors flex items-center gap-1.5 flex-shrink-0 keep-white"
               >
                 <span>Explore</span>
-                <ArrowRight className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -257,20 +258,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* B. POPULAR DESTINATIONS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-800 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5" /> Curated Destinations
+            <span className="text-xs font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5" aria-hidden="true" /> Curated Destinations
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">Popular Destinations</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">Popular Destinations</h2>
           </div>
           <button
             type="button"
             onClick={() => setCurrentTab('map')}
-            className="text-xs sm:text-sm font-bold text-sky-400 hover:underline flex items-center gap-1.5 self-start sm:self-auto"
+            className="text-xs sm:text-sm font-semibold text-sky-600 dark:text-sky-400 hover:underline flex items-center gap-1.5 self-start sm:self-auto"
           >
-            <span>Open Interactive Map</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Open Safety Map</span>
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
@@ -297,12 +298,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* C. CORE CAPABILITIES */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-800 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-teal-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-teal-600 dark:text-teal-400">
               Platform Capabilities
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-white mt-1">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">
               Everything You Need to Travel Safely
             </h2>
           </div>
@@ -394,34 +395,36 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
       {/* D. HOW IT WORKS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-lg space-y-6">
+        <div className="yg-card rounded-2xl p-6 sm:p-8 space-y-6">
           <div className="text-center space-y-1">
-            <h2 className="text-xl sm:text-2xl font-black text-white">How YatraGuard Works</h2>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Three quick steps before or during your trip.
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+              How YatraGuard Works
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+              Three simple steps before or during your trip.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 space-y-2">
-              <div className="text-xs font-black text-sky-400 uppercase tracking-wider">Step 01</div>
-              <h3 className="text-sm font-black text-white">Pick Your Location</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-2">
+              <div className="text-xs font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider">Step 01</div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Pick Your Location</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Search any city or landmark to load local safety scores, police stations, and hospitals.
               </p>
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 space-y-2">
-              <div className="text-xs font-black text-teal-400 uppercase tracking-wider">Step 02</div>
-              <h3 className="text-sm font-black text-white">Verify Routes &amp; Fares</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+            <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-2">
+              <div className="text-xs font-bold text-teal-600 dark:text-teal-400 uppercase tracking-wider">Step 02</div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Verify Routes &amp; Fares</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Preview road routes, travel durations, and official vs estimated transport fares.
               </p>
             </div>
-            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 space-y-2">
-              <div className="text-xs font-black text-amber-400 uppercase tracking-wider">Step 03</div>
-              <h3 className="text-sm font-black text-white">Stay Prepared</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Use the AI Assistant, offline vault, and one-tap SOS whenever you need support.
+            <div className="bg-slate-50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-2">
+              <div className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Step 03</div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Stay Prepared</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Connect with verified travel buddies, open the vault, and trigger one-tap SOS anytime.
               </p>
             </div>
           </div>

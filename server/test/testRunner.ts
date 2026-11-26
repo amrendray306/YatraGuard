@@ -5,6 +5,11 @@ import { validateCoordinates } from '../src/middleware/validation.js';
 import { generateToken, verifyToken } from '../src/middleware/auth.js';
 import { placesService, evaluateOpeningHoursStatus } from '../src/services/PlacesService.js';
 import { googleMapsService } from '../src/services/googleMapsService.js';
+import { analyzeScamPatternAdvisory } from '../src/controllers/incidentController.js';
+import { getCityWeather } from '../src/services/weatherService.js';
+import { evaluateRouteSafety } from '../src/services/routeRiskEngine.js';
+import { isSafeAvatarUrl } from '../src/controllers/userController.js';
+import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 
 let passed = 0;
@@ -567,6 +572,78 @@ async function main() {
 
     const searchRes = await placesService.searchNearbyPlaces({ lat: 28.6139, lng: 77.2090, radiusKm: 5 });
     assert.ok(searchRes.apiNotice.length > 10, 'Must always supply clear API status/configuration message');
+  });
+
+  // -------------------------------------------------------------------------
+  // SUITE 10: Platform Upgrade Modules (Scam Advisory, Weather, Extended Services)
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 10: Smart Scam Advisory, Open-Meteo Weather & Extended Services]\x1b[0m');
+
+  await runTest('Scam Pattern Advisory - Flags known redirection & overcharge spikes as advisory only', () => {
+    const res = analyzeScamPatternAdvisory({
+      title: 'Hotel is closed claim',
+      description: 'Driver said no meter working and asked advance QR deposit to shifted office',
+      category: 'hotel_scam',
+      amountDemanded: 2400,
+      amountPaid: 400,
+    });
+    assert.strictEqual(res.signal, 'HIGH_ALERT_SIGNAL');
+    assert.ok(res.note.toLowerCase().includes('moderator') || res.note.toLowerCase().includes('advisory'));
+  });
+
+  await runTest('Weather Intelligence - Returns source attribution and non-empty condition/temp', async () => {
+    const w = await getCityWeather(undefined, 'Jaipur');
+    assert.ok(typeof w.temp === 'number');
+    assert.ok(typeof w.condition === 'string' && w.condition.length > 0);
+    assert.ok(typeof w.sourceName === 'string' && w.sourceName.length > 0);
+    assert.ok(typeof w.updatedAt === 'string');
+  });
+
+  await runTest('Extended Local Services - Supports FUEL, MECHANIC, GUIDE, TAXI category filters safely', async () => {
+    const res = await placesService.searchNearbyPlaces({
+      lat: 28.6139,
+      lng: 77.2090,
+      radiusKm: 15,
+      category: 'FUEL',
+    });
+    assert.ok(Array.isArray(res.places));
+  });
+
+  // -------------------------------------------------------------------------
+  // SUITE 11: Production Security, Route Honesty & API Validation
+  // -------------------------------------------------------------------------
+  console.log('\n\x1b[1m[Suite 11: Production Security, Route Honesty & API Validation]\x1b[0m');
+
+  await runTest('Avatar URL Hygiene - Allows safe paths/https and blocks javascript:/data XSS schemes', () => {
+    assert.strictEqual(isSafeAvatarUrl('/uploads/avatar-1.png'), true);
+    assert.strictEqual(isSafeAvatarUrl('https://lh3.googleusercontent.com/a/photo.jpg'), true);
+    assert.strictEqual(isSafeAvatarUrl(''), true);
+    assert.strictEqual(isSafeAvatarUrl(null), true);
+    assert.strictEqual(isSafeAvatarUrl('javascript:alert(1)'), false);
+    assert.strictEqual(isSafeAvatarUrl('data:text/html,<script>alert(1)</script>'), false);
+    assert.strictEqual(isSafeAvatarUrl(12345), false);
+  });
+
+  await runTest('Password Reset Digest - SHA-256 token hashing never equals raw plaintext token', () => {
+    const raw = crypto.randomBytes(24).toString('hex');
+    const hashed = crypto.createHash('sha256').update(raw).digest('hex');
+    assert.notStrictEqual(hashed, raw);
+    assert.strictEqual(hashed.length, 64);
+    assert.strictEqual(crypto.createHash('sha256').update(raw).digest('hex'), hashed);
+  });
+
+  await runTest('Route Risk Engine - Omits unverified lighting/CCTV guarantees and returns 3 routes', async () => {
+    const res = await evaluateRouteSafety(26.9124, 75.7873, 26.9239, 75.8267, 'Sindhi Camp', 'Hawa Mahal');
+    assert.strictEqual(res.routes.length, 3);
+    const serialized = JSON.stringify(res.routes);
+    assert.ok(!serialized.includes('100% lit arterial roads'), 'Must not fabricate unverified streetlamp coverage');
+    assert.ok(res.disclaimer.toLowerCase().includes('not connected') || res.disclaimer.toLowerCase().includes('incident'));
+  });
+
+  await runTest('Coordinate Bounds Edge Cases - Rejects NaN, +91 lat, and -181 lng', () => {
+    assert.strictEqual(validateCoordinates(Number.NaN, 77.2), false);
+    assert.strictEqual(validateCoordinates(91, 77.2), false);
+    assert.strictEqual(validateCoordinates(28.6, -181), false);
   });
 
   console.log('\n======================================================');

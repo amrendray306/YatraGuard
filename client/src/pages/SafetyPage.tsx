@@ -3,25 +3,21 @@ import { ShieldCheck, MapPin, ShieldAlert, CheckCircle2, AlertTriangle, Building
 import { useCity } from '../context/CityContext';
 import { useToast } from '../context/ToastContext';
 import { SafetyScoreCard } from '../components/SafetyScoreCard';
+import { PageHeader, SectionHeader } from '../components/ui';
 
 export const SafetyPage: React.FC = () => {
   const { cities, currentCity, setCity, safetyScoreData } = useCity();
   const { showToast } = useToast();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8 pb-16">
-      <div>
-        <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-          <ShieldCheck className="w-4 h-4" />
-          Transparent Safety Scoring Engine
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
-          Safety Index
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
-          Dynamic 0–100 area safety scores based on emergency proximity, reported incidents, and time of day.
-        </p>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-7 pb-16 yg-page-enter">
+      <PageHeader
+        eyebrow="Safety & Emergency Services"
+        icon={ShieldCheck}
+        accentColor="emerald"
+        title="Safety Index & Emergency Services"
+        description="Dynamic 0–100 area safety scores, nearest verified police and hospital contacts, and practical safety advice."
+      />
 
       {/* Main Score Card for Current City */}
       {safetyScoreData && (

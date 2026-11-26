@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Compass,
@@ -25,19 +26,33 @@ import {
   fetchCommunityPosts,
   submitCommunityPost,
   likeCommunityPost,
+  deleteCommunityPost,
+  reportCommunityPost,
   submitPostComment,
   fetchTravelBuddies,
   submitTravelBuddy,
 } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { CommunityPostCard } from '../components/cards/CommunityPostCard';
+import { PageHeader, EmptyState, LoadingSkeleton } from '../components/ui';
 
-export const CommunityPage: React.FC = () => {
+export const CommunityPage: React.FC<{ initialView?: 'POSTS' | 'HIGHLIGHTS' }> = ({
+  initialView = 'POSTS',
+}) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'POSTS' | 'BUDDIES'>('POSTS');
+  const [showHighlightsOnly, setShowHighlightsOnly] = useState<boolean>(initialView === 'HIGHLIGHTS');
   const [posts, setPosts] = useState<any[]>([]);
   const [buddies, setBuddies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setShowHighlightsOnly(initialView === 'HIGHLIGHTS');
+    if (initialView === 'HIGHLIGHTS') {
+      setActiveTab('POSTS');
+    }
+  }, [initialView]);
 
   // Filters
   const [selectedCity, setSelectedCity] = useState('ALL');
@@ -120,6 +135,34 @@ export const CommunityPage: React.FC = () => {
     }
   };
 
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm('Delete this community post permanently?')) return;
+    try {
+      await deleteCommunityPost(postId);
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setStatusMessage({ text: 'Community post deleted', type: 'success' });
+    } catch (err: any) {
+      setStatusMessage({
+        text: err?.response?.data?.error || 'Could not delete post',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleReportPost = async (postId: string) => {
+    const reason = window.prompt('Reason for reporting this post (e.g., spam, misinformation, unsafe advice):');
+    if (!reason || !reason.trim()) return;
+    try {
+      await reportCommunityPost(postId, reason.trim());
+      setStatusMessage({ text: 'Post flagged for moderator review. Thank you.', type: 'success' });
+    } catch (err: any) {
+      setStatusMessage({
+        text: err?.response?.data?.error || 'Please sign in to report posts',
+        type: 'error',
+      });
+    }
+  };
+
   const handleAddComment = async (postId: string) => {
     if (!commentText.trim()) return;
     try {
@@ -145,7 +188,7 @@ export const CommunityPage: React.FC = () => {
     if (!files.length) return;
 
     if (selectedFiles.length + files.length > 8) {
-      alert('Maximum of 8 photos allowed per community post.');
+      setStatusMessage({ text: 'Maximum of 8 photos allowed per community post.', type: 'error' });
       return;
     }
 
@@ -281,71 +324,87 @@ export const CommunityPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header Banner */}
-      <div className="relative bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-2xl overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-amber-500/10 via-rose-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+      {/* Page Header */}
+      <PageHeader
+        eyebrow={showHighlightsOnly ? 'Community Highlights' : 'Travel Community'}
+        icon={Sparkles}
+        accentColor="teal"
+        title={showHighlightsOnly ? 'Community Highlights' : 'Travel Community'}
+        description={
+          showHighlightsOnly
+            ? 'Top traveler safety advisories, hidden gems, and verified local tips sorted by helpfulness.'
+            : 'Read firsthand traveler experiences, safety tips, and connect with verified companions.'
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowHighlightsOnly(!showHighlightsOnly);
+                setActiveTab('POSTS');
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                showHighlightsOnly
+                  ? 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-500/15 dark:text-teal-300 dark:border-teal-500/30'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+              }`}
+            >
+              {showHighlightsOnly ? 'Showing Highlights' : 'View Highlights'}
+            </button>
 
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-black">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>YatraGuard Travel Community</span>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Shared Knowledge. Verified Buddies. Safer Journeys.
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Explore firsthand travel experiences, vetted route safety advisories, and connect with verified travel companions heading to the same destinations across India.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
             {activeTab === 'POSTS' ? (
               <button
+                type="button"
                 onClick={() => setIsPostModalOpen(true)}
-                className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-xl shadow-amber-900/30 transition-all flex items-center gap-2 active:scale-95"
+                className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs shadow-sm transition-colors flex items-center gap-1.5 keep-white yg-press"
               >
-                <PlusCircle className="w-4 h-4" />
+                <PlusCircle className="w-4 h-4" aria-hidden="true" />
                 <span>Share Experience</span>
               </button>
             ) : (
               <button
+                type="button"
                 onClick={() => setIsBuddyModalOpen(true)}
-                className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs sm:text-sm shadow-xl shadow-blue-900/40 transition-all flex items-center gap-2 active:scale-95"
+                className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-xs shadow-sm transition-colors flex items-center gap-1.5 keep-white yg-press"
               >
-                <PlusCircle className="w-4 h-4" />
+                <PlusCircle className="w-4 h-4" aria-hidden="true" />
                 <span>Find Travel Buddy</span>
               </button>
             )}
           </div>
-        </div>
+        }
+      />
 
-        {/* Tab Switcher */}
-        <div className="mt-8 pt-6 border-t border-slate-800/80 flex items-center gap-3">
-          <button
-            onClick={() => setActiveTab('POSTS')}
-            className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
-              activeTab === 'POSTS'
-                ? 'bg-amber-500 text-slate-950 shadow-lg'
-                : 'bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>Travel Stories & Advisories ({posts.length})</span>
-          </button>
+      {/* Tab Switcher */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('POSTS')}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 border ${
+            activeTab === 'POSTS'
+              ? 'bg-sky-600 text-white border-sky-600 keep-white'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <MessageSquare className="w-4 h-4" aria-hidden="true" />
+          <span>Stories &amp; Tips ({posts.length})</span>
+        </button>
 
-          <button
-            onClick={() => setActiveTab('BUDDIES')}
-            className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 ${
-              activeTab === 'BUDDIES'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Travel Buddy Finder ({buddies.length})</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('BUDDIES');
+            setShowHighlightsOnly(false);
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-semibold transition-colors flex items-center gap-2 border ${
+            activeTab === 'BUDDIES'
+              ? 'bg-sky-600 text-white border-sky-600 keep-white'
+              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Users className="w-4 h-4" aria-hidden="true" />
+          <span>Buddy Requests ({buddies.length})</span>
+        </button>
       </div>
 
       {/* Filter Strip */}
@@ -401,13 +460,23 @@ export const CommunityPage: React.FC = () => {
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="py-24 text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-slate-400 font-bold">Loading community experiences...</p>
-        </div>
+        <LoadingSkeleton variant="card" count={6} />
       ) : activeTab === 'POSTS' ? (
+        posts.length === 0 ? (
+          <EmptyState
+            icon={MessageSquare}
+            title="No community posts match your filters"
+            description="Try selecting another city or share the first safety tip for this route."
+            actionLabel="Share Experience"
+            onAction={() => setIsPostModalOpen(true)}
+            accentColor="teal"
+          />
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {posts.map((post) => (
+          {(showHighlightsOnly
+            ? [...posts].sort((a, b) => (b.likesCount || 0) - (a.likesCount || 0))
+            : posts
+          ).map((post) => (
             <div key={post.id} className="flex flex-col">
               <CommunityPostCard
                 id={post.id}
@@ -424,8 +493,13 @@ export const CommunityPage: React.FC = () => {
                 imageUrl={post.imageUrl}
                 media={post.media}
                 isLiked={post.isLiked}
+                canDelete={Boolean(
+                  user && (user.id === post.userId || user.role === 'ADMIN' || user.role === 'MODERATOR')
+                )}
                 onLike={() => handleLike(post.id)}
                 onComment={() => setCommentingPostId(commentingPostId === post.id ? null : post.id)}
+                onDelete={() => handleDeletePost(post.id)}
+                onReport={() => handleReportPost(post.id)}
                 onImageClick={(url) => setLightboxImage(url)}
               />
 
@@ -478,6 +552,7 @@ export const CommunityPage: React.FC = () => {
             </div>
           ))}
         </div>
+        )
       ) : (
         /* Travel Buddies Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -499,7 +574,9 @@ export const CommunityPage: React.FC = () => {
                           Score: {buddy.sender?.reputationScore ?? 100}
                         </span>
                       </div>
-                      <span className="text-[11px] text-slate-400 block">{buddy.sender?.email}</span>
+                      <span className="text-[11px] text-slate-400 block">
+                        {buddy.sender?.travelPreferences || 'Verified Traveler'}
+                      </span>
                     </div>
                   </div>
 
@@ -536,13 +613,14 @@ export const CommunityPage: React.FC = () => {
                 <span className="text-[10px] font-bold text-slate-500 uppercase">
                   Verified Traveler Match
                 </span>
-                <a
-                  href={`mailto:${buddy.sender?.email}?subject=YatraGuard Travel Buddy Connect: ${buddy.destinationCity}`}
+                <button
+                  type="button"
+                  onClick={() => navigate('/buddy')}
                   className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-1.5 shadow-md active:scale-95"
                 >
                   <UserCheck className="w-3.5 h-3.5" />
-                  <span>Connect with {buddy.sender?.name?.split(' ')[0]}</span>
-                </a>
+                  <span>Open Buddy Match</span>
+                </button>
               </div>
             </div>
           ))}

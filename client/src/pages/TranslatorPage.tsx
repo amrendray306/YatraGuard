@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Languages, Volume2, Camera, Copy, Check, Sparkles } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { PageHeader } from '../components/ui';
 
 interface Phrase {
   category: 'EMERGENCY' | 'TRANSIT' | 'MEDICAL' | 'GENERAL';
@@ -125,19 +126,14 @@ export const TranslatorPage: React.FC = () => {
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-16">
-      <div>
-        <div className="flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
-          <Languages className="w-4 h-4" />
-          Safety & Travel Phrasebook
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white mt-1">
-          Language Assistant (Hindi ⇄ English)
-        </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Crucial safety phrases, transliterations, and text OCR translations for non-Hindi speakers
-        </p>
-      </div>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6 pb-16 yg-page-enter">
+      <PageHeader
+        eyebrow="Safety & Travel Phrasebook"
+        icon={Languages}
+        accentColor="cyan"
+        title="Language Assistant (Hindi ⇄ English)"
+        description="Essential emergency, medical, and transit phrases with instant audio playback and transliterations."
+      />
 
       {/* OCR Simulator Demo Card */}
       <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">

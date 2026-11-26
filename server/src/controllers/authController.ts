@@ -1,10 +1,8 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { AuthenticatedRequest, generateToken } from '../middleware/auth.js';
-
-const prisma = new PrismaClient();
 
 /**
  * Register with email and password
@@ -25,9 +23,9 @@ export async function register(req: Request, res: Response) {
       return res.status(400).json({ error: 'Please enter a valid email address' });
     }
 
-    // Password strength validation (minimum 6 characters)
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    // Password strength validation (minimum 8 characters for production accounts)
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
     }
 
     const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
@@ -279,20 +277,58 @@ export async function forgotPassword(req: Request, res: Response) {
       });
     }
 
-    const resetToken = crypto.randomBytes(24).toString('hex');
+    const rawResetToken = crypto.randomBytes(24).toString('hex');
+    const hashedResetToken = crypto.createHash('sha256').update(rawResetToken).digest('hex');
     const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        resetToken,
+        resetToken: hashedResetToken,
         resetTokenExpiry: expiry,
       },
     });
 
+    let emailDelivery: 'SENT' | 'DEV_CONSOLE' | 'UNCONFIGURED' =
+      process.env.NODE_ENV !== 'production' ? 'DEV_CONSOLE' : 'UNCONFIGURED';
+
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const fallbackOrigin = process.env.ALLOWED_ORIGINS?.split(',')[0]?.trim() || 'http://localhost:3000';
+        const frontendUrl = (process.env.FRONTEND_URL || fallbackOrigin).replace(/\/+$/, '');
+        const resetUrl = `${frontendUrl}/forgot-password?token=${rawResetToken}`;
+        const emailFrom = process.env.EMAIL_FROM || 'YatraGuard Security <onboarding@resend.dev>';
+        const mailRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: emailFrom,
+            to: [cleanEmail],
+            subject: 'YatraGuard Password Reset Request',
+            text: `Reset your YatraGuard password (expires in 15 minutes): ${resetUrl}\n\nReset Code: ${rawResetToken}`,
+          }),
+        });
+        if (mailRes.ok) {
+          emailDelivery = 'SENT';
+        } else {
+          console.warn('Password reset email dispatch returned HTTP', mailRes.status);
+        }
+      } catch (mailErr) {
+        console.warn('Password reset email dispatch error:', mailErr);
+      }
+    }
+
+    if (process.env.NODE_ENV !== 'production' && emailDelivery !== 'SENT') {
+      console.info(`[DEV Password Reset] Token generated for ${cleanEmail} (expires 15m): ${rawResetToken}`);
+    }
+
+    // Security: NEVER return raw password reset tokens in HTTP responses
     return res.json({
-      message: 'Password reset code generated. Use your reset token to set a new password.',
-      resetToken, // Returned for dev/demo testing
+      message: 'If an account exists for this email, password reset instructions have been issued.',
+      emailDelivery,
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -310,13 +346,14 @@ export async function resetPassword(req: Request, res: Response) {
       return res.status(400).json({ error: 'Reset token and new password are required' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long' });
     }
 
+    const hashedIncoming = crypto.createHash('sha256').update(String(resetToken).trim()).digest('hex');
     const user = await prisma.user.findFirst({
       where: {
-        resetToken,
+        resetToken: hashedIncoming,
         resetTokenExpiry: { gte: new Date() },
       },
     });

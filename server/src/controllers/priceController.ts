@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
-
-const prisma = new PrismaClient();
 
 /**
  * Get City-Wise Local Prices across all travel categories

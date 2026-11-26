@@ -28,7 +28,6 @@ interface AuthContextType {
   }) => Promise<any>;
   requestPasswordReset: (email: string) => Promise<any>;
   resetPasswordWithToken: (resetToken: string, newPassword: string) => Promise<any>;
-  quickLogin: (role: 'TRAVELER' | 'ADMIN' | 'MODERATOR') => Promise<void>;
   updateUser: (updatedUser: Partial<User>) => void;
 }
 
@@ -120,33 +119,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => (prev ? { ...prev, ...updatedFields } : null));
   };
 
-  const quickLogin = async (role: 'TRAVELER' | 'ADMIN' | 'MODERATOR') => {
-    setIsLoading(true);
-    try {
-      const emailMap = {
-        TRAVELER: 'traveler@example.com',
-        ADMIN: 'admin@yatraguard.in',
-        MODERATOR: 'moderator@yatraguard.in',
-      };
-      const passMap = {
-        TRAVELER: 'Traveler@123',
-        ADMIN: 'YatraAdmin@2025',
-        MODERATOR: 'YatraMod@2025',
-      };
-
-      const res = await api.post('/auth/login', {
-        email: emailMap[role],
-        password: passMap[role],
-      });
-
-      login(res.data.token, res.data.user);
-    } catch (err) {
-      console.error('Quick login failed:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -161,7 +133,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithGoogle,
         requestPasswordReset,
         resetPasswordWithToken,
-        quickLogin,
         updateUser,
       }}
     >

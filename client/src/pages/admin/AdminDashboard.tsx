@@ -83,6 +83,27 @@ export function AdminDashboard() {
       color: 'text-orange-400',
       bg: 'bg-orange-500/10 border-orange-500/20',
     },
+    {
+      label: 'Pending Risk & Road Reports',
+      value: (stats?.pendingRiskAlerts ?? 0) + (stats?.pendingRoadReports ?? 0),
+      icon: ShieldAlert,
+      color: 'text-rose-400',
+      bg: 'bg-rose-500/10 border-rose-500/20',
+    },
+    {
+      label: 'Open Lost & Found',
+      value: stats?.openLostFound ?? '—',
+      icon: FileText,
+      color: 'text-teal-400',
+      bg: 'bg-teal-500/10 border-teal-500/20',
+    },
+    {
+      label: 'Verified Local Services',
+      value: stats?.verifiedServices ?? '—',
+      icon: ShieldCheck,
+      color: 'text-sky-400',
+      bg: 'bg-sky-500/10 border-sky-500/20',
+    },
   ];
 
   return (

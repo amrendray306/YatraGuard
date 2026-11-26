@@ -174,29 +174,140 @@ export interface CrowdLevel {
   crowdEstimateLabel: string;
 }
 
+export interface DailyForecastItem {
+  date: string;
+  dayLabel: string;
+  condition: string;
+  weatherCode: number;
+  tempMax: number;
+  tempMin: number;
+  rainChance: number;
+  windMaxKmh: number;
+  uvIndexMax?: number;
+  severity: 'LOW' | 'MODERATE' | 'HIGH';
+}
+
 export interface WeatherData {
   city: string;
+  cityId?: string;
   temp: number;
+  feelsLike?: number;
   condition: string;
+  weatherCode?: number;
   rainChance: number;
   humidity: number;
   windKmh: number;
+  uvIndexMax?: number;
   alertMessage?: string;
-  severity?: string;
+  severity?: 'LOW' | 'MODERATE' | 'HIGH' | string;
+  sourceName?: string;
+  sourceType?: 'LIVE_OPEN_METEO' | 'DB_CACHE' | 'UNAVAILABLE_FALLBACK';
+  isCached?: boolean;
+  updatedAt?: string;
+  lat?: number;
+  lng?: number;
+  forecast?: DailyForecastItem[];
+}
+
+export interface TravelRiskAlert {
+  id: string;
+  cityId?: string | null;
+  city?: { id: string; name: string; state: string; lat?: number; lng?: number } | null;
+  destinationName: string;
+  lat?: number | null;
+  lng?: number | null;
+  category:
+    | 'HEAVY_RAINFALL'
+    | 'FLOOD'
+    | 'LANDSLIDE'
+    | 'SNOWFALL'
+    | 'ROAD_CLOSURE'
+    | 'ACCIDENT'
+    | 'OVERCROWDING'
+    | 'UNSAFE_AREA'
+    | 'SCAM_WARNING';
+  title: string;
+  description: string;
+  severity: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+  sourceType: 'OFFICIAL' | 'MODERATOR_VERIFIED' | 'COMMUNITY';
+  sourceName?: string | null;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+  expiresAt?: string | null;
+  createdById?: string | null;
+  distanceKm?: number | null;
+  isOfficial?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  phone: string;
+  relation: string;
+  isPrimary: boolean;
+  canShareLocation: boolean;
+  createdAt: string;
+}
+
+export interface EmergencyLogItem {
+  id: string;
+  emergencyType: string;
+  lat: number;
+  lng: number;
+  address?: string | null;
+  messageText?: string | null;
+  sharedWithCount: number;
+  status: string;
+  createdAt: string;
 }
 
 export interface Trip {
   id: string;
   title: string;
+  originCity?: string | null;
   destinationCity: string;
-  currentLocation?: string;
+  currentLocation?: string | null;
   startDate: string;
   endDate: string;
+  travelersCount?: number;
+  totalBudget?: number | null;
+  transportPref?: string | null;
+  interests?: string | null;
+  itineraryData?: any;
   emergencyContactName: string;
   emergencyContactPhone: string;
   status: string;
   shareToken: string;
-  lastKnownEta?: string;
+  lastKnownEta?: string | null;
+  updatedAt: string;
+}
+
+export type ExpenseCategory =
+  | 'TRANSPORTATION'
+  | 'FOOD'
+  | 'ACCOMMODATION'
+  | 'SHOPPING'
+  | 'ACTIVITIES'
+  | 'EMERGENCY'
+  | 'OTHER';
+
+export interface TripExpense {
+  id: string;
+  tripId?: string | null;
+  trip?: {
+    id: string;
+    title: string;
+    destinationCity: string;
+    totalBudget?: number | null;
+  } | null;
+  title: string;
+  category: ExpenseCategory;
+  amount: number;
+  currency: string;
+  expenseDate: string;
+  notes?: string | null;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -206,6 +317,115 @@ export interface VaultItem {
   category: string;
   referenceData: string;
   notes?: string;
+  createdAt: string;
+}
+
+export type VaultDocType =
+  | 'TICKET'
+  | 'HOTEL'
+  | 'ID_REF'
+  | 'PERMIT'
+  | 'INSURANCE'
+  | 'RESERVATION';
+
+export interface DocumentRecord {
+  id: string;
+  tripId?: string | null;
+  trip?: { id: string; title: string; destinationCity: string } | null;
+  title: string;
+  docType: VaultDocType;
+  originalFilename: string;
+  mimeType: string;
+  fileSize: number;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export type LostFoundCategory =
+  | 'PHONE'
+  | 'WALLET_ID'
+  | 'LUGGAGE'
+  | 'DOCUMENTS'
+  | 'JEWELRY'
+  | 'KEYS'
+  | 'OTHER';
+
+export interface LostFoundItem {
+  id: string;
+  userId: string;
+  cityId?: string | null;
+  city?: { id: string; name: string; state: string } | null;
+  type: 'LOST' | 'FOUND';
+  title: string;
+  category: LostFoundCategory;
+  description: string;
+  locationName: string;
+  lat?: number | null;
+  lng?: number | null;
+  eventDate: string;
+  imageUrl?: string | null;
+  status: 'OPEN' | 'MATCHED' | 'RESOLVED';
+  moderationStatus: 'APPROVED' | 'PENDING' | 'HIDDEN';
+  user?: { id: string; name: string; avatarUrl?: string | null };
+  _count?: { inquiries: number };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LostFoundInquiry {
+  id: string;
+  itemId: string;
+  senderId: string;
+  sender?: { id: string; name: string; avatarUrl?: string | null };
+  message: string;
+  contactHint?: string | null;
+  createdAt: string;
+}
+
+export interface ServiceReview {
+  id: string;
+  serviceId: string;
+  userId: string;
+  user?: { id: string; name: string; avatarUrl?: string | null };
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+export interface RoadCrowdReport {
+  id: string;
+  userId?: string | null;
+  user?: { id: string; name: string } | null;
+  cityId?: string | null;
+  city?: { id: string; name: string; state: string } | null;
+  locationName: string;
+  lat: number;
+  lng: number;
+  category: 'ROAD_CONDITION' | 'TRAFFIC' | 'CROWD' | 'ROAD_CLOSURE' | 'CONSTRUCTION' | 'ACCIDENT';
+  difficulty: 'EASY' | 'MODERATE' | 'DIFFICULT' | 'BLOCKED';
+  description: string;
+  status: 'PENDING' | 'VERIFIED' | 'EXPIRED' | 'REJECTED';
+  expiresAt?: string | null;
+  distanceKm?: number | null;
+  createdAt: string;
+}
+
+export interface TravelGroup {
+  id: string;
+  creatorId: string;
+  creator?: { id: string; name: string; avatarUrl?: string | null };
+  title: string;
+  destinationCity: string;
+  originCity?: string | null;
+  startDate: string;
+  endDate: string;
+  maxMembers: number;
+  budgetNote?: string | null;
+  itineraryNotes?: string | null;
+  sharedExpenseNote?: string | null;
+  status: string;
+  members?: Array<{ id: string; userId: string; role: string; user?: { id: string; name: string; avatarUrl?: string | null } }>;
+  _count?: { members: number; messages: number };
   createdAt: string;
 }
 

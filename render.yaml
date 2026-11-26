@@ -5,7 +5,7 @@ services:
     plan: free
     rootDir: server
     buildCommand: npm ci && npx prisma generate && npm run build
-    startCommand: npx prisma db push --skip-generate && npm start
+    startCommand: npx prisma migrate deploy && npm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
@@ -17,6 +17,8 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: FRONTEND_URL
+        sync: false
       - key: ALLOWED_ORIGINS
         sync: false
       - key: ALLOW_VERCEL_PREVIEWS
@@ -34,6 +36,10 @@ services:
       - key: CLOUDINARY_API_KEY
         sync: false
       - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
         sync: false
       - key: DEMO_MODE
         value: "false"

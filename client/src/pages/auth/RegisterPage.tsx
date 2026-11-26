@@ -134,8 +134,8 @@ export function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
@@ -368,7 +368,7 @@ export function RegisterPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
+                    placeholder="Minimum 8 characters"
                     className={`w-full pl-10 pr-10 py-3 rounded-xl text-sm transition-colors focus:outline-none ${
                       isDark
                         ? 'bg-slate-950 border border-slate-800 text-white placeholder-slate-500 focus:border-amber-500'

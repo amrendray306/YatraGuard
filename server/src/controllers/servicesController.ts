@@ -1,12 +1,10 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { calculateDistanceKm } from '../services/geoService.js';
 import { placesService } from '../services/PlacesService.js';
 import { googleMapsService } from '../services/googleMapsService.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 import { isValidCoordinate } from '../middleware/validation.js';
-
-const prisma = new PrismaClient();
 
 export async function searchDestinationsHandler(req: Request, res: Response) {
   try {
@@ -495,5 +493,164 @@ export async function getMapData(req: Request, res: Response) {
   } catch (error) {
     console.error('Fetch map data error:', error);
     return res.status(500).json({ error: 'Failed to retrieve interactive map data' });
+  }
+}
+
+// --- MODULE 8: SERVICE REVIEWS & ADMIN VERIFICATION ---
+export async function getServiceReviewsHandler(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const service = await prisma.locationService.findUnique({
+      where: { id },
+      select: { id: true, name: true, category: true, isVerified: true, verificationSource: true, rating: true },
+    });
+    if (!service) {
+      return res.status(404).json({ error: 'Service not found in registry' });
+    }
+
+    const reviews = await prisma.serviceReview.findMany({
+      where: { serviceId: id },
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.json({ service, reviews });
+  } catch (error) {
+    console.error('Get service reviews error:', error);
+    return res.status(500).json({ error: 'Failed to load service reviews' });
+  }
+}
+
+export async function createServiceReviewHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required to submit a review' });
+    }
+
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const numRating = parseInt(rating, 10);
+    if (Number.isNaN(numRating) || numRating < 1 || numRating > 5) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+    if (!comment?.trim()) {
+      return res.status(400).json({ error: 'Review comment is required' });
+    }
+
+    const service = await prisma.locationService.findUnique({ where: { id } });
+    if (!service) {
+      return res.status(404).json({ error: 'Registered service not found (only DB-registered services can be reviewed here)' });
+    }
+
+    const review = await prisma.serviceReview.upsert({
+      where: {
+        serviceId_userId: { serviceId: id, userId: req.user.id },
+      },
+      create: {
+        serviceId: id,
+        userId: req.user.id,
+        rating: numRating,
+        comment: comment.trim().slice(0, 600),
+      },
+      update: {
+        rating: numRating,
+        comment: comment.trim().slice(0, 600),
+      },
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+    });
+
+    const agg = await prisma.serviceReview.aggregate({
+      where: { serviceId: id },
+      _avg: { rating: true },
+    });
+    const avg = agg._avg.rating ? Math.round(agg._avg.rating * 10) / 10 : service.rating;
+    await prisma.locationService.update({
+      where: { id },
+      data: { rating: avg },
+    });
+
+    return res.status(201).json({
+      message: 'Service review saved',
+      review,
+      updatedRating: avg,
+    });
+  } catch (error) {
+    console.error('Create service review error:', error);
+    return res.status(500).json({ error: 'Failed to save service review' });
+  }
+}
+
+export async function verifyLocalServiceHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user || !['ADMIN', 'MODERATOR'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or Moderator permission required' });
+    }
+
+    const { id } = req.params;
+    const { isVerified, verificationSource } = req.body;
+    const existing = await prisma.locationService.findUnique({ where: { id } });
+    if (!existing) {
+      return res.status(404).json({ error: 'Service not found' });
+    }
+
+    const nextVerified = isVerified !== undefined ? Boolean(isVerified) : !existing.isVerified;
+    const updated = await prisma.locationService.update({
+      where: { id },
+      data: {
+        isVerified: nextVerified,
+        verificationSource: nextVerified
+          ? verificationSource?.trim() || 'Admin Verified Registry'
+          : null,
+      },
+    });
+
+    await prisma.adminAuditLog.create({
+      data: {
+        adminId: req.user.id,
+        action: nextVerified ? 'VERIFY_SERVICE' : 'UNVERIFY_SERVICE',
+        targetEntity: 'SERVICE',
+        targetId: id,
+        details: `${existing.name} (${updated.verificationSource || 'Unverified'})`,
+      },
+    }).catch(() => {});
+
+    return res.json({ message: 'Service verification status updated', service: updated });
+  } catch (error) {
+    console.error('Verify local service error:', error);
+    return res.status(500).json({ error: 'Failed to update service verification' });
+  }
+}
+
+export async function createLocalServiceHandler(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user || !['ADMIN', 'MODERATOR'].includes(req.user.role)) {
+      return res.status(403).json({ error: 'Admin or Moderator permission required' });
+    }
+
+    const { name, category, subCategory, lat, lng, address, phone, openStatus, cityId, verificationSource } = req.body;
+    if (!name?.trim() || !category || lat === undefined || lng === undefined || !address?.trim() || !cityId) {
+      return res.status(400).json({ error: 'Name, category, lat, lng, address, and cityId are required' });
+    }
+
+    const service = await prisma.locationService.create({
+      data: {
+        name: name.trim(),
+        category: String(category).toUpperCase(),
+        subCategory: subCategory ? String(subCategory).toUpperCase() : null,
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
+        address: address.trim(),
+        phone: phone?.trim() || null,
+        openStatus: openStatus?.trim() || 'Open 24/7',
+        isVerified: true,
+        verificationSource: verificationSource?.trim() || 'YatraGuard Verified Directory',
+        cityId,
+      },
+    });
+
+    return res.status(201).json({ message: 'Verified local service added', service });
+  } catch (error) {
+    console.error('Create local service error:', error);
+    return res.status(500).json({ error: 'Failed to create local service' });
   }
 }

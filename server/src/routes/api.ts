@@ -22,6 +22,9 @@ import {
 import {
   getCommunityPosts,
   createCommunityPost,
+  updateCommunityPost,
+  deleteCommunityPost,
+  reportCommunityPost,
   likeCommunityPost,
   addPostComment,
   getTravelBuddies,
@@ -77,15 +80,43 @@ import {
   deleteSavedRouteHandler,
   getMapData,
   searchDestinationsHandler,
+  getServiceReviewsHandler,
+  createServiceReviewHandler,
+  verifyLocalServiceHandler,
+  createLocalServiceHandler,
 } from '../controllers/servicesController.js';
+import {
+  getRoadCrowdReports,
+  createRoadCrowdReport,
+  verifyRoadCrowdReport,
+  deleteRoadCrowdReport,
+} from '../controllers/roadCrowdController.js';
 import {
   getEmergencyInfo,
   triggerSosLog,
+  getEmergencyHistory,
+  getEmergencyContacts,
+  createEmergencyContact,
+  updateEmergencyContact,
+  deleteEmergencyContact,
 } from '../controllers/emergencyController.js';
-import { chatGuardian } from '../controllers/aiController.js';
+import {
+  getRiskAlerts,
+  createRiskAlert,
+  verifyRiskAlert,
+  deleteRiskAlert,
+} from '../controllers/riskAlertController.js';
+import { chatGuardian, getAiHistory, clearAiHistory } from '../controllers/aiController.js';
+import {
+  getExpenses,
+  createExpense,
+  updateExpense,
+  deleteExpense,
+} from '../controllers/expenseController.js';
 import {
   getBuddyPlans,
   createBuddyPlan,
+  updateBuddyPlanStatus,
   cancelBuddyPlan,
   getMyBuddyPlans,
   sendBuddyConnection,
@@ -94,25 +125,57 @@ import {
   getMyConnections,
   getConnectionMessages,
   sendConnectionMessage,
+  submitBuddyFeedback,
+  getTravelGroups,
+  createTravelGroup,
+  joinTravelGroup,
+  leaveTravelGroup,
+  updateGroupNotes,
+  getGroupMessages,
+  sendGroupMessage,
+  blockSafetyUser,
+  getBlockedSafetyUsers,
+  unblockSafetyUser,
+  reportSafetyUser,
 } from '../controllers/buddyController.js';
 import {
   getUserTrips,
   createTrip,
+  updateTrip,
+  deleteTrip,
+  generateSmartItinerary,
   getSharedTrip,
   getVaultItems,
   createVaultItem,
   deleteVaultItem,
 } from '../controllers/tripController.js';
 import {
+  getVaultDocuments,
+  uploadVaultDocument,
+  downloadVaultDocument,
+  deleteVaultDocument,
+} from '../controllers/vaultController.js';
+import {
+  getLostFoundItems,
+  createLostFoundItem,
+  updateLostFoundStatus,
+  moderateLostFoundItem,
+  inquireLostFoundItem,
+  getLostFoundInquiries,
+  deleteLostFoundItem,
+} from '../controllers/lostFoundController.js';
+import {
+  uploadProfileMiddleware,
+  uploadCommunityMiddleware,
+  uploadLostFoundMiddleware,
+  uploadVaultDocumentMiddleware,
+} from '../services/uploadService.js';
+import {
   uploadProfileImage,
   deleteProfileImage,
   uploadCommunityImages,
   adminDeleteImage,
 } from '../controllers/uploadController.js';
-import {
-  uploadProfileMiddleware,
-  uploadCommunityMiddleware,
-} from '../services/uploadService.js';
 import {
   getModeratorDashboard,
   getModeratorReports,
@@ -146,7 +209,7 @@ import {
   getAdminDestinations,
   updateDestination,
   getAdminCommunityPosts,
-  deleteCommunityPost,
+  deleteCommunityPost as adminDeleteCommunityPost,
   getAdminAnalytics,
   getAdminAuditLogs,
   reviewFareReport,
@@ -190,33 +253,51 @@ router.get('/auth/me', authenticateToken, getProfile);
 router.get('/user/profile', authenticateToken, getUserProfile);
 router.put('/user/profile', authenticateToken, updateUserProfile);
 router.put('/user/change-password', authenticateToken, changeUserPassword);
-router.get('/user/dashboard-data', optionalAuth, getUserDashboardData);
-router.get('/user/saved-destinations', optionalAuth, getSavedDestinations);
-router.post('/user/saved-destinations', optionalAuth, createSavedDestination);
+router.get('/user/dashboard-data', authenticateToken, getUserDashboardData);
+router.get('/user/saved-destinations', authenticateToken, getSavedDestinations);
+router.post('/user/saved-destinations', authenticateToken, createSavedDestination);
 router.delete('/user/saved-destinations/:id', authenticateToken, deleteSavedDestination);
-router.get('/user/notifications', optionalAuth, getNotifications);
+router.get('/user/notifications', authenticateToken, getNotifications);
 router.put('/user/notifications/:id/read', authenticateToken, markNotificationRead);
 router.delete('/user/account', authenticateToken, deleteAccount);
 
 // --- TRAVEL COMMUNITY & BUDDY FINDER ---
 router.get('/community/posts', getCommunityPosts);
-router.post('/community/posts', optionalAuth, createCommunityPost);
+router.post('/community/posts', authenticateToken, createCommunityPost);
+router.put('/community/posts/:id', authenticateToken, updateCommunityPost);
+router.delete('/community/posts/:id', authenticateToken, deleteCommunityPost);
+router.post('/community/posts/:id/report', authenticateToken, reportCommunityPost);
 router.post('/community/posts/:id/like', likeCommunityPost);
-router.post('/community/posts/:id/comment', optionalAuth, addPostComment);
+router.post('/community/posts/:id/comment', authenticateToken, addPostComment);
 router.get('/community/buddies', getTravelBuddies);
-router.post('/community/buddies', optionalAuth, createTravelBuddy);
+router.post('/community/buddies', authenticateToken, createTravelBuddy);
 
 // --- TRAVEL BUDDY (Full partner matching system) ---
 router.get('/buddy/plans', optionalAuth, getBuddyPlans);
 router.post('/buddy/plans', authenticateToken, createBuddyPlan);
+router.put('/buddy/plans/:id/status', authenticateToken, updateBuddyPlanStatus);
 router.put('/buddy/plans/:id/cancel', authenticateToken, cancelBuddyPlan);
 router.get('/buddy/my-plans', authenticateToken, getMyBuddyPlans);
 router.post('/buddy/connect', authenticateToken, sendBuddyConnection);
 router.put('/buddy/connections/:id/accept', authenticateToken, acceptBuddyConnection);
 router.put('/buddy/connections/:id/reject', authenticateToken, rejectBuddyConnection);
+router.post('/buddy/connections/:id/feedback', authenticateToken, submitBuddyFeedback);
 router.get('/buddy/connections', authenticateToken, getMyConnections);
 router.get('/buddy/connections/:id/messages', authenticateToken, getConnectionMessages);
 router.post('/buddy/connections/:id/messages', authenticateToken, sendConnectionMessage);
+
+// --- GROUP TRAVEL & SAFETY BLOCKS ---
+router.get('/buddy/groups', optionalAuth, getTravelGroups);
+router.post('/buddy/groups', authenticateToken, createTravelGroup);
+router.post('/buddy/groups/:id/join', authenticateToken, joinTravelGroup);
+router.post('/buddy/groups/:id/leave', authenticateToken, leaveTravelGroup);
+router.put('/buddy/groups/:id/notes', authenticateToken, updateGroupNotes);
+router.get('/buddy/groups/:id/messages', authenticateToken, getGroupMessages);
+router.post('/buddy/groups/:id/messages', authenticateToken, sendGroupMessage);
+router.get('/buddy/safety/blocks', authenticateToken, getBlockedSafetyUsers);
+router.post('/buddy/safety/blocks', authenticateToken, blockSafetyUser);
+router.delete('/buddy/safety/blocks/:blockedUserId', authenticateToken, unblockSafetyUser);
+router.post('/buddy/safety/report', authenticateToken, reportSafetyUser);
 
 // --- GEOGRAPHY & CITIES ---
 router.get('/cities', getCities);
@@ -227,6 +308,16 @@ router.get('/destinations/search', searchDestinationsHandler);
 router.get('/map/data', getMapData);
 router.get('/map/nearby', validateCoordinatesMiddleware, getNearbyServices);
 router.get('/services/nearby', validateCoordinatesMiddleware, getNearbyServices);
+router.get('/services/:id/reviews', getServiceReviewsHandler);
+router.post('/services/:id/reviews', authenticateToken, createServiceReviewHandler);
+router.put('/admin/services/:id/verify', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), verifyLocalServiceHandler);
+router.post('/admin/services', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), createLocalServiceHandler);
+
+// --- CROWD & ROAD INTELLIGENCE ---
+router.get('/road-crowd', getRoadCrowdReports);
+router.post('/road-crowd', authenticateToken, createRoadCrowdReport);
+router.put('/road-crowd/:id/verify', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), verifyRoadCrowdReport);
+router.delete('/road-crowd/:id', authenticateToken, deleteRoadCrowdReport);
 router.get('/places/nearby', validateCoordinatesMiddleware, getNearbyPlacesHandler);
 router.get('/places/emergency-shortcuts', validateCoordinatesMiddleware, getEmergencyShortcutsHandler);
 router.get('/places/autocomplete', autocompletePlacesHandler);
@@ -284,22 +375,57 @@ router.get('/scams', getScams);
 router.post('/scams', optionalAuth, createScam);
 router.post('/scams/:id/vote', voteScam);
 
+// --- LIVE TRAVEL RISK ALERTS ---
+router.get('/risk-alerts', optionalAuth, getRiskAlerts);
+router.post('/risk-alerts', authenticateToken, createRiskAlert);
+router.put('/risk-alerts/:id/verify', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), verifyRiskAlert);
+router.delete('/risk-alerts/:id', authenticateToken, deleteRiskAlert);
+
 // --- EMERGENCY & SOS (Rate-limited with priority logging) ---
 router.get('/emergency/info', validateCoordinatesMiddleware, getEmergencyInfo);
 router.post('/emergency/sos', emergencyLimiter, optionalAuth, triggerSosLog);
+router.get('/emergency/history', authenticateToken, getEmergencyHistory);
+router.get('/emergency/contacts', authenticateToken, getEmergencyContacts);
+router.post('/emergency/contacts', authenticateToken, createEmergencyContact);
+router.put('/emergency/contacts/:id', authenticateToken, updateEmergencyContact);
+router.delete('/emergency/contacts/:id', authenticateToken, deleteEmergencyContact);
 
 // --- AI TRAVEL GUARDIAN (Rate-limited to prevent token drainage) ---
 router.post('/ai/chat', aiAssistantLimiter, optionalAuth, chatGuardian);
+router.get('/ai/history', optionalAuth, getAiHistory);
+router.delete('/ai/history', authenticateToken, clearAiHistory);
 
-// --- TRIPS & SHARING ---
+// --- TRIPS, SMART PLANNER & SHARING ---
+router.post('/trips/generate', optionalAuth, generateSmartItinerary);
 router.get('/trips', authenticateToken, getUserTrips);
 router.post('/trips', authenticateToken, createTrip);
+router.put('/trips/:id', authenticateToken, updateTrip);
+router.delete('/trips/:id', authenticateToken, deleteTrip);
 router.get('/trips/share/:token', getSharedTrip); // Public share endpoint
 
-// --- PRIVATE EMERGENCY VAULT ---
+// --- TRAVEL EXPENSE TRACKER ---
+router.get('/expenses', authenticateToken, getExpenses);
+router.post('/expenses', authenticateToken, createExpense);
+router.put('/expenses/:id', authenticateToken, updateExpense);
+router.delete('/expenses/:id', authenticateToken, deleteExpense);
+
+// --- PRIVATE EMERGENCY & TRAVEL DOCUMENT VAULT ---
 router.get('/vault', authenticateToken, getVaultItems);
 router.post('/vault', authenticateToken, createVaultItem);
 router.delete('/vault/:id', authenticateToken, deleteVaultItem);
+router.get('/vault/documents', authenticateToken, getVaultDocuments);
+router.post('/vault/documents', authenticateToken, uploadVaultDocumentMiddleware, uploadVaultDocument);
+router.get('/vault/documents/:id/download', authenticateToken, downloadVaultDocument);
+router.delete('/vault/documents/:id', authenticateToken, deleteVaultDocument);
+
+// --- LOST & FOUND HUB (Privacy-safe relay inquiries) ---
+router.get('/lost-found', optionalAuth, getLostFoundItems);
+router.post('/lost-found', authenticateToken, uploadLostFoundMiddleware, createLostFoundItem);
+router.put('/lost-found/:id/status', authenticateToken, updateLostFoundStatus);
+router.put('/lost-found/:id/moderate', authenticateToken, requireRole(['ADMIN', 'MODERATOR']), moderateLostFoundItem);
+router.post('/lost-found/:id/inquire', authenticateToken, inquireLostFoundItem);
+router.get('/lost-found/:id/inquiries', authenticateToken, getLostFoundInquiries);
+router.delete('/lost-found/:id', authenticateToken, deleteLostFoundItem);
 
 // --- DEDICATED ADMIN DASHBOARD MODULES (Restricted to ADMIN & MODERATOR) ---
 router.get(
@@ -390,7 +516,7 @@ router.delete(
   '/admin/community/posts/:id',
   authenticateToken,
   requireRole(['ADMIN', 'MODERATOR']),
-  deleteCommunityPost
+  adminDeleteCommunityPost
 );
 router.get(
   '/admin/analytics',

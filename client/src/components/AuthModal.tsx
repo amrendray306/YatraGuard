@@ -141,8 +141,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setErrorMessage('Please enter your email address');
         return;
       }
-      if (password.length < 6) {
-        setErrorMessage('Password must be at least 6 characters long');
+      if (password.length < 8) {
+        setErrorMessage('Password must be at least 8 characters long');
         return;
       }
       if (password !== confirmPassword) {
@@ -504,7 +504,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Minimum 8 characters"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium"
                     />
                     <button
@@ -530,7 +530,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       required
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Minimum 8 characters"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 font-medium"
                     />
                   </div>

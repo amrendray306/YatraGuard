@@ -49,6 +49,11 @@ import {
   CheckCircle2,
   ExternalLink,
   Search,
+  Fuel,
+  Wrench,
+  UserCheck,
+  Star,
+  MessageSquare,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
 import { useAuth } from '../context/AuthContext';
@@ -66,6 +71,9 @@ import {
   saveRouteBookmark,
   fetchSavedRouteBookmarks,
   deleteSavedRouteBookmark,
+  fetchServiceReviews,
+  createServiceReview,
+  verifyLocalService,
 } from '../services/api';
 import {
   EnrichedNearbyPlace,
@@ -219,6 +227,66 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
   const [sortBy, setSortBy] = useState<'distance' | 'roadDistance' | 'fastest' | 'category' | 'rating'>('distance');
   const [apiNotice, setApiNotice] = useState<string>('');
   const [isGoogleConfigured, setIsGoogleConfigured] = useState<boolean>(false);
+
+  // Service Reviews & Verification Modal (Module 8)
+  const [reviewPlace, setReviewPlace] = useState<EnrichedNearbyPlace | null>(null);
+  const [reviewsList, setReviewsList] = useState<any[]>([]);
+  const [reviewsServiceMeta, setReviewsServiceMeta] = useState<any>(null);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+
+  const openReviewsModal = async (place: EnrichedNearbyPlace) => {
+    setReviewPlace(place);
+    setLoadingReviews(true);
+    setReviewsList([]);
+    setReviewsServiceMeta(null);
+    try {
+      const res = await fetchServiceReviews(place.id);
+      setReviewsList(res.reviews || []);
+      setReviewsServiceMeta(res.service || null);
+    } catch {
+      setReviewsList([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+  };
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewPlace || !reviewComment.trim()) return;
+    if (!user) {
+      showToast('Sign in to post a review', 'error');
+      return;
+    }
+    setSubmittingReview(true);
+    try {
+      await createServiceReview(reviewPlace.id, {
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      showToast('Review saved cleanly!', 'success');
+      setReviewComment('');
+      openReviewsModal(reviewPlace);
+      loadNearbyPlaces();
+    } catch (err: any) {
+      showToast(err?.response?.data?.error || 'Could not save review', 'error');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const handleToggleVerify = async (placeId: string, nextState: boolean) => {
+    try {
+      await verifyLocalService(placeId, { isVerified: nextState });
+      showToast(nextState ? 'Service marked Verified' : 'Verification removed', 'success');
+      if (reviewPlace) openReviewsModal(reviewPlace);
+      loadNearbyPlaces();
+    } catch {
+      showToast('Admin verification update failed', 'error');
+    }
+  };
 
   // Emergency Shortcuts & 112 Modal
   const [emergencyShortcuts, setEmergencyShortcuts] = useState<any>(null);
@@ -586,6 +654,10 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
     { id: 'FOOD', label: 'Food & Restaurants', icon: Utensils },
     { id: 'ACCOMMODATION', label: 'Hotels', icon: Hotel },
     { id: 'TRANSPORT', label: 'Transport', icon: Bus },
+    { id: 'TAXI', label: 'Taxi Counters', icon: Car },
+    { id: 'FUEL', label: 'Petrol Pumps', icon: Fuel },
+    { id: 'MECHANIC', label: 'Mechanics', icon: Wrench },
+    { id: 'GUIDE', label: 'Guides', icon: UserCheck },
     { id: 'SHOPPING', label: 'Shopping', icon: ShoppingBag },
     { id: 'PHARMACY', label: 'Pharmacies', icon: Pill },
     { id: 'HOSPITAL', label: 'Hospitals', icon: HeartPulse },
@@ -840,6 +912,21 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
           >
             <Bookmark className="w-3.5 h-3.5 text-amber-400" />
           </button>
+
+          {place.source === 'OFFICIAL_REGISTRY' && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openReviewsModal(place);
+              }}
+              className="py-1.5 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold flex items-center gap-1"
+              title="Reviews & Verification"
+            >
+              <MessageSquare className="w-3 h-3 text-sky-400" />
+              <span>Reviews</span>
+            </button>
+          )}
         </div>
       </div>
     );
@@ -2276,6 +2363,104 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* SERVICE REVIEWS & VERIFICATION MODAL (Module 8) */}
+      {reviewPlace && (
+        <div className="fixed inset-0 z-[2100] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-5 space-y-4 shadow-2xl text-white max-h-[88dvh] flex flex-col">
+            <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold">{reviewPlace.name}</h3>
+                <p className="text-[11px] text-slate-400">
+                  {reviewsServiceMeta?.isVerified
+                    ? `Verified (${reviewsServiceMeta?.verificationSource || 'Official Directory'})`
+                    : 'Community Registry Listing'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewPlace(null)}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {user && ['ADMIN', 'MODERATOR'].includes(user.role) && reviewsServiceMeta && (
+              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+                <span>Admin Verification Status:</span>
+                <button
+                  type="button"
+                  onClick={() => handleToggleVerify(reviewPlace.id, !reviewsServiceMeta.isVerified)}
+                  className={`px-3 py-1 rounded-lg font-bold text-[11px] ${
+                    reviewsServiceMeta.isVerified
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-emerald-600 text-white'
+                  }`}
+                >
+                  {reviewsServiceMeta.isVerified ? 'Revoke Verified Badge' : 'Mark Admin Verified'}
+                </button>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+              {loadingReviews ? (
+                <div className="text-xs text-slate-400 py-4 text-center">Loading reviews...</div>
+              ) : reviewsList.length === 0 ? (
+                <div className="text-xs text-slate-400 py-4 text-center">
+                  No traveler reviews yet. Be the first to rate this service.
+                </div>
+              ) : (
+                reviewsList.map((rev) => (
+                  <div key={rev.id} className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-white">{rev.user?.name || 'Traveler'}</span>
+                      <span className="flex items-center gap-1 text-amber-400 font-bold">
+                        <Star className="w-3 h-3 fill-amber-400" /> {rev.rating}/5
+                      </span>
+                    </div>
+                    <p className="text-slate-300">{rev.comment}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {user && (
+              <form onSubmit={handleSubmitReview} className="space-y-2 pt-2 border-t border-slate-800 text-xs">
+                <div className="flex items-center gap-2">
+                  <label className="text-slate-400 font-semibold">Rating:</label>
+                  <select
+                    value={reviewRating}
+                    onChange={(e) => setReviewRating(Number(e.target.value))}
+                    className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-white"
+                  >
+                    {[5, 4, 3, 2, 1].map((n) => (
+                      <option key={n} value={n}>
+                        {n} Star{n > 1 ? 's' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <textarea
+                  required
+                  rows={2}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Share honest service quality, pricing, or helpfulness feedback..."
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-white"
+                />
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="w-full py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold"
+                >
+                  {submittingReview ? 'Saving...' : 'Submit Review'}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

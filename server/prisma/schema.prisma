@@ -31,6 +31,7 @@ model User {
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   trips                 Trip[]
+  tripExpenses          TripExpense[]
   incidents             IncidentReport[]
   incidentVerifications IncidentVerification[]
   incidentFlags         IncidentFlag[]
@@ -38,7 +39,19 @@ model User {
   notificationPrefs     NotificationPreference?
   aiConversations       AIConversation[]
   vaultItems            VaultItem[]
+  vaultDocuments        DocumentRecord[]
+  lostFoundItems        LostFoundItem[]
+  lostFoundInquiries    LostFoundInquiry[]
+  serviceReviews        ServiceReview[]
+  roadCrowdReports      RoadCrowdReport[]
+  travelGroupsCreated   TravelGroup[]        @relation("CreatedTravelGroups")
+  groupMemberships      TravelGroupMember[]
+  groupMessages         TravelGroupMessage[]
+  blockedUsers          UserSafetyBlock[]    @relation("BlockerUser")
+  blockedByUsers        UserSafetyBlock[]    @relation("BlockedTarget")
   emergencyLogs         EmergencyLog[]
+  emergencyContacts     EmergencyContact[]
+  riskAlertsCreated     TravelRiskAlert[]    @relation("CreatedRiskAlerts")
   fareReports           FareReport[]
   communityPosts        CommunityPost[]
   comments              PostComment[]
@@ -72,6 +85,9 @@ model City {
   travelCosts        TravelCost[]
   crowdLevels        CrowdLevel[]
   weatherAlerts      WeatherAlert[]
+  riskAlerts         TravelRiskAlert[]
+  lostFoundItems     LostFoundItem[]
+  roadCrowdReports   RoadCrowdReport[]
   fareRules          CityFareRule[]
   fareReports        FareReport[]
   priceRecords       PriceRecord[]
@@ -132,22 +148,38 @@ model FareReport {
 }
 
 model LocationService {
-  id          String   @id @default(uuid())
-  name        String
-  category    String   // HOSPITAL, POLICE, PHARMACY, TRANSPORT, ATM, FUEL, HOTEL, RESTAURANT, TOURIST_INFO, SHOPPING
-  subCategory String?  // TRAUMA_CENTER, CLINIC, LAB, BLOOD_BANK, AMBULANCE, TEMPLE, MUSEUM, PARK, ADVENTURE, CAFE, STREET_FOOD, HOSTEL, HOMESTAY, METRO_STATION, RAILWAY_STATION, AUTO_STAND, PARKING, RENTAL, BAZAAR, MALL
-  lat         Float
-  lng         Float
-  address     String
-  phone       String?
-  rating      Float?   @default(4.2)
-  openStatus  String   @default("Open 24/7")
-  openingHours String?
-  website     String?
-  isVerified  Boolean  @default(true)
-  cityId      String
-  city        City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
+  id                 String          @id @default(uuid())
+  name               String
+  category           String          // HOSPITAL, POLICE, PHARMACY, TRANSPORT, ATM, FUEL, HOTEL, RESTAURANT, TOURIST_INFO, SHOPPING, MECHANIC, GUIDE
+  subCategory        String?         // TRAUMA_CENTER, CLINIC, LAB, BLOOD_BANK, AMBULANCE, PETROL_PUMP, AUTO_REPAIR, TOUR_GUIDE, TAXI_COUNTER, etc.
+  lat                Float
+  lng                Float
+  address            String
+  phone              String?
+  rating             Float?          @default(4.2)
+  openStatus         String          @default("Open 24/7")
+  openingHours       String?
+  website            String?
+  isVerified         Boolean         @default(true)
+  verificationSource String?         // e.g. "Admin Verified Registry", "Ministry Directory"
+  cityId             String
+  city               City            @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  reviews            ServiceReview[]
+  createdAt          DateTime        @default(now())
+}
+
+model ServiceReview {
+  id        String          @id @default(uuid())
+  serviceId String
+  service   LocationService @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int             // 1..5
+  comment   String
+  createdAt DateTime        @default(now())
+
+  @@unique([serviceId, userId])
+  @@index([serviceId])
 }
 
 model IncidentReport {
@@ -169,6 +201,8 @@ model IncidentReport {
   amountDemanded     Float?
   amountPaid         Float?
   evidenceUrl        String?
+  scamFlagSignal     String?                // LOW_SIGNAL, PATTERN_MATCH, HIGH_ALERT_SIGNAL (Advisory only)
+  scamAdvisoryNote   String?                // Explainable heuristic note for moderator triage
   incidentDate       DateTime               @default(now())
   reportedAt         DateTime               @default(now())
   reporterId         String?
@@ -322,25 +356,56 @@ model WeatherAlert {
   windKmh      Float    @default(12.0)
   alertMessage String?  // e.g., "Heat Advisory: Carry hydration"
   severity     String?  // LOW, MODERATE, HIGH
+  sourceName   String?  // e.g., "Open-Meteo Forecast", "Cached Advisory"
+  forecastJson Json?    // Cached 5-day forecast summary
   updatedAt    DateTime @default(now())
 }
 
 model Trip {
-  id                    String   @id @default(uuid())
+  id                    String        @id @default(uuid())
   userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   title                 String
+  originCity            String?
   destinationCity       String
   currentLocation       String?
   startDate             String
   endDate               String
+  travelersCount        Int           @default(1)
+  totalBudget           Float?
+  transportPref         String?       // AUTO_TAXI, PUBLIC_TRANSIT, CAB, BIKE_RENTAL, MIXED
+  interests             String?       // Comma-separated interests
+  itineraryData         Json?         // Structured editable day-wise itinerary
   emergencyContactName  String
   emergencyContactPhone String
-  status                String   @default("ACTIVE") // ACTIVE, COMPLETED
-  shareToken            String   @unique @default(uuid())
+  status                String        @default("ACTIVE") // ACTIVE, COMPLETED
+  shareToken            String        @unique @default(uuid())
   lastKnownEta          String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  expenses              TripExpense[]
+  documents             DocumentRecord[]
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([userId])
+}
+
+model TripExpense {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripId      String?
+  trip        Trip?    @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  title       String
+  category    String   // TRANSPORTATION, FOOD, ACCOMMODATION, SHOPPING, ACTIVITIES, EMERGENCY, OTHER
+  amount      Float
+  currency    String   @default("INR")
+  expenseDate String   // YYYY-MM-DD
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, expenseDate])
+  @@index([tripId])
 }
 
 model VaultItem {
@@ -354,6 +419,139 @@ model VaultItem {
   createdAt     DateTime @default(now())
 }
 
+model DocumentRecord {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tripId           String?
+  trip             Trip?    @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  title            String
+  docType          String   // TICKET, HOTEL, ID_REF, PERMIT, INSURANCE, RESERVATION
+  originalFilename String
+  storageKey       String   // Filename stored inside private non-public server/private_vault/
+  mimeType         String
+  fileSize         Int
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model LostFoundItem {
+  id               String             @id @default(uuid())
+  userId           String
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cityId           String?
+  city             City?              @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  type             String             // LOST, FOUND
+  title            String
+  category         String             // PHONE, WALLET_ID, LUGGAGE, DOCUMENTS, JEWELRY, KEYS, OTHER
+  description      String
+  locationName     String
+  lat              Float?
+  lng              Float?
+  eventDate        String             // YYYY-MM-DD
+  imageUrl         String?
+  status           String             @default("OPEN") // OPEN, MATCHED, RESOLVED
+  moderationStatus String             @default("APPROVED") // APPROVED, PENDING, HIDDEN
+  inquiries        LostFoundInquiry[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([type, status])
+  @@index([cityId])
+}
+
+model LostFoundInquiry {
+  id          String        @id @default(uuid())
+  itemId      String
+  item        LostFoundItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message     String
+  contactHint String?       // Optional contact note shared privately only with item poster
+  createdAt   DateTime      @default(now())
+
+  @@index([itemId])
+}
+
+model RoadCrowdReport {
+  id           String    @id @default(uuid())
+  userId       String?
+  user         User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cityId       String?
+  city         City?     @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  locationName String
+  lat          Float
+  lng          Float
+  category     String    // ROAD_CONDITION, TRAFFIC, CROWD, ROAD_CLOSURE, CONSTRUCTION, ACCIDENT
+  difficulty   String    @default("MODERATE") // EASY, MODERATE, DIFFICULT, BLOCKED
+  description  String
+  status       String    @default("PENDING") // PENDING, VERIFIED, EXPIRED, REJECTED
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([cityId, expiresAt])
+}
+
+model TravelGroup {
+  id                String               @id @default(uuid())
+  creatorId         String
+  creator           User                 @relation("CreatedTravelGroups", fields: [creatorId], references: [id], onDelete: Cascade)
+  title             String
+  destinationCity   String
+  originCity        String?
+  startDate         String
+  endDate           String
+  maxMembers        Int                  @default(6)
+  budgetNote        String?
+  itineraryNotes    String?
+  sharedExpenseNote String?
+  status            String               @default("OPEN") // OPEN, ACTIVE, COMPLETED
+  members           TravelGroupMember[]
+  messages          TravelGroupMessage[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+}
+
+model TravelGroupMember {
+  id       String      @id @default(uuid())
+  groupId  String
+  group    TravelGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String      @default("MEMBER") // CREATOR, MEMBER
+  joinedAt DateTime    @default(now())
+
+  @@unique([groupId, userId])
+}
+
+model TravelGroupMessage {
+  id        String      @id @default(uuid())
+  groupId   String
+  group     TravelGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([groupId])
+}
+
+model UserSafetyBlock {
+  id            String   @id @default(uuid())
+  blockerId     String
+  blocker       User     @relation("BlockerUser", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedUserId String
+  blockedUser   User     @relation("BlockedTarget", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  reason        String?
+  createdAt     DateTime @default(now())
+
+  @@unique([blockerId, blockedUserId])
+}
+
 model AIConversation {
   id          String   @id @default(uuid())
   userId      String?
@@ -365,16 +563,57 @@ model AIConversation {
 }
 
 model EmergencyLog {
-  id            String   @id @default(uuid())
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  cityId        String?
-  emergencyType String   // SOS_112, POLICE, MEDICAL, HARASSMENT, LOCATION_SHARE
-  lat           Float
-  lng           Float
-  address       String?
-  status        String   @default("LOGGED")
-  createdAt     DateTime @default(now())
+  id              String   @id @default(uuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  cityId          String?
+  emergencyType   String   // SOS_112, POLICE, MEDICAL, HARASSMENT, LOCATION_SHARE
+  lat             Float
+  lng             Float
+  address         String?
+  messageText     String?
+  sharedWithCount Int      @default(0)
+  status          String   @default("LOGGED")
+  createdAt       DateTime @default(now())
+}
+
+model EmergencyContact {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name             String
+  phone            String
+  relation         String   @default("Family")
+  isPrimary        Boolean  @default(false)
+  canShareLocation Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model TravelRiskAlert {
+  id                 String    @id @default(uuid())
+  cityId             String?
+  city               City?     @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  destinationName    String
+  lat                Float?
+  lng                Float?
+  category           String    // HEAVY_RAINFALL, FLOOD, LANDSLIDE, SNOWFALL, ROAD_CLOSURE, ACCIDENT, OVERCROWDING, UNSAFE_AREA, SCAM_WARNING
+  title              String
+  description        String
+  severity           String    @default("MODERATE") // LOW, MODERATE, HIGH, CRITICAL
+  sourceType         String    @default("COMMUNITY") // OFFICIAL, MODERATOR_VERIFIED, COMMUNITY
+  sourceName         String?
+  verificationStatus String    @default("PENDING") // PENDING, VERIFIED, REJECTED
+  expiresAt          DateTime?
+  createdById        String?
+  createdBy          User?     @relation("CreatedRiskAlerts", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([cityId, expiresAt])
+  @@index([severity])
 }
 
 model CommunityPost {

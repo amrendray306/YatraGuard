@@ -172,10 +172,11 @@ export const MapPage: React.FC<MapPageProps> = ({
 
           {/* Emergency SOS Button */}
           <button
+            type="button"
             onClick={openEmergencyModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-xl shadow-red-900/40 text-xs font-extrabold transition-all animate-pulse"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md text-xs font-bold transition-colors keep-white yg-press"
           >
-            <ShieldAlert className="w-4 h-4" />
+            <ShieldAlert className="w-4 h-4" aria-hidden="true" />
             <span>SOS</span>
           </button>
         </div>

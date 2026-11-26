@@ -1,8 +1,56 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 
-const prisma = new PrismaClient();
+/**
+ * Module 10: Advisory Scam Pattern Signal Helper (Heuristic, never an automatic guilt verdict)
+ */
+export function analyzeScamPatternAdvisory(input: {
+  title: string;
+  description: string;
+  category: string;
+  amountDemanded?: number | null;
+  amountPaid?: number | null;
+}): { signal: 'LOW_SIGNAL' | 'PATTERN_MATCH' | 'HIGH_ALERT_SIGNAL'; note: string } {
+  const combined = `${input.title} ${input.description}`.toLowerCase();
+  const matchedPatterns: string[] = [];
+
+  const redFlags: Array<[RegExp, string]> = [
+    [/hotel\s*(is\s*)?(closed|burned|full|flooded)/i, 'Common "hotel closed" redirection tout claim'],
+    [/moved\s*(tourist\s*)?office|government\s*office\s*shifted/i, 'Fake relocated government tourist office tactic'],
+    [/no\s*meter|meter\s*(broken|not\s*working)/i, 'Refusal to use official fare meter'],
+    [/qr\s*(code|scan)|upi\s*link|advance\s*deposit|otp/i, 'Digital payment/QR fraud pattern'],
+    [/forced\s*shop|commission|gemstone|carpet/i, 'Commission-driven shopping diversion'],
+    [/fake\s*(guide|ticket|permit|priest|pass)/i, 'Counterfeit pass or unverified guide report'],
+  ];
+
+  for (const [regex, label] of redFlags) {
+    if (regex.test(combined)) matchedPatterns.push(label);
+  }
+
+  let priceSpike = false;
+  if (input.amountDemanded && input.amountPaid && input.amountPaid > 0 && input.amountDemanded >= input.amountPaid * 2) {
+    priceSpike = true;
+    matchedPatterns.push('Quoted demand >= 2x benchmark/paid rate');
+  }
+
+  if (matchedPatterns.length >= 2 || (priceSpike && input.category.includes('overcharging'))) {
+    return {
+      signal: 'HIGH_ALERT_SIGNAL',
+      note: `Advisory triage signal (${matchedPatterns.join('; ')}) — awaits human moderator & community review.`,
+    };
+  }
+  if (matchedPatterns.length === 1 || input.category.includes('scam') || input.category.includes('fraud')) {
+    return {
+      signal: 'PATTERN_MATCH',
+      note: `Advisory triage signal (${matchedPatterns[0] || input.category.replace(/_/g, ' ')}) — informational only.`,
+    };
+  }
+  return {
+    signal: 'LOW_SIGNAL',
+    note: 'Standard report queued for normal moderator verification.',
+  };
+}
 
 // Haversine formula to calculate distance between two coordinates in kilometers
 function calculateHaversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -265,6 +313,13 @@ export async function createIncident(req: AuthenticatedRequest, res: Response) {
 
     // Safe initial confidence score (Admin-submitted gets higher baseline)
     const initialConfidence = req.user?.role === 'ADMIN' ? 85 : 50;
+    const advisory = analyzeScamPatternAdvisory({
+      title,
+      description,
+      category,
+      amountDemanded: amountDemanded ? parseFloat(amountDemanded) : null,
+      amountPaid: amountPaid ? parseFloat(amountPaid) : null,
+    });
 
     const incident = await prisma.incidentReport.create({
       data: {
@@ -284,6 +339,8 @@ export async function createIncident(req: AuthenticatedRequest, res: Response) {
         amountDemanded: amountDemanded ? parseFloat(amountDemanded) : null,
         amountPaid: amountPaid ? parseFloat(amountPaid) : null,
         evidenceUrl: evidenceUrl || null,
+        scamFlagSignal: advisory.signal,
+        scamAdvisoryNote: advisory.note,
         incidentDate: incidentDate ? new Date(incidentDate) : new Date(),
         reporterId: req.user?.id || null,
       },

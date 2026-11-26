@@ -22,6 +22,7 @@ export function ModeratorReportsPage() {
   const [search, setSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   // Dialog for Reject or Request Info or Escalate
   const [actionModal, setActionModal] = useState<{
@@ -66,12 +67,13 @@ export function ModeratorReportsPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setNotification(`Report status successfully updated to ${action}.`);
+      setErrorBanner(null);
       setActionModal(null);
       setReasonText('');
       fetchReports();
     } catch (err: any) {
       console.error('Moderation action failed:', err);
-      alert(err?.response?.data?.error || 'Action failed.');
+      setErrorBanner(err?.response?.data?.error || 'Action failed.');
     } finally {
       setActionLoading(null);
     }
@@ -107,6 +109,18 @@ export function ModeratorReportsPage() {
               <span>{notification}</span>
             </div>
             <button onClick={() => setNotification(null)} className="text-slate-400 hover:text-white">
+              ✕
+            </button>
+          </div>
+        )}
+
+        {errorBanner && (
+          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-bold flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{errorBanner}</span>
+            </div>
+            <button onClick={() => setErrorBanner(null)} className="text-slate-400 hover:text-white">
               ✕
             </button>
           </div>

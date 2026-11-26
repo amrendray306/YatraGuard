@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Building2,
   Navigation,
-  Bot,
   User as UserIcon,
   ShieldCheck,
   Radio,
@@ -20,10 +19,6 @@ import {
   Moon,
   Monitor,
   Users,
-  Info,
-  Sparkles,
-  Languages,
-  MoreHorizontal,
 } from 'lucide-react';
 import { useCity } from '../context/CityContext';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +32,8 @@ interface NavbarProps {
   openAuthModal?: (mode?: 'LOGIN' | 'REGISTER') => void;
   openIncidentModal?: () => void;
   openOnboarding?: () => void;
+  hasSidebar?: boolean;
+  onOpenSidebarDrawer?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -44,37 +41,33 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCurrentTab,
   openEmergencyModal,
   openIncidentModal,
-  openOnboarding,
+  hasSidebar = false,
+  onOpenSidebarDrawer,
 }) => {
   const { cities, currentCity, setCity, safetyScoreData } = useCity();
-  const { user, logout, quickLogin } = useAuth();
+  const { user, logout } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [showCityMenu, setShowCityMenu] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
+  const [landingMobileMenuOpen, setLandingMobileMenuOpen] = useState(false);
   const [isOverflowCompact, setIsOverflowCompact] = useState(false);
 
   const headerRef = useRef<HTMLElement>(null);
   const headerInnerRef = useRef<HTMLDivElement>(null);
   const requiredInlineWidthRef = useRef<number>(0);
 
-  // Close open popovers/menus on outside click or Escape
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (headerRef.current && !headerRef.current.contains(e.target as Node)) {
         setShowCityMenu(false);
-        setShowMoreMenu(false);
         setShowUserMenu(false);
       }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setShowCityMenu(false);
-        setShowMoreMenu(false);
         setShowUserMenu(false);
-        setMobileMenuOpen(false);
+        setLandingMobileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleOutsideClick);
@@ -85,10 +78,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, []);
 
-  // Dynamically collapse inline navigation to mobile/tablet menu if space tightens (prevents any overlap at all widths/zooms)
   const evaluateNavbarFit = useCallback(() => {
     const inner = headerInnerRef.current;
-    if (!inner) return;
+    if (!inner || hasSidebar) return;
 
     if (window.innerWidth < 1280) {
       if (isOverflowCompact) setIsOverflowCompact(false);
@@ -106,7 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     ) {
       setIsOverflowCompact(false);
     }
-  }, [isOverflowCompact]);
+  }, [isOverflowCompact, hasSidebar]);
 
   useEffect(() => {
     evaluateNavbarFit();
@@ -115,10 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.addEventListener('resize', evaluateNavbarFit);
       return () => window.removeEventListener('resize', evaluateNavbarFit);
     }
-
-    const observer = new ResizeObserver(() => {
-      evaluateNavbarFit();
-    });
+    const observer = new ResizeObserver(() => evaluateNavbarFit());
     observer.observe(inner);
     window.addEventListener('resize', evaluateNavbarFit);
     return () => {
@@ -132,139 +121,141 @@ export const Navbar: React.FC<NavbarProps> = ({
     setTheme(next);
   };
 
-  const primaryNavItems = [
+  const landingNavItems = [
     { id: 'dashboard', label: 'Explore', icon: Compass },
     { id: 'map', label: 'Safety Map', icon: Navigation },
     { id: 'routes', label: 'Travel Tariff', icon: IndianRupee },
     { id: 'services', label: 'Nearby Places', icon: Building2 },
-    { id: 'community', label: 'Community', icon: Users },
-  ];
-
-  const secondaryNavItems = [
-    { id: 'guardian', label: 'AI Assistant', icon: Bot },
-    { id: 'fare', label: 'Local Prices', icon: IndianRupee },
-    { id: 'alerts', label: 'Scam Alerts', icon: AlertTriangle },
-    { id: 'safety', label: 'Safety Index', icon: ShieldCheck },
     { id: 'buddy', label: 'Travel Buddy', icon: Users },
-    { id: 'trips', label: 'My Trips', icon: Compass },
-    { id: 'vault', label: 'Emergency Vault', icon: Lock },
-    { id: 'translator', label: 'Translator', icon: Languages },
+    { id: 'community', label: 'Community', icon: ShieldCheck },
   ];
-
-  const isSecondaryActive = secondaryNavItems.some((item) => item.id === currentTab);
 
   const scoreColor =
     (safetyScoreData?.score || 75) >= 75
-      ? 'text-emerald-400 bg-emerald-950/60 border-emerald-500/40'
+      ? 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/60 dark:border-emerald-500/40'
       : (safetyScoreData?.score || 75) >= 50
-      ? 'text-amber-400 bg-amber-950/60 border-amber-500/40'
-      : 'text-red-400 bg-red-950/60 border-red-500/40';
+      ? 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950/60 dark:border-amber-500/40'
+      : 'text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950/60 dark:border-red-500/40';
 
   return (
-    <>
-      <header
-        ref={headerRef}
-        className="sticky top-0 z-[100] bg-slate-950/95 backdrop-blur-md border-b border-slate-800"
-      >
-        <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8">
-          <div
-            ref={headerInnerRef}
-            className="flex items-center justify-between h-16 gap-3 lg:gap-5 min-w-0"
-          >
-            {/* 1. LEFT ZONE: Brand Identity & City Selector (never shrinks into nav) */}
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0 whitespace-nowrap">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-[100] bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/90"
+    >
+      <div className={hasSidebar ? 'px-3 sm:px-6' : 'max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8'}>
+        <div
+          ref={headerInnerRef}
+          className="flex items-center justify-between h-16 gap-3 lg:gap-4 min-w-0"
+        >
+          {/* 1. LEFT ZONE */}
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0 whitespace-nowrap">
+            {/* Sidebar Mobile Drawer Trigger (shown on < lg inside workspace) */}
+            {hasSidebar && onOpenSidebarDrawer && (
               <button
                 type="button"
-                className="flex items-center gap-2 sm:gap-2.5 cursor-pointer flex-shrink-0 text-left"
-                onClick={() => {
-                  setCurrentTab('landing');
-                  setMobileMenuOpen(false);
-                }}
-                aria-label="YatraGuard Home"
+                onClick={onOpenSidebarDrawer}
+                aria-label="Open navigation menu"
+                className="lg:hidden w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center flex-shrink-0"
               >
-                <div className="p-1.5 sm:p-2 bg-gradient-to-br from-sky-500 to-teal-600 rounded-xl shadow-md flex items-center justify-center keep-white flex-shrink-0">
-                  <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-white" aria-hidden="true" />
-                </div>
-                <div className="flex-shrink-0">
-                  <span className="font-extrabold text-sm sm:text-base tracking-tight text-white block leading-none">
-                    Yatra<span className="text-amber-400">Guard</span>
-                  </span>
-                  <p className="text-[10px] text-slate-400 hidden sm:block leading-tight mt-0.5">
-                    Travel Safety &amp; Tariffs
-                  </p>
-                </div>
+                <Menu className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
+
+            {/* Brand Logo (always shown on Landing, and on < lg in Workspace when desktop sidebar is hidden) */}
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentTab('landing');
+                setLandingMobileMenuOpen(false);
+              }}
+              aria-label="YatraGuard Home"
+              className={`items-center gap-2 cursor-pointer flex-shrink-0 text-left ${
+                hasSidebar ? 'flex lg:hidden' : 'flex'
+              }`}
+            >
+              <div className="p-1.5 sm:p-2 bg-gradient-to-br from-sky-600 to-teal-600 rounded-xl shadow-sm flex items-center justify-center keep-white flex-shrink-0">
+                <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-white" aria-hidden="true" />
+              </div>
+              <div className="flex-shrink-0">
+                <span className="font-bold text-sm sm:text-base tracking-tight text-slate-900 dark:text-white block leading-none">
+                  Yatra<span className="text-sky-600 dark:text-sky-400">Guard</span>
+                </span>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block leading-tight mt-0.5">
+                  Travel Safety Platform
+                </p>
+              </div>
+            </button>
+
+            {/* Active City Selector */}
+            <div className="relative flex-shrink-0">
+              <button
+                type="button"
+                aria-expanded={showCityMenu}
+                aria-controls="navbar-city-menu"
+                onClick={() => {
+                  setShowCityMenu(!showCityMenu);
+                  setShowUserMenu(false);
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors whitespace-nowrap"
+              >
+                <MapPin className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400 flex-shrink-0" aria-hidden="true" />
+                <span className="max-w-[96px] truncate">{currentCity?.name || 'Select City'}</span>
+                <ChevronDown className="w-3 h-3 text-slate-400 flex-shrink-0" aria-hidden="true" />
               </button>
 
-              {/* City Selector (Tablet & Desktop) */}
-              <div className="relative hidden md:block flex-shrink-0">
-                <button
-                  type="button"
-                  aria-expanded={showCityMenu}
-                  aria-controls="navbar-city-menu"
-                  onClick={() => {
-                    setShowCityMenu(!showCityMenu);
-                    setShowMoreMenu(false);
-                    setShowUserMenu(false);
-                  }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs font-semibold text-slate-200 transition-colors whitespace-nowrap"
+              {showCityMenu && (
+                <div
+                  id="navbar-city-menu"
+                  className="absolute left-0 mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl py-2 z-[120] max-h-72 overflow-y-auto"
                 >
-                  <MapPin className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" aria-hidden="true" />
-                  <span className="max-w-[84px] truncate">{currentCity?.name || 'City'}</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400 flex-shrink-0" aria-hidden="true" />
-                </button>
-
-                {showCityMenu && (
-                  <div
-                    id="navbar-city-menu"
-                    className="absolute left-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-[110] max-h-72 overflow-y-auto"
-                  >
-                    <div className="px-3 py-1 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                      Supported Destinations
-                    </div>
-                    {cities.map((city) => (
-                      <button
-                        key={city.id}
-                        type="button"
-                        onClick={() => {
-                          setCity(city);
-                          setShowCityMenu(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                          currentCity?.id === city.id
-                            ? 'text-amber-400 font-bold bg-slate-800/60'
-                            : 'text-slate-300'
-                        }`}
-                      >
-                        <span>{city.name}</span>
-                        <span className="text-[10px] text-slate-500">{city.state}</span>
-                      </button>
-                    ))}
+                  <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Supported Destinations
                   </div>
-                )}
-              </div>
-
-              {/* Safety Score Quick Pill (Wide 2xl displays only) */}
-              {safetyScoreData && (
-                <button
-                  type="button"
-                  onClick={() => setCurrentTab('safety')}
-                  className={`hidden 2xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold cursor-pointer transition-colors flex-shrink-0 ${scoreColor}`}
-                  title="View safety score breakdown"
-                >
-                  <Radio className="w-3 h-3" aria-hidden="true" />
-                  <span>{safetyScoreData.score}/100</span>
-                </button>
+                  {cities.map((city) => (
+                    <button
+                      key={city.id}
+                      type="button"
+                      onClick={() => {
+                        setCity(city);
+                        setShowCityMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
+                        currentCity?.id === city.id
+                          ? 'text-sky-600 dark:text-sky-400 font-bold bg-sky-50 dark:bg-slate-800/60'
+                          : 'text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      <span>{city.name}</span>
+                      <span className="text-[10px] text-slate-400">{city.state}</span>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
-            {/* 2. CENTER ZONE: Primary Desktop Navigation */}
+            {/* Safety Score Quick Pill */}
+            {safetyScoreData && (
+              <button
+                type="button"
+                onClick={() => setCurrentTab('safety')}
+                className={`hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold cursor-pointer transition-colors flex-shrink-0 ${scoreColor}`}
+                title="View safety score breakdown"
+              >
+                <Radio className="w-3 h-3" aria-hidden="true" />
+                <span>Safety {safetyScoreData.score}/100</span>
+              </button>
+            )}
+          </div>
+
+          {/* 2. CENTER ZONE (Landing Page Primary Navigation only — zero duplication with Sidebar) */}
+          {!hasSidebar && (
             <nav
               aria-label="Primary"
               className={`${
                 isOverflowCompact ? 'hidden' : 'hidden xl:flex'
               } items-center gap-1 flex-shrink-0 whitespace-nowrap`}
             >
-              {primaryNavItems.map((item) => {
+              {landingNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentTab === item.id;
                 return (
@@ -273,491 +264,246 @@ export const Navbar: React.FC<NavbarProps> = ({
                     type="button"
                     aria-current={isActive ? 'page' : undefined}
                     onClick={() => setCurrentTab(item.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors flex-shrink-0 ${
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors flex-shrink-0 ${
                       isActive
-                        ? 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
+                        ? 'bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-500/15 dark:text-sky-300 dark:border-sky-500/30'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-900 border border-transparent'
                     }`}
                   >
-                    <Icon
-                      className={`w-3.5 h-3.5 flex-shrink-0 ${
-                        isActive ? 'text-amber-700 dark:text-amber-400' : 'text-slate-400'
-                      }`}
-                      aria-hidden="true"
-                    />
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
                     <span>{item.label}</span>
                   </button>
                 );
               })}
+            </nav>
+          )}
 
-              {/* More Menu Dropdown */}
+          {/* 3. RIGHT ZONE: Utility, Theme, Report, SOS, Auth */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 whitespace-nowrap">
+            {/* Theme Toggle */}
+            <button
+              type="button"
+              onClick={cycleTheme}
+              className="w-9 h-9 sm:w-auto sm:h-9 sm:px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 transition-colors flex items-center gap-1.5 justify-center flex-shrink-0"
+              title={`Theme: ${theme.toUpperCase()} (${resolvedTheme}). Click to cycle Light / Dark / System.`}
+              aria-label="Switch color theme"
+            >
+              {theme === 'system' ? (
+                <Monitor className="w-4 h-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+              ) : resolvedTheme === 'dark' ? (
+                <Sun className="w-4 h-4 text-amber-400" aria-hidden="true" />
+              ) : (
+                <Moon className="w-4 h-4 text-indigo-600" aria-hidden="true" />
+              )}
+              <span className="hidden 2xl:inline text-[11px] font-semibold capitalize">{theme}</span>
+            </button>
+
+            {/* Report Scam Quick Action */}
+            {openIncidentModal && (
+              <button
+                type="button"
+                onClick={openIncidentModal}
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 dark:border-amber-700/50 dark:text-amber-300 font-semibold text-xs transition-colors flex-shrink-0"
+                title="Report a scam or safety incident"
+              >
+                <AlertTriangle className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Report Scam</span>
+              </button>
+            )}
+
+            {/* SOS Emergency CTA */}
+            <button
+              id="sos-button"
+              type="button"
+              onClick={openEmergencyModal}
+              className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs tracking-wide shadow-sm transition-colors flex items-center gap-1.5 keep-white flex-shrink-0 yg-press"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-white" aria-hidden="true" />
+              <span>SOS</span>
+            </button>
+
+            {/* User Profile / Auth */}
+            {user ? (
               <div className="relative flex-shrink-0">
                 <button
                   type="button"
-                  aria-expanded={showMoreMenu}
-                  aria-controls="navbar-more-menu"
+                  aria-expanded={showUserMenu}
+                  aria-controls="navbar-user-menu"
                   onClick={() => {
-                    setShowMoreMenu(!showMoreMenu);
+                    setShowUserMenu(!showUserMenu);
                     setShowCityMenu(false);
-                    setShowUserMenu(false);
                   }}
-                  className={`flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors ${
-                    isSecondaryActive
-                      ? 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-900 border border-transparent'
-                  }`}
+                  className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors"
                 >
-                  <MoreHorizontal className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
-                  <span>More</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" aria-hidden="true" />
+                  {user.avatarUrl ? (
+                    <img
+                      src={resolveMediaUrl(user.avatarUrl)}
+                      alt={user.name}
+                      className="w-6 h-6 rounded-full object-cover border border-slate-300 dark:border-slate-600 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-sky-600 to-teal-600 flex items-center justify-center text-white text-[11px] font-bold keep-white flex-shrink-0">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <span className="hidden sm:inline max-w-[76px] truncate font-semibold text-slate-900 dark:text-white">
+                    {user.name.split(' ')[0]}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:inline" aria-hidden="true" />
                 </button>
 
-                {showMoreMenu && (
+                {showUserMenu && (
                   <div
-                    id="navbar-more-menu"
-                    className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-[120]"
+                    id="navbar-user-menu"
+                    className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl py-2 z-[120] text-xs"
                   >
-                    {secondaryNavItems.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = currentTab === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          aria-current={isActive ? 'page' : undefined}
-                          onClick={() => {
-                            setCurrentTab(item.id);
-                            setShowMoreMenu(false);
-                          }}
-                          className={`w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 hover:bg-slate-800 transition-colors ${
-                            isActive
-                              ? 'text-amber-400 font-bold bg-slate-800/60'
-                              : 'text-slate-300 font-semibold'
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" aria-hidden="true" />
-                          <span>{item.label}</span>
-                        </button>
-                      );
-                    })}
-                    <div className="border-t border-slate-800 my-1.5" />
-                    {openOnboarding && (
+                    <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800">
+                      <div className="font-bold text-slate-900 dark:text-white text-sm truncate">{user.name}</div>
+                      <div className="text-slate-500 dark:text-slate-400 text-[11px] truncate">{user.email}</div>
+                      <div className="mt-1.5 flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200 dark:bg-sky-900/60 dark:text-sky-300 dark:border-sky-700/40">
+                          {user.role}
+                        </span>
+                        {user.authProvider === 'GOOGLE' && (
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-amber-300 dark:border-slate-700">
+                            Google Verified
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="py-1">
                       <button
                         type="button"
                         onClick={() => {
-                          openOnboarding();
-                          setShowMoreMenu(false);
+                          setCurrentTab('profile');
+                          setShowUserMenu(false);
                         }}
-                        className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-amber-400 hover:bg-slate-800 font-semibold"
+                        className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold flex items-center gap-2"
                       >
-                        <Sparkles className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-                        <span>Platform Guide</span>
+                        <UserIcon className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" aria-hidden="true" />
+                        <span>Profile &amp; Settings</span>
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsAboutModalOpen(true);
-                        setShowMoreMenu(false);
-                      }}
-                      className="w-full text-left px-3.5 py-2 text-xs flex items-center gap-2.5 text-slate-300 hover:bg-slate-800 font-semibold"
-                    >
-                      <Info className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" aria-hidden="true" />
-                      <span>About YatraGuard</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCurrentTab('trips');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center gap-2 font-medium"
+                      >
+                        <Compass className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" aria-hidden="true" />
+                        <span>My Trips</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCurrentTab('vault');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center gap-2 font-medium"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+                        <span>Emergency Vault</span>
+                      </button>
+                      {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCurrentTab('admin');
+                            setShowUserMenu(false);
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-purple-600 dark:text-purple-300 font-semibold flex items-center gap-2"
+                        >
+                          <ShieldAlert className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Admin Console</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="border-t border-slate-200 dark:border-slate-800 mt-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          logout();
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 font-semibold"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-            </nav>
-
-            {/* 3. RIGHT ZONE: Utility, SOS & Auth Controls (never collides with nav) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 whitespace-nowrap">
-              {/* Theme Toggle (Dark / Light / System) */}
-              <button
-                type="button"
-                onClick={cycleTheme}
-                className="w-9 h-9 sm:w-auto sm:h-10 sm:px-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 transition-colors flex items-center gap-1.5 justify-center flex-shrink-0"
-                title={`Theme: ${theme.toUpperCase()} (${resolvedTheme}). Click to switch Light / Dark / System.`}
-                aria-label="Switch color theme"
-              >
-                {theme === 'system' ? (
-                  <Monitor className="w-4 h-4 text-sky-400" aria-hidden="true" />
-                ) : resolvedTheme === 'dark' ? (
-                  <Sun className="w-4 h-4 text-amber-400" aria-hidden="true" />
-                ) : (
-                  <Moon className="w-4 h-4 text-indigo-500" aria-hidden="true" />
-                )}
-                <span className="hidden 2xl:inline text-[10px] font-bold uppercase">{theme}</span>
-              </button>
-
-              {/* Report Scam Button */}
-              {openIncidentModal && (
-                <button
-                  type="button"
-                  onClick={openIncidentModal}
-                  className="hidden md:flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 dark:bg-red-950/60 dark:hover:bg-red-900 dark:border-red-700/50 dark:text-red-300 font-bold text-xs transition-colors flex-shrink-0"
-                  title="Report a scam or safety incident"
+            ) : (
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <Link
+                  to="/login"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors inline-flex items-center"
                 >
-                  <AlertTriangle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" aria-hidden="true" />
-                  <span>Report</span>
-                </button>
-              )}
+                  Sign In
+                </Link>
+                <Link
+                  to="/register"
+                  className="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold shadow-sm transition-colors items-center keep-white"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
 
-              {/* SOS Emergency Button */}
-              <button
-                id="sos-button"
-                type="button"
-                onClick={openEmergencyModal}
-                className="px-2.5 sm:px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs tracking-wide shadow-md transition-colors flex items-center gap-1 sm:gap-1.5 keep-white flex-shrink-0"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" aria-hidden="true" />
-                <span>SOS</span>
-              </button>
-
-              {/* User Profile / Auth */}
-              {user ? (
-                <div className="relative flex-shrink-0">
-                  <button
-                    type="button"
-                    aria-expanded={showUserMenu}
-                    aria-controls="navbar-user-menu"
-                    onClick={() => {
-                      setShowUserMenu(!showUserMenu);
-                      setShowCityMenu(false);
-                      setShowMoreMenu(false);
-                    }}
-                    className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 transition-colors"
-                  >
-                    {user.avatarUrl ? (
-                      <img
-                        src={resolveMediaUrl(user.avatarUrl)}
-                        alt={user.name}
-                        className="w-6 h-6 rounded-full object-cover border border-slate-600 flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-sky-500 to-teal-600 flex items-center justify-center text-white text-[11px] font-black keep-white flex-shrink-0">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="hidden sm:inline max-w-[72px] truncate font-bold text-white">
-                      {user.name.split(' ')[0]}
-                    </span>
-                    <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:inline" aria-hidden="true" />
-                  </button>
-
-                  {showUserMenu && (
-                    <div
-                      id="navbar-user-menu"
-                      className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-[120] text-xs"
-                    >
-                      <div className="px-4 py-2.5 border-b border-slate-800">
-                        <div className="font-bold text-white text-sm truncate">{user.name}</div>
-                        <div className="text-slate-400 text-[11px] truncate">{user.email}</div>
-                        <div className="mt-1.5 flex items-center gap-1.5">
-                          <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/40">
-                            {user.role}
-                          </span>
-                          {user.authProvider === 'GOOGLE' && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-amber-300 border border-slate-700">
-                              Google Verified
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="py-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentTab('profile');
-                            setShowUserMenu(false);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-slate-800 text-amber-400 font-bold flex items-center gap-2"
-                        >
-                          <UserIcon className="w-3.5 h-3.5" aria-hidden="true" />
-                          <span>My Profile</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentTab('trips');
-                            setShowUserMenu(false);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-slate-800 text-slate-300 flex items-center gap-2 font-medium"
-                        >
-                          <Compass className="w-3.5 h-3.5 text-sky-400" aria-hidden="true" />
-                          <span>My Trips</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCurrentTab('vault');
-                            setShowUserMenu(false);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-slate-800 text-slate-300 flex items-center gap-2 font-medium"
-                        >
-                          <Lock className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
-                          <span>Emergency Vault</span>
-                        </button>
-                        {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCurrentTab('admin');
-                              setShowUserMenu(false);
-                            }}
-                            className="w-full text-left px-4 py-2 hover:bg-slate-800 text-purple-300 font-bold flex items-center gap-2"
-                          >
-                            <ShieldAlert className="w-3.5 h-3.5 text-purple-400" aria-hidden="true" />
-                            <span>Admin Console</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="px-4 py-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500 border-t border-slate-800">
-                        Quick Switch Role
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          quickLogin('TRAVELER');
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-1.5 hover:bg-slate-800 text-slate-300 flex items-center justify-between"
-                      >
-                        <span>Traveler</span>
-                        <span className="text-[10px] text-emerald-400 font-bold">User</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          quickLogin('ADMIN');
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-1.5 hover:bg-slate-800 text-slate-300 flex items-center justify-between"
-                      >
-                        <span>Admin</span>
-                        <span className="text-[10px] text-purple-400 font-bold">Admin</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          quickLogin('MODERATOR');
-                          setShowUserMenu(false);
-                        }}
-                        className="w-full text-left px-4 py-1.5 hover:bg-slate-800 text-slate-300 flex items-center justify-between"
-                      >
-                        <span>Moderator</span>
-                        <span className="text-[10px] text-blue-400 font-bold">Mod</span>
-                      </button>
-
-                      <div className="border-t border-slate-800 mt-1 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            logout();
-                            setShowUserMenu(false);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-red-950/40 text-red-400 font-bold"
-                        >
-                          Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <Link
-                    to="/login"
-                    className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-colors inline-flex items-center"
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="hidden sm:inline-flex px-3 py-1.5 sm:py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black shadow-sm transition-colors items-center"
-                  >
-                    Register
-                  </Link>
-                </div>
-              )}
-
-              {/* Mobile / Tablet / Overflow Hamburger Menu */}
+            {/* Landing Mobile Menu Button */}
+            {!hasSidebar && (
               <button
                 type="button"
-                aria-expanded={mobileMenuOpen}
-                aria-controls="navbar-mobile-menu"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-expanded={landingMobileMenuOpen}
+                aria-controls="landing-mobile-menu"
+                onClick={() => setLandingMobileMenuOpen(!landingMobileMenuOpen)}
                 className={`${
                   isOverflowCompact ? 'flex' : 'xl:hidden flex'
-                } w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 items-center justify-center flex-shrink-0`}
+                } w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 items-center justify-center flex-shrink-0`}
                 aria-label="Toggle navigation menu"
               >
-                {mobileMenuOpen ? (
-                  <X className="w-5 h-5" aria-hidden="true" />
+                {landingMobileMenuOpen ? (
+                  <X className="w-4 h-4" aria-hidden="true" />
                 ) : (
-                  <Menu className="w-5 h-5" aria-hidden="true" />
+                  <Menu className="w-4 h-4" aria-hidden="true" />
                 )}
               </button>
-            </div>
-          </div>
-
-          {/* Mobile & Tablet Navigation Drawer Panel */}
-          {mobileMenuOpen && (
-            <nav
-              id="navbar-mobile-menu"
-              aria-label="Mobile Menu"
-              className={`${
-                isOverflowCompact ? 'block' : 'xl:hidden'
-              } py-4 border-t border-slate-800 space-y-3 max-h-[calc(100dvh-5rem)] overflow-y-auto`}
-            >
-              {/* Mobile City Selector */}
-              <div className="md:hidden flex items-center justify-between gap-2 px-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-sky-400" aria-hidden="true" />
-                  <span>City</span>
-                </span>
-                <select
-                  value={currentCity?.id || ''}
-                  onChange={(e) => {
-                    const found = cities.find((c) => c.id === e.target.value);
-                    if (found) setCity(found);
-                  }}
-                  aria-label="Select destination city"
-                  className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs font-semibold text-white"
-                >
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.state})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  { id: 'landing', label: 'Home', icon: Compass },
-                  ...primaryNavItems,
-                  ...secondaryNavItems,
-                  { id: 'profile', label: 'My Profile', icon: UserIcon },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const isActive = currentTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      aria-current={isActive ? 'page' : undefined}
-                      onClick={() => {
-                        setCurrentTab(item.id);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-colors ${
-                        isActive
-                          ? 'bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40'
-                          : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 text-amber-400 flex-shrink-0" aria-hidden="true" />
-                      <span className="truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {openIncidentModal && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    openIncidentModal();
-                  }}
-                  className="md:hidden w-full py-2.5 px-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 dark:bg-red-950/60 dark:hover:bg-red-900 dark:border-red-700/50 dark:text-red-300 font-bold text-xs flex items-center justify-center gap-2"
-                >
-                  <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" aria-hidden="true" />
-                  <span>Report Scam / Safety Incident</span>
-                </button>
-              )}
-
-              {!user && (
-                <div className="pt-2 border-t border-slate-800 flex gap-2">
-                  <Link
-                    to="/login"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-slate-200"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/register"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex-1 text-center py-2.5 bg-amber-500 hover:bg-amber-400 rounded-xl text-xs font-black text-slate-950"
-                  >
-                    Register
-                  </Link>
-                </div>
-              )}
-            </nav>
-          )}
-        </div>
-      </header>
-
-      {/* ABOUT MODAL */}
-      {isAboutModalOpen && (
-        <div className="fixed inset-0 z-[2000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-gradient-to-br from-sky-500 to-teal-600 rounded-xl keep-white">
-                  <ShieldAlert className="w-5 h-5 text-white" aria-hidden="true" />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-white">About YatraGuard</h3>
-                  <p className="text-[11px] text-slate-400">Travel Safety &amp; Fare Transparency</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAboutModalOpen(false)}
-                className="text-slate-400 hover:text-white p-1"
-                aria-label="Close modal"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-300 leading-relaxed">
-              <strong>YatraGuard</strong> helps travelers check local safety scores, verify fair transportation tariffs, locate 24/7 emergency facilities, and share verified safety reports.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                <div className="font-bold text-amber-400 flex items-center gap-1 text-xs">
-                  <IndianRupee className="w-3.5 h-3.5" aria-hidden="true" /> Fair Tariffs
-                </div>
-                <p className="text-[11px] text-slate-400">Official RTO &amp; union fare benchmarks.</p>
-              </div>
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                <div className="font-bold text-emerald-400 flex items-center gap-1 text-xs">
-                  <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" /> Safety Index
-                </div>
-                <p className="text-[11px] text-slate-400">Real-time 0–100 area safety scoring.</p>
-              </div>
-            </div>
-
-            <div className="pt-2 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setIsAboutModalOpen(false)}
-                className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs"
-              >
-                Close
-              </button>
-            </div>
+            )}
           </div>
         </div>
-      )}
-    </>
+
+        {/* Landing Mobile Menu */}
+        {!hasSidebar && landingMobileMenuOpen && (
+          <nav
+            id="landing-mobile-menu"
+            aria-label="Landing Mobile Menu"
+            className="xl:hidden py-4 border-t border-slate-200 dark:border-slate-800 space-y-3"
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {landingNavItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setCurrentTab(item.id);
+                      setLandingMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold bg-slate-50 hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800"
+                  >
+                    <Icon className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0" aria-hidden="true" />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        )}
+      </div>
+    </header>
   );
 };

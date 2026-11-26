@@ -1,5 +1,5 @@
 // YatraGuard Progressive Web App (PWA) Service Worker
-const CACHE_NAME = 'yatraguard-offline-v1';
+const CACHE_NAME = 'yatraguard-offline-v3';
 const OFFLINE_URL = '/offline.html';
 
 const ASSETS_TO_CACHE = [
@@ -10,7 +10,6 @@ const ASSETS_TO_CACHE = [
   '/icon-512.svg',
 ];
 
-// Install Event - Pre-cache offline emergency fallback
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -20,7 +19,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate Event - Clean up stale caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -36,22 +34,49 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Event - Network-first with offline fallback for navigation requests
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
 
-  // Navigation requests (HTML pages) fallback to offline.html if network is unavailable
+  const url = new URL(event.request.url);
+
+  // Cache ONLY safe public emergency/city API endpoints; bypass all private/authenticated API calls
+  if (url.pathname.startsWith('/api/')) {
+    if (url.pathname === '/api/emergency/info' || url.pathname === '/api/cities') {
+      event.respondWith(
+        fetch(event.request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return response;
+          })
+          .catch(() => caches.match(event.request))
+      );
+    }
+    return;
+  }
+
+  // SPA navigation: network-first, fall back to cached SPA shell '/' so Offline Emergency Mode opens cleanly, else offline.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(OFFLINE_URL);
-      })
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/', clone));
+          }
+          return response;
+        })
+        .catch(async () => {
+          const cachedShell = await caches.match('/');
+          return cachedShell || caches.match(OFFLINE_URL);
+        })
     );
     return;
   }
 
-  // Stale-while-revalidate for static assets
+  // Static assets only: stale-while-revalidate
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
@@ -70,4 +95,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-

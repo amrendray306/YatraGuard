@@ -59,54 +59,54 @@ export const SafetyScoreCard: React.FC<SafetyScoreCardProps> = ({
   const isNight = selectedHour >= 22 || selectedHour < 5;
 
   return (
-    <div className="glass-panel-elevated rounded-3xl p-6 sm:p-8 relative overflow-hidden bg-slate-900/80 border border-slate-800 shadow-2xl">
-      {/* Background glow matching safety tier */}
+    <div className="yg-card rounded-2xl p-5 sm:p-6 relative overflow-hidden">
+      {/* Background subtle tint matching safety tier */}
       <div
-        className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none"
+        className="absolute -top-24 -right-24 w-64 h-64 rounded-full blur-3xl opacity-15 pointer-events-none"
         style={{ backgroundColor: data.tierColor || '#10B981' }}
       />
 
       {/* Header Row: Title, Tier Badge, and Numerical Score */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 relative z-10">
-        <div>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
+        <div className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs uppercase font-extrabold tracking-wider text-slate-400">
-              {cityName || 'Location'} Safety Intelligence
+            <span className="text-[11px] uppercase font-semibold tracking-wider text-slate-500 dark:text-slate-400">
+              {cityName || 'Location'} Safety Index
             </span>
-            <span className={`text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full border ${getBadgeStyle()}`}>
+            <span className={`text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full border ${getBadgeStyle()}`}>
               {data.tier}
             </span>
             {data.timeContext && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
                 isNight
                   ? 'bg-indigo-950/80 text-indigo-300 border-indigo-800'
                   : 'bg-amber-950/60 text-amber-300 border-amber-800'
               }`}>
-                {isNight ? <Moon className="w-2.5 h-2.5" /> : <Sun className="w-2.5 h-2.5" />}
+                {isNight ? <Moon className="w-2.5 h-2.5" aria-hidden="true" /> : <Sun className="w-2.5 h-2.5" aria-hidden="true" />}
                 {data.timeContext.timeLabel}
               </span>
             )}
           </div>
 
-          <h3 className="text-2xl sm:text-3xl font-black text-white mt-1.5">
+          <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
             {data.label} ({data.score}/100)
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Dynamic Bayesian algorithm combining emergency proximity, confirmed incidents, scams & time hazards
+          <p className="text-xs text-slate-600 dark:text-slate-400">
+            Based on nearby emergency services, verified reports, and time of day.
           </p>
         </div>
 
-        {/* Big Score Gauge */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-baseline gap-2 bg-slate-950/90 border border-slate-800 rounded-2xl px-6 py-4 shadow-xl">
+        {/* Score Gauge */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-baseline gap-2 bg-slate-950/90 border border-slate-800 rounded-2xl px-5 py-3 shadow-sm">
             <span
-              className="text-4xl sm:text-6xl font-black tracking-tight"
+              className="text-3xl sm:text-5xl font-bold tracking-tight"
               style={{ color: data.tierColor || '#10B981' }}
             >
               {data.score}
             </span>
             <div className="flex flex-col text-left">
-              <span className="text-xs font-bold text-slate-400">/ 100</span>
+              <span className="text-xs font-semibold text-slate-400">/ 100</span>
               <span className="text-[10px] font-bold" style={{ color: data.tierColor }}>
                 {data.tier}
               </span>
