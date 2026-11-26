@@ -176,7 +176,7 @@ export function AdminUsersPage() {
 
         {/* User Table */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Registered users table" className="yg-table-scroll">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase tracking-wider font-bold">
                 <tr>

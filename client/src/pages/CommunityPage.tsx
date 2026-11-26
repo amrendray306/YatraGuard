@@ -712,7 +712,7 @@ export const CommunityPage: React.FC<{ initialView?: 'POSTS' | 'HIGHLIGHTS' }> =
 
                   {/* Previews Grid */}
                   {filePreviews.length > 0 && (
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {filePreviews.map((src, i) => (
                         <div key={i} className="relative h-20 rounded-xl overflow-hidden group border border-slate-700">
                           <img src={src} alt="preview" className="w-full h-full object-cover" />
@@ -789,7 +789,7 @@ export const CommunityPage: React.FC<{ initialView?: 'POSTS' | 'HIGHLIGHTS' }> =
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-300 font-bold mb-1">Start Date</label>
                   <input
@@ -864,7 +864,7 @@ export const CommunityPage: React.FC<{ initialView?: 'POSTS' | 'HIGHLIGHTS' }> =
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in"
           onClick={() => setLightboxImage(null)}
         >
-          <div className="relative max-w-4xl max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl">
+          <div className="relative max-w-4xl max-h-[85dvh] rounded-2xl overflow-hidden shadow-2xl">
             <img src={lightboxImage} alt="Community Photo Fullscreen" className="w-full h-full object-contain" />
             <button
               onClick={() => setLightboxImage(null)}

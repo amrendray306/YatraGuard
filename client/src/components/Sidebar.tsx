@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   ShieldAlert,
   Compass,
@@ -25,8 +26,10 @@ import {
   PackageSearch,
   Route as RouteIcon,
   X,
+  LogOut,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { resolveMediaUrl } from '../services/api';
 
 export type NavSectionKey =
   | 'dashboard'
@@ -84,8 +87,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen,
   onCloseMobile,
 }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [showTools, setShowTools] = useState(true);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCloseMobile();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    const focusTimer = setTimeout(() => closeBtnRef.current?.focus(), 20);
+    return () => {
+      clearTimeout(focusTimer);
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [mobileOpen, onCloseMobile]);
 
   const groups: NavGroup[] = [
     {
@@ -195,10 +215,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {isDrawer ? (
             <button
+              ref={closeBtnRef}
               type="button"
               onClick={onCloseMobile}
               aria-label="Close navigation menu"
-              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 touch-min flex items-center justify-center"
             >
               <X className="w-4 h-4" aria-hidden="true" />
             </button>
@@ -348,6 +369,69 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           )}
         </nav>
+
+        {/* User Profile & Auth Access Footer */}
+        <div className="p-2.5 border-t border-slate-200 dark:border-slate-800/90 flex-shrink-0">
+          {user ? (
+            <div className={`flex items-center gap-2 ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectNav('profile');
+                  if (isDrawer) onCloseMobile();
+                }}
+                className={`flex items-center gap-2.5 min-w-0 rounded-xl p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors text-left ${
+                  isCollapsed ? 'justify-center' : 'flex-1'
+                }`}
+                title="Open profile"
+              >
+                {user.avatarUrl ? (
+                  <img
+                    src={resolveMediaUrl(user.avatarUrl)}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full object-cover border border-slate-300 dark:border-slate-700 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-600 to-teal-600 text-white text-xs font-bold flex items-center justify-center keep-white flex-shrink-0">
+                    {user.name?.charAt(0).toUpperCase() || 'T'}
+                  </div>
+                )}
+                {!isCollapsed && (
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 dark:text-white truncate">{user.name}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user.role}</div>
+                  </div>
+                )}
+              </button>
+              {!isCollapsed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    if (isDrawer) onCloseMobile();
+                  }}
+                  aria-label="Sign out"
+                  title="Sign out"
+                  className="p-2 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-red-950/40 transition-colors flex-shrink-0"
+                >
+                  <LogOut className="w-4 h-4" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              onClick={isDrawer ? onCloseMobile : undefined}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition-colors keep-white ${
+                isCollapsed ? 'justify-center px-2' : 'justify-center'
+              }`}
+              title="Sign In to YatraGuard"
+            >
+              <UserIcon className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+              {!isCollapsed && <span>Sign In / Register</span>}
+            </Link>
+          )}
+        </div>
       </div>
     );
   };

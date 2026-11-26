@@ -48,14 +48,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
   const [googleClientId, setGoogleClientId] = useState<string>('');
 
-  // Sync mode whenever modal opens or initialMode changes
+  // Sync mode whenever modal opens or initialMode changes, lock background scroll & Escape close
   useEffect(() => {
-    if (isOpen) {
-      setMode(initialMode);
-      setErrorMessage(null);
-      setResetSuccessMessage(null);
-    }
-  }, [isOpen, initialMode]);
+    if (!isOpen) return;
+    setMode(initialMode);
+    setErrorMessage(null);
+    setResetSuccessMessage(null);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isOpen, initialMode, onClose]);
 
   // Fetch configured Google Client ID from backend
   useEffect(() => {
@@ -105,6 +114,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         const slot = document.getElementById('gsi-btn-container');
         if (slot) {
           slot.innerHTML = '';
+          const buttonWidth = Math.min(340, Math.max(240, window.innerWidth - 72));
           google.accounts.id.renderButton(slot, {
             type: 'standard',
             theme: 'outline',
@@ -112,7 +122,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             text: mode === 'REGISTER' ? 'signup_with' : 'signin_with',
             shape: 'rectangular',
             logo_alignment: 'left',
-            width: 340,
+            width: buttonWidth,
           });
         }
       } catch (err) {
@@ -240,7 +250,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Authentication modal"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[2000] flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto"
+    >
       <div className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row my-auto max-h-[95dvh]">
         
         {/* Close Button */}

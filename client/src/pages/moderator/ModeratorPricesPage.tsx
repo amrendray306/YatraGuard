@@ -94,7 +94,7 @@ export function ModeratorPricesPage() {
 
         {/* Table */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Price submissions table" className="yg-table-scroll">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/60 border-b border-slate-800 text-slate-400 uppercase tracking-wider font-bold">
                 <tr>
@@ -128,11 +128,10 @@ export function ModeratorPricesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            item.verificationStatus === 'VERIFIED'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-amber-500/20 text-amber-400'
-                          }`}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${item.verificationStatus === 'VERIFIED'
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : 'bg-amber-500/20 text-amber-400'
+                            }`}
                         >
                           {item.verificationStatus || 'PENDING'}
                         </span>

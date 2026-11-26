@@ -130,6 +130,21 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
   const [submittedReport, setSubmittedReport] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Lock body scroll and close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   // Sync initial state when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -233,7 +248,15 @@ export const IncidentModal: React.FC<IncidentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Report Scam or Safety Incident"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[2000] flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-fade-in overflow-y-auto"
+    >
       <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto max-h-[92dvh] flex flex-col">
         {/* Top Header */}
         <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60 sticky top-0 z-10">

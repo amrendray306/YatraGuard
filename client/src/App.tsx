@@ -134,6 +134,20 @@ export const App: React.FC = () => {
     });
   };
 
+  useEffect(() => {
+    if (!isMoreSheetOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsMoreSheetOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isMoreSheetOpen]);
+
   // Update SPA document title cleanly per active view (WCAG 2.4.2)
   useEffect(() => {
     const titles: Record<string, string> = {
@@ -497,16 +511,50 @@ export const App: React.FC = () => {
 
               {/* Mobile "More" Drawer Sheet */}
               {isMoreSheetOpen && (
-                <div className="md:hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex flex-col justify-end">
-                  <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 max-h-[85dvh] overflow-y-auto">
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="All platform features"
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget) setIsMoreSheetOpen(false);
+                  }}
+                  className="md:hidden fixed inset-0 z-[150] bg-slate-950/75 backdrop-blur-sm flex flex-col justify-end"
+                >
+                  <div className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl p-4 sm:p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4 max-h-[85dvh] overflow-y-auto">
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
                       <span className="font-bold text-sm text-slate-900 dark:text-white">All Platform Features</span>
                       <button
                         type="button"
                         onClick={() => setIsMoreSheetOpen(false)}
-                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold p-1 touch-min"
+                        className="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white font-semibold px-3 py-1.5 rounded-xl touch-min flex items-center justify-center"
                       >
                         Close
+                      </button>
+                    </div>
+
+                    {/* Urgent Mobile Quick Actions */}
+                    <div className="grid grid-cols-2 gap-2 text-xs font-bold">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMoreSheetOpen(false);
+                          openEmergency();
+                        }}
+                        className="p-3 rounded-2xl bg-red-600 text-white flex items-center justify-center gap-2 keep-white shadow-sm min-h-[44px]"
+                      >
+                        <ShieldAlert className="w-4 h-4" aria-hidden="true" />
+                        <span>SOS Emergency</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMoreSheetOpen(false);
+                          openIncident();
+                        }}
+                        className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 flex items-center justify-center gap-2 min-h-[44px]"
+                      >
+                        <AlertTriangle className="w-4 h-4" aria-hidden="true" />
+                        <span>Report Scam</span>
                       </button>
                     </div>
 
@@ -516,6 +564,7 @@ export const App: React.FC = () => {
                         { id: 'routes', label: 'Travel Tariff', icon: IndianRupee },
                         { id: 'fare', label: 'Local Prices', icon: IndianRupee },
                         { id: 'services', label: 'Nearby Places', icon: Building2 },
+                        { id: 'buddy', label: 'Travel Buddy', icon: Users },
                         { id: 'alerts', label: 'Risk & Scam Alerts', icon: AlertTriangle },
                         { id: 'weather', label: 'Weather Forecast', icon: CloudSun },
                         { id: 'women-safety', label: 'Women Safety', icon: ShieldCheck },
@@ -525,7 +574,6 @@ export const App: React.FC = () => {
                         { id: 'safety', label: 'Emergency Services', icon: ShieldCheck },
                         { id: 'guardian', label: 'AI Assistant', icon: Bot },
                         { id: 'community', label: 'Travel Community', icon: Users },
-                        { id: 'buddy', label: 'Travel Buddy', icon: Users },
                         { id: 'trips', label: 'Trip Planner', icon: Compass },
                         { id: 'expenses', label: 'Expense Tracker', icon: IndianRupee },
                         { id: 'vault', label: 'Emergency Vault', icon: Lock },
@@ -542,10 +590,10 @@ export const App: React.FC = () => {
                               setCurrentTab(item.id);
                               setIsMoreSheetOpen(false);
                             }}
-                            className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200 text-left"
+                            className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-slate-700 dark:text-slate-200 text-left min-h-[44px]"
                           >
-                            <Icon className="w-4 h-4 text-sky-600 dark:text-sky-400" aria-hidden="true" />
-                            <span>{item.label}</span>
+                            <Icon className="w-4 h-4 text-sky-600 dark:text-sky-400 flex-shrink-0" aria-hidden="true" />
+                            <span className="truncate">{item.label}</span>
                           </button>
                         );
                       })}

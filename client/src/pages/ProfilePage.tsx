@@ -543,53 +543,53 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
 
           <div className="space-y-6 text-xs divide-y divide-slate-800">
-            <div className="pt-4 flex items-center justify-between">
+            <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h5 className="font-bold text-white text-sm">Profile Details</h5>
                 <p className="text-slate-400">Update your name, bio, and travel preferences</p>
               </div>
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold self-start sm:self-auto flex-shrink-0"
               >
                 Edit Details
               </button>
             </div>
 
             {profileUser?.authProvider === 'LOCAL' && (
-              <div className="pt-4 flex items-center justify-between">
+              <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h5 className="font-bold text-white text-sm">Account Password</h5>
                   <p className="text-slate-400">Update your password to keep your account secure</p>
                 </div>
                 <button
                   onClick={() => setIsPasswordModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold self-start sm:self-auto flex-shrink-0"
                 >
                   Change Password
                 </button>
               </div>
             )}
 
-            <div className="pt-4 flex items-center justify-between">
+            <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h5 className="font-bold text-white text-sm">Emergency ICE Contacts</h5>
                 <p className="text-slate-400">Manage family phone numbers alerted during SOS broadcasts</p>
               </div>
               <button
                 onClick={() => setIsEditModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold"
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold self-start sm:self-auto flex-shrink-0"
               >
                 Update Contact
               </button>
             </div>
 
-            <div className="pt-4 flex items-center justify-between">
+            <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h5 className="font-bold text-white text-sm">Trip Privacy & Sharing</h5>
                 <p className="text-slate-400">Control end-to-end tokenized link sharing for live journeys</p>
               </div>
-              <span className="px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold">
+              <span className="px-3 py-1 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-bold self-start sm:self-auto flex-shrink-0">
                 Token Protected
               </span>
             </div>
@@ -599,7 +599,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               <h5 className="font-bold text-red-400 text-sm flex items-center gap-1.5">
                 <AlertTriangle className="w-4 h-4" /> Danger Zone
               </h5>
-              <div className="p-4 rounded-2xl bg-red-950/30 border border-red-900/60 flex items-center justify-between">
+              <div className="p-4 rounded-2xl bg-red-950/30 border border-red-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <div className="font-bold text-white">Delete YatraGuard Account</div>
                   <p className="text-slate-400 text-[11px]">
@@ -608,7 +608,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 </div>
                 <button
                   onClick={() => setIsDeleteModalOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black"
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black self-start sm:self-auto flex-shrink-0"
                 >
                   Delete Account
                 </button>

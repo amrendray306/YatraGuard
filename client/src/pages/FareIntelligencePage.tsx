@@ -840,7 +840,7 @@ export const FareIntelligencePage: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 min-w-[200px] text-center space-y-1">
+                  <div className="bg-slate-950/80 p-4 rounded-xl border border-slate-800 w-full sm:w-auto sm:min-w-[200px] text-center space-y-1">
                     <span className="text-[10px] uppercase font-bold text-slate-400">Driver Quote vs Fair Range</span>
                     <div className="text-xl font-black text-white">
                       ₹{auditResult.quotedFare}
@@ -1068,7 +1068,7 @@ export const FareIntelligencePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="text-[10px] font-bold text-slate-400 uppercase">Vehicle Mode</label>
                   <select

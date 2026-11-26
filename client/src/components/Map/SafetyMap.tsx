@@ -229,7 +229,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
   scams,
   safetyZones,
   userLocation,
-  height = 'calc(100vh - 4rem)',
+  height = 'calc(100dvh - 4rem)',
   onLocateMe,
   onCheckFare,
   onNavigateToFeed,
@@ -535,8 +535,8 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       }`}
       style={{ height }}
     >
-      {/* Top Map Layer & Radius Controls */}
-      <div className="absolute top-20 sm:top-24 left-3 right-3 sm:left-4 sm:right-auto z-[450] flex flex-wrap items-center gap-1.5 max-w-full sm:max-w-4xl bg-slate-950/95 p-2.5 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl">
+      {/* Top Map Layer & Radius Controls (Single horizontal strip on mobile so map stays clear) */}
+      <div className="absolute top-[6.5rem] sm:top-[7.25rem] md:top-[7.85rem] left-2.5 right-2.5 sm:left-4 sm:right-auto z-[450] flex flex-nowrap sm:flex-wrap items-center gap-1.5 max-w-[calc(100%-1.25rem)] sm:max-w-4xl overflow-x-auto no-scrollbar bg-slate-950/95 p-2 rounded-2xl backdrop-blur-md border border-slate-800 shadow-2xl">
         {/* Map Display Mode Switcher (Safety Map vs Normal Map) */}
         <div className="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-700/80 mr-1 flex-shrink-0">
           <button
@@ -694,14 +694,15 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* Floating Active Report Mode Banner */}
       {isReportPinMode && (
-        <div className="absolute top-44 left-1/2 -translate-x-1/2 z-30 px-4 py-2.5 bg-red-600/95 text-white rounded-2xl shadow-2xl backdrop-blur-md border border-white/20 flex items-center gap-3 animate-bounce">
-          <MapPin className="w-4 h-4 text-white animate-pulse" />
-          <span className="text-xs font-black">
-            Click anywhere on the map or drag the pin to set incident location
+        <div className="absolute top-[10.5rem] sm:top-52 left-2.5 right-2.5 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-lg z-[460] px-3.5 py-2.5 bg-red-600/95 text-white rounded-2xl shadow-2xl backdrop-blur-md border border-white/20 flex items-center justify-between gap-2.5 animate-bounce">
+          <MapPin className="w-4 h-4 text-white animate-pulse flex-shrink-0" />
+          <span className="text-[11px] sm:text-xs font-black min-w-0">
+            Tap anywhere on map or drag pin to set incident location
           </span>
           <button
+            type="button"
             onClick={() => setIsReportPinMode(false)}
-            className="px-2 py-0.5 rounded-lg bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white uppercase ml-1"
+            className="px-2.5 py-1 rounded-lg bg-black/40 hover:bg-black/60 text-[10px] font-bold text-white uppercase flex-shrink-0"
           >
             Cancel
           </button>
@@ -760,8 +761,8 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       )}
 
       {/* Floating Nearby Scam Notice Alert Card */}
-      {!nearbyBannerDismissed && nearbyIncidents.length > 0 && mapDisplayMode === 'SAFETY' && (
-        <div className="absolute top-44 left-4 z-20 max-w-sm sm:max-w-md p-3.5 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-amber-500/60 shadow-2xl animate-fade-in flex items-start gap-3">
+      {!nearbyBannerDismissed && nearbyIncidents.length > 0 && mapDisplayMode === 'SAFETY' && !isRoutePlannerOpen && (
+        <div className="absolute top-[10.5rem] sm:top-[12rem] left-2.5 right-2.5 sm:left-4 sm:right-auto z-20 max-w-sm sm:max-w-md p-3 rounded-2xl bg-slate-950/95 backdrop-blur-md border border-amber-500/60 shadow-2xl animate-fade-in flex items-start gap-2.5">
           <div className="p-2 rounded-xl bg-amber-500 text-slate-950 flex-shrink-0 mt-0.5">
             <AlertTriangle className="w-4 h-4 text-slate-950" />
           </div>
@@ -798,7 +799,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* Google Maps-Style Routing Engine Panel */}
       {isRoutePlannerOpen && (
-        <div className="absolute top-44 left-4 z-30 w-[94%] max-w-md bg-slate-950/95 border border-blue-500/60 rounded-3xl p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2 space-y-3 text-white max-h-[75dvh] overflow-y-auto no-scrollbar">
+        <div className="absolute top-[10.25rem] sm:top-[12rem] left-2.5 right-2.5 sm:left-4 sm:right-auto z-[460] sm:w-full max-w-md bg-slate-950/95 border border-blue-500/60 rounded-3xl p-3.5 sm:p-4 shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-2 space-y-3 text-white max-h-[55dvh] sm:max-h-[70dvh] overflow-y-auto no-scrollbar">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-xl bg-blue-600/20 text-blue-400">
@@ -1114,7 +1115,7 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
       )}
 
       {/* Map Provider Selector & Resilient Fallback Switcher (Bottom Right) */}
-      <div className="absolute bottom-6 right-20 sm:right-32 z-20 flex items-center gap-2">
+      <div className="absolute bottom-16 right-2.5 sm:bottom-6 sm:right-32 z-20 flex items-center gap-2">
         <div className="relative">
           <button
             onClick={() => setIsProviderSelectorOpen(!isProviderSelectorOpen)}
@@ -1160,19 +1161,23 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* Floating Bottom Left POI Directory Drawer Trigger */}
       <button
+        type="button"
         onClick={() => setIsPoiDrawerOpen(true)}
-        className="absolute bottom-6 left-6 z-20 px-4 py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800 text-white font-extrabold text-xs shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-2 transition-transform active:scale-95"
+        className="absolute bottom-3 left-2.5 sm:bottom-6 sm:left-6 z-20 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-slate-900/95 hover:bg-slate-800 text-white font-extrabold text-xs shadow-2xl border border-slate-700/80 backdrop-blur-md flex items-center gap-2 transition-transform active:scale-95"
       >
-        <List className="w-4 h-4 text-amber-400" />
-        <span>Browse City Directory ({visibleServices.length} POIs)</span>
+        <List className="w-4 h-4 text-amber-400 flex-shrink-0" />
+        <span className="sm:hidden">Directory ({visibleServices.length})</span>
+        <span className="hidden sm:inline">Browse City Directory ({visibleServices.length} POIs)</span>
       </button>
 
       {/* Floating GPS Locate Button */}
       {onLocateMe && (
         <button
+          type="button"
           onClick={onLocateMe}
-          className="absolute bottom-6 right-6 z-20 p-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-2xl border border-blue-400/40 transition-transform active:scale-90 flex items-center gap-2 text-xs font-bold"
+          className="absolute bottom-3 right-2.5 sm:bottom-6 sm:right-6 z-20 p-2.5 sm:p-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white shadow-2xl border border-blue-400/40 transition-transform active:scale-90 flex items-center gap-2 text-xs font-bold"
           title="Locate my GPS position"
+          aria-label="Locate my GPS position"
         >
           <Crosshair className="w-5 h-5 animate-pulse" />
           <span className="hidden sm:inline">Locate Me</span>
@@ -1601,7 +1606,12 @@ export const SafetyMap: React.FC<SafetyMapProps> = ({
 
       {/* POI Directory Slide-Over Drawer */}
       {isPoiDrawerOpen && (
-        <div className="fixed inset-y-0 left-0 z-[150] w-full max-w-md bg-slate-950/95 backdrop-blur-xl border-r border-slate-800 shadow-2xl flex flex-col animate-slide-right">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Verified Location Directory"
+          className="fixed inset-y-0 left-0 z-[500] w-full max-w-[92vw] sm:max-w-md bg-slate-950/95 backdrop-blur-xl border-r border-slate-800 shadow-2xl flex flex-col animate-slide-right"
+        >
           {/* Drawer Header */}
           <div className="p-4 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-2">

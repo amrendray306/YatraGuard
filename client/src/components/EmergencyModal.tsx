@@ -93,6 +93,20 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
   };
 
   useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (isOpen) {
       setDeliveryStatus('REQUESTED');
 
@@ -278,7 +292,15 @@ export const EmergencyModal: React.FC<EmergencyModalProps> = ({ isOpen, onClose 
   const displayContacts = contacts.length > 0 ? contacts : fallbackProfileContact;
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center p-2 sm:p-4 bg-red-950/85 backdrop-blur-xl animate-fade-in overflow-y-auto">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="SOS Emergency Center"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[2000] flex items-center justify-center p-2 sm:p-4 bg-red-950/85 backdrop-blur-xl animate-fade-in overflow-y-auto"
+    >
       <div className="relative w-full max-w-2xl bg-slate-950 border-2 border-red-500 rounded-3xl shadow-2xl shadow-red-900/60 overflow-hidden my-auto max-h-[92dvh] flex flex-col">
         {/* Emergency Alert Banner */}
         <div className="bg-gradient-to-r from-red-600 via-rose-600 to-red-600 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center justify-between text-white flex-shrink-0">

@@ -969,9 +969,9 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
           </div>
 
           {/* Global Location Search + GPS + Bookmarks + Theme Switch */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 lg:min-w-[460px]">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto lg:min-w-[420px] min-w-0">
             <PlaceAutocompleteInput
-              className="flex-1"
+              className="flex-1 min-w-0"
               value={globalSearchText}
               onChange={setGlobalSearchText}
               biasCoords={userCoords}
@@ -983,7 +983,7 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
               }}
             />
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <button
                 type="button"
                 onClick={handleUseCurrentLocation}
@@ -1741,7 +1741,7 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
       {/* 7. MAIN SPLIT SECTION: INTEGRATED SAFETY MAP + DIRECTORY (DESKTOP) / EXPANDABLE SHEET (MOBILE) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:h-[680px]">
         {/* Interactive Map Container */}
-        <div className="lg:col-span-7 h-[52dvh] min-h-[320px] lg:h-full rounded-3xl overflow-hidden border border-slate-800 shadow-2xl relative">
+        <div className="lg:col-span-7 h-[46dvh] sm:h-[52dvh] min-h-[300px] lg:h-full rounded-3xl overflow-hidden border border-slate-800 shadow-2xl relative">
           {/* Map Top Controls: Normal/Safety Toggle, Map Click Mode, Provider Fallback */}
           <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-1.5 pointer-events-none">
             <div className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md p-1 rounded-xl border border-slate-800 text-[11px] pointer-events-auto">
@@ -1783,7 +1783,7 @@ export const NearbyPlacesPage: React.FC<NearbyPlacesPageProps> = ({ openEmergenc
                 <span>{activeProvider.name.split(' ')[0]}</span>
               </button>
               {isProviderMenuOpen && (
-                <div className="absolute right-0 mt-1 w-56 bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 z-40 space-y-1">
+                <div className="absolute right-0 mt-1 w-56 max-w-[calc(100vw-2rem)] bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl p-1.5 z-40 space-y-1">
                   {mapProviderService.getAllProviders().map((p) => (
                     <button
                       key={p.id}

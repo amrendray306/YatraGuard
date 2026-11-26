@@ -513,7 +513,7 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Registered users table" className="yg-table-scroll">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/80 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-800">
                 <tr>
@@ -656,7 +656,7 @@ export const AdminPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label="Registered users table" className="yg-table-scroll">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/80 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-800">
                 <tr>

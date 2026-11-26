@@ -897,9 +897,9 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ onNavigateToMap }) => {
                       Selected Route
                     </div>
                     <div className="text-sm font-extrabold text-white flex flex-wrap items-center gap-1.5">
-                      <span className="truncate max-w-[160px]">{sourcePoint.name}</span>
+                      <span className="truncate max-w-full sm:max-w-[160px]">{sourcePoint.name}</span>
                       <ArrowRight className="w-3.5 h-3.5 text-sky-400 flex-shrink-0" />
-                      <span className="truncate max-w-[160px]">{destPoint.name}</span>
+                      <span className="truncate max-w-full sm:max-w-[160px]">{destPoint.name}</span>
                     </div>
                   </div>
                   {onNavigateToMap && (
@@ -914,7 +914,7 @@ export const RoutesPage: React.FC<RoutesPageProps> = ({ onNavigateToMap }) => {
                 </div>
 
                 {/* Distance & Duration Metrics */}
-                <div className="grid grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
                     <span className="text-[10px] font-bold uppercase text-slate-400 block">Distance</span>
                     <span className="text-base font-black text-white">

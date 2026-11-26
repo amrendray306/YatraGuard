@@ -228,7 +228,7 @@ function ChatView({ conn, myId, onBack, onReport, onBlock }: {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-14rem)] max-h-[640px] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-14rem)] min-h-[360px] max-h-[640px] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between gap-3 p-4 border-b border-slate-800 flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -667,8 +667,8 @@ export const TravelBuddyPage: React.FC = () => {
       {tab === 'find' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="yg-card flex flex-wrap gap-2 items-center p-3">
-            <div className="relative flex-1 min-w-[180px]">
+          <div className="yg-card flex flex-col sm:flex-row flex-wrap gap-2 items-stretch sm:items-center p-3">
+            <div className="relative w-full sm:flex-1 sm:min-w-[180px]">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" aria-hidden="true" />
               <input type="text" value={destFilter} onChange={e => setDestFilter(e.target.value)}
                 placeholder="Search destination (e.g. Kedarnath, Manali)..."
@@ -677,12 +677,12 @@ export const TravelBuddyPage: React.FC = () => {
             </div>
             <select value={styleFilter} onChange={e => setStyleFilter(e.target.value)}
               aria-label="Filter by travel style"
-              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500">
+              className="w-full sm:w-auto px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500">
               {STYLES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
             <select value={budgetFilter} onChange={e => setBudgetFilter(e.target.value)}
               aria-label="Filter by budget"
-              className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500">
+              className="w-full sm:w-auto px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-sky-500">
               {BUDGETS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
             </select>
           </div>
@@ -1196,17 +1196,25 @@ export const TravelBuddyPage: React.FC = () => {
 
       {/* Modal: Create Travel Group */}
       {showCreateGroup && (
-        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-6 space-y-3 shadow-2xl">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Create Travel Group"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCreateGroup(false);
+          }}
+          className="fixed inset-0 z-[1500] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto"
+        >
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-3 shadow-2xl max-h-[90dvh] overflow-y-auto my-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create Travel Group</h3>
-              <button type="button" onClick={() => setShowCreateGroup(false)} className="text-slate-400"><X className="w-4 h-4" /></button>
+              <button type="button" onClick={() => setShowCreateGroup(false)} aria-label="Close modal" className="p-2 text-slate-400 touch-min flex items-center justify-center"><X className="w-4 h-4" /></button>
             </div>
             <form onSubmit={handleCreateGroup} className="space-y-2.5 text-xs">
               <input type="text" required placeholder="Group Title *" value={groupForm.title}
                 onChange={e => setGroupForm(p => ({ ...p, title: e.target.value }))}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input type="text" placeholder="Origin City" value={groupForm.originCity}
                   onChange={e => setGroupForm(p => ({ ...p, originCity: e.target.value }))}
                   className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
@@ -1214,7 +1222,7 @@ export const TravelBuddyPage: React.FC = () => {
                   onChange={e => setGroupForm(p => ({ ...p, destinationCity: e.target.value }))}
                   className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <input type="date" required value={groupForm.startDate}
                   onChange={e => setGroupForm(p => ({ ...p, startDate: e.target.value }))}
                   className="px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white" />
