@@ -169,6 +169,8 @@ export const App: React.FC = () => {
       'women-safety': 'Women Traveller Safety | YatraGuard',
       'offline-emergency': 'Offline Emergency Mode | YatraGuard',
       'road-crowd': 'Crowd & Road Intelligence | YatraGuard',
+      'crowd-intel': 'Crowd Intelligence | YatraGuard',
+      'road-intel': 'Road Intelligence | YatraGuard',
       'lost-found': 'Lost & Found Hub | YatraGuard',
       vault: 'Travel Document Vault | YatraGuard',
       translator: 'Language Assistant | YatraGuard',
@@ -227,6 +229,10 @@ export const App: React.FC = () => {
       setCurrentTab('offline-emergency');
     } else if (path === '/road-crowd') {
       setCurrentTab('road-crowd');
+    } else if (path === '/crowd-intelligence' || path === '/crowd') {
+      setCurrentTab('crowd-intel');
+    } else if (path === '/road-intelligence' || path === '/road') {
+      setCurrentTab('road-intel');
     } else if (path === '/lost-found') {
       setCurrentTab('lost-found');
     } else if (path === '/vault' || path === '/documents') {
@@ -459,7 +465,9 @@ export const App: React.FC = () => {
 
                   {currentTab === 'offline-emergency' && <OfflineEmergencyPage />}
 
-                  {currentTab === 'road-crowd' && <RoadCrowdPage />}
+                  {currentTab === 'road-crowd' && <RoadCrowdPage key="road-crowd-default" />}
+                  {currentTab === 'crowd-intel' && <RoadCrowdPage key="crowd-intel" initialModule="CROWD" />}
+                  {currentTab === 'road-intel' && <RoadCrowdPage key="road-intel" initialModule="ROAD" />}
 
                   {currentTab === 'lost-found' && <LostFoundPage />}
 
@@ -569,7 +577,8 @@ export const App: React.FC = () => {
                         { id: 'weather', label: 'Weather Forecast', icon: CloudSun },
                         { id: 'women-safety', label: 'Women Safety', icon: ShieldCheck },
                         { id: 'offline-emergency', label: 'Offline Emergency', icon: WifiOff },
-                        { id: 'road-crowd', label: 'Crowd & Road Intel', icon: Navigation },
+                        { id: 'crowd-intel', label: 'Crowd Intelligence', icon: Users },
+                        { id: 'road-intel', label: 'Road Intelligence', icon: Navigation },
                         { id: 'lost-found', label: 'Lost & Found', icon: PackageSearch },
                         { id: 'safety', label: 'Emergency Services', icon: ShieldCheck },
                         { id: 'guardian', label: 'AI Assistant', icon: Bot },

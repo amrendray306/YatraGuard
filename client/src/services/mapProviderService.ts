@@ -1,7 +1,7 @@
 export interface MapProvider {
   id: string;
   name: string;
-  category: 'street' | 'standard' | 'light' | 'terrain';
+  category: 'street' | 'standard' | 'light' | 'dark' | 'terrain';
   url: string;
   attribution: string;
   subdomains?: string[] | string;
@@ -12,17 +12,17 @@ export interface MapProvider {
 export const MAP_PROVIDERS: MapProvider[] = [
   {
     id: 'carto-voyager',
-    name: 'CARTO Voyager (Primary)',
+    name: 'CARTO Voyager',
     category: 'street',
     url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 19,
-    description: 'High-contrast vibrant tourism and safety styling',
+    description: 'High-contrast vibrant tourism and road styling',
   },
   {
     id: 'osm-standard',
-    name: 'OpenStreetMap (Fallback 1)',
+    name: 'OpenStreetMap',
     category: 'standard',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -32,13 +32,23 @@ export const MAP_PROVIDERS: MapProvider[] = [
   },
   {
     id: 'carto-positron',
-    name: 'CARTO Positron (Fallback 2)',
+    name: 'CARTO Positron (Light)',
     category: 'light',
     url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 19,
-    description: 'Clean minimalist backdrop prioritizing incident pins',
+    description: 'Clean light backdrop prioritizing markers & traffic alerts',
+  },
+  {
+    id: 'carto-dark',
+    name: 'CARTO Dark Matter',
+    category: 'dark',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19,
+    description: 'High-contrast dark base map for night visibility',
   },
   {
     id: 'opentopomap',

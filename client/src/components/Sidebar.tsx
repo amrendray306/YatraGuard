@@ -51,6 +51,8 @@ export type NavSectionKey =
   | 'women-safety'
   | 'offline-emergency'
   | 'road-crowd'
+  | 'crowd-intel'
+  | 'road-intel'
   | 'lost-found'
   | 'vault'
   | 'translator'
@@ -114,7 +116,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { key: 'dashboard', label: 'Dashboard', icon: Compass },
         { key: 'guardian', label: 'AI Assistant', icon: Bot },
         { key: 'services', label: 'Nearby Services', icon: Building2 },
-        { key: 'road-crowd', label: 'Crowd & Road Intel', icon: RouteIcon },
+        { key: 'crowd-intel', label: 'Crowd Intelligence', icon: Users },
+        { key: 'road-intel', label: 'Road Intelligence', icon: RouteIcon },
       ],
     },
     {

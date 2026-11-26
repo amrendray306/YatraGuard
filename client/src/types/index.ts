@@ -167,11 +167,15 @@ export interface TravelCost {
 export interface CrowdLevel {
   id: string;
   cityId: string;
+  city?: { id: string; name: string; state: string; lat?: number; lng?: number } | null;
   attractionName: string;
   currentLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH';
   bestVisitingHours: string;
   peakHours: string;
   crowdEstimateLabel: string;
+  lat?: number;
+  lng?: number;
+  distanceKm?: number | null;
 }
 
 export interface DailyForecastItem {
@@ -397,7 +401,7 @@ export interface RoadCrowdReport {
   userId?: string | null;
   user?: { id: string; name: string } | null;
   cityId?: string | null;
-  city?: { id: string; name: string; state: string } | null;
+  city?: { id: string; name: string; state: string; lat?: number; lng?: number } | null;
   locationName: string;
   lat: number;
   lng: number;
